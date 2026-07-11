@@ -1,0 +1,121 @@
+<?php
+require_once dirname(__DIR__, 3) . '/app/config/config.php';
+require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
+
+Auth::requireUserType('admin');
+$db = getDB();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
+$user_count = $stmt->fetch();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM owners WHERE status = 'active'");
+$owner_count = $stmt->fetch();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM stations");
+$station_count = $stmt->fetch();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM stations WHERE approval_status = 'pending'");
+$pending_approvals = $stmt->fetch();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM ratings_reviews WHERE is_flagged = TRUE AND is_deleted = FALSE");
+$flagged_reviews = $stmt->fetch();
+
+$stmt = $db->query("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 10");
+$activities = $stmt->fetchAll();
+
+$stmt = $db->prepare("
+    SELECT s.*, o.company_name FROM stations s
+    JOIN owners o ON s.owner_id = o.id
+    WHERE s.approval_status = 'pending'
+    ORDER BY s.created_at DESC LIMIT 5
+");
+$stmt->execute();
+$pending_stations = $stmt->fetchAll();
+?>
+
+<div class="dashboard-header">
+    <div class="header-title">
+        <h1>Admin Dashboard 👨‍💼</h1>
+        <p><?php echo date('l, F j, Y'); ?></p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="location.reload()">
+            <i class="fas fa-sync"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<div class="cards-grid">
+    <div class="card">
+        <div class="card-icon"><i class="fas fa-users"></i></div>
+        <div class="card-title">Active Users</div>
+        <div class="card-value"><?php echo $user_count['total']; ?></div>
+        <div class="card-subtitle">EV drivers</div>
+    </div>
+    <div class="card">
+        <div class="card-icon"><i class="fas fa-building"></i></div>
+        <div class="card-title">Station Owners</div>
+        <div class="card-value"><?php echo $owner_count['total']; ?></div>
+        <div class="card-subtitle">Active companies</div>
+    </div>
+    <div class="card">
+        <div class="card-icon"><i class="fas fa-charging-station"></i></div>
+        <div class="card-title">Total Stations</div>
+        <div class="card-value"><?php echo $station_count['total']; ?></div>
+        <div class="card-subtitle">Registered locations</div>
+    </div>
+    <div class="card">
+        <div class="card-icon"><i class="fas fa-hourglass-end"></i></div>
+        <div class="card-title">Pending</div>
+        <div class="card-value"><?php echo $pending_approvals['total'] + $flagged_reviews['total']; ?></div>
+        <div class="card-subtitle">Action required</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+    <h3><i class="fas fa-hourglass-half"></i> Pending Station Approvals</h3>
+    <?php if (count($pending_stations) > 0): ?>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr><th>Station</th><th>Owner</th><th>Chargers</th><th>Requested</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pending_stations as $station): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($station['name']); ?></td>
+                        <td><?php echo htmlspecialchars($station['company_name']); ?></td>
+                        <td><?php echo $station['num_chargers']; ?></td>
+                        <td><?php echo date('M d, Y', strtotime($station['created_at'])); ?></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="parent.approveStation(<?php echo $station['id']; ?>)">Approve</button>
+                            <button class="btn btn-sm btn-danger" onclick="parent.rejectStation(<?php echo $station['id']; ?>)">Reject</button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php else: ?>
+        <p style="text-align: center; color: var(--gray); padding: 16px;">No pending approvals</p>
+    <?php endif; ?>
+</div>
+
+<div class="card">
+    <h3><i class="fas fa-history"></i> Recent Activities</h3>
+    <div class="table-container">
+        <table>
+            <thead><tr><th>Admin</th><th>Action</th><th>Resource</th><th>Time</th></tr></thead>
+            <tbody>
+                <?php foreach ($activities as $activity): ?>
+                <tr>
+                    <td><?php echo $activity['admin_id'] ? 'Admin #'.$activity['admin_id'] : 'System'; ?></td>
+                    <td><?php echo htmlspecialchars($activity['action']); ?></td>
+                    <td><?php echo htmlspecialchars($activity['resource_type']); ?></td>
+                    <td><?php echo date('M d, H:i', strtotime($activity['created_at'])); ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

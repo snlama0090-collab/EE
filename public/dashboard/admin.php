@@ -5,7 +5,7 @@ require_once '../../app/helpers/Auth.php';
 Auth::requireUserType('admin');
 
 // Server-side initial page — no flicker
-$allowed = ['overview', 'stations', 'users', 'reviews'];
+$allowed = ['overview', 'stations', 'users', 'reviews', 'reports', 'settings'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'overview';
 
 $db = getDB();
@@ -49,6 +49,12 @@ $db = getDB();
             </button>
             <button class="nav-btn<?php echo $page === 'reviews' ? ' active' : ''; ?>" data-section="reviews" onclick="loadSection('reviews')">
                 <i class="fas fa-star"></i> Reviews
+            </button>
+            <button class="nav-btn<?php echo $page === 'reports' ? ' active' : ''; ?>" data-section="reports" onclick="loadSection('reports')">
+                <i class="fas fa-chart-bar"></i> Reports
+            </button>
+            <button class="nav-btn<?php echo $page === 'settings' ? ' active' : ''; ?>" data-section="settings" onclick="loadSection('settings')">
+                <i class="fas fa-cog"></i> Settings
             </button>
         </div>
 

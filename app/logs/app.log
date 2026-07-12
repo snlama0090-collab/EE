@@ -860,3 +860,5 @@ Stack trace:
 [2026-07-12 12:15:15] [WARNING] Failed login attempt for apple@gmail.com (owner)
 [2026-07-12 12:15:18] [INFO] User 5 (driver) logged in
 [2026-07-12 12:15:18] [INFO] User 5 (driver) logged in
+[2026-07-12 12:50:06] [INFO] User 3 (owner) logged in
+[2026-07-12 12:50:06] [INFO] User 3 (owner) logged in

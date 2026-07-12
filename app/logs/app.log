@@ -843,3 +843,7 @@ Stack trace:
 [2026-07-11 18:42:49] [INFO] User 4 (driver) logged in
 [2026-07-11 18:43:13] [INFO] User 3 (owner) logged in
 [2026-07-11 18:43:13] [INFO] User 3 (owner) logged in
+[2026-07-12 11:20:53] [INFO] User 4 (driver) logged in
+[2026-07-12 11:20:53] [INFO] User 4 (driver) logged in
+[2026-07-12 11:21:53] [INFO] User 3 (owner) logged in
+[2026-07-12 11:21:53] [INFO] User 3 (owner) logged in

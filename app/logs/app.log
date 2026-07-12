@@ -851,3 +851,12 @@ Stack trace:
 [2026-07-12 11:47:44] [INFO] User 1 (admin) logged in
 [2026-07-12 11:55:54] [INFO] User 4 (driver) logged in
 [2026-07-12 11:55:54] [INFO] User 4 (driver) logged in
+[2026-07-12 12:05:26] [INFO] User 3 (owner) logged in
+[2026-07-12 12:05:26] [INFO] User 3 (owner) logged in
+[2026-07-12 12:10:41] [INFO] User 1 (admin) logged in
+[2026-07-12 12:10:41] [INFO] User 1 (admin) logged in
+[2026-07-12 12:14:55] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-12 12:15:14] [WARNING] Failed login attempt for apple@gmail.com (owner)
+[2026-07-12 12:15:15] [WARNING] Failed login attempt for apple@gmail.com (owner)
+[2026-07-12 12:15:18] [INFO] User 5 (driver) logged in
+[2026-07-12 12:15:18] [INFO] User 5 (driver) logged in

@@ -251,6 +251,7 @@ if (file_exists($profilePicAbsolute)) {
             color: var(--primary);
             transform: translateY(-1px);
         }
+        .chart-wrapper { height: 300px; position: relative; }
     </style>
 </head>
 <body>
@@ -309,6 +310,7 @@ if (file_exists($profilePicAbsolute)) {
     </div>
 
     <script src="../assets/js/modal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let currentSection = '<?php echo $page; ?>';
@@ -375,9 +377,15 @@ if (file_exists($profilePicAbsolute)) {
 
         function initializeSection(sectionName) {
             if (sectionName === 'stations') {
-                // Initialize map for picking station location
                 setTimeout(initLocationPickerMap, 200);
             }
+        }
+
+        // Run once on initial page load for the pre-rendered section
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { initializeSection(currentSection); });
+        } else {
+            initializeSection(currentSection);
         }
 
         function initLocationPickerMap() {

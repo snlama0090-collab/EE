@@ -201,10 +201,12 @@ $db = getDB();
                     if (detailMap) detailMap.remove();
                     const lat = parseFloat(s.latitude) || 27.7172;
                     const lng = parseFloat(s.longitude) || 85.3240;
-                    detailMap = L.map('detail-map').setView([lat, lng], 14);
+                    detailMap = L.map('detail-map', { scrollWheelZoom: false }).setView([lat, lng], 14);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(detailMap);
                     L.marker([lat, lng]).addTo(detailMap);
                     detailMap.invalidateSize();
+                    detailMap.on('click', function() { detailMap.scrollWheelZoom.enable(); });
+                    document.addEventListener('click', function(e) { if (!e.target.closest('#detail-map')) { if (detailMap) detailMap.scrollWheelZoom.disable(); } });
                 }, 150);
 
                 document.getElementById('station-detail-actions').style.display = 'flex';

@@ -88,8 +88,9 @@ $pending_stations = $stmt->fetchAll();
                         <td><?php echo $station['num_chargers']; ?></td>
                         <td><?php echo date('M d, Y', strtotime($station['created_at'])); ?></td>
                         <td>
-                            <button class="btn btn-sm btn-primary" onclick="parent.approveStation(<?php echo $station['id']; ?>)">Approve</button>
-                            <button class="btn btn-sm btn-danger" onclick="parent.rejectStation(<?php echo $station['id']; ?>)">Reject</button>
+                            <button class="btn btn-sm btn-secondary" onclick="parent.viewStationDetails(<?php echo $station['id']; ?>)">
+                                <i class="fas fa-eye"></i> View
+                            </button>
                         </td>
                     </tr>
                     <?php endforeach; ?>

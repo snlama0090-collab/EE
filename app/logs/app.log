@@ -862,3 +862,9 @@ Stack trace:
 [2026-07-12 12:15:18] [INFO] User 5 (driver) logged in
 [2026-07-12 12:50:06] [INFO] User 3 (owner) logged in
 [2026-07-12 12:50:06] [INFO] User 3 (owner) logged in
+[2026-07-13 15:34:12] [INFO] User 3 (owner) logged in
+[2026-07-13 15:34:12] [INFO] User 3 (owner) logged in
+[2026-07-13 15:35:34] [INFO] User 4 (driver) logged in
+[2026-07-13 15:35:34] [INFO] User 4 (driver) logged in
+[2026-07-13 15:36:22] [INFO] User 3 (owner) logged in
+[2026-07-13 15:36:22] [INFO] User 3 (owner) logged in

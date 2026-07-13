@@ -167,27 +167,3 @@ $active_bookings = $stmt->fetchAll();
     </div>
 </div>
 
-<script>
-    function updateBatteryText(val) {
-        document.getElementById('slider-val').textContent = val + '%';
-        document.getElementById('slider-val').style.color = val > 20 ? '#34C759' : '#FF3B30';
-    }
-
-    async function saveBatteryPercent(val) {
-        const formData = new FormData();
-        formData.append('battery_percent', val);
-
-        try {
-            const response = await fetch('sections/dashboard-home.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                document.getElementById('battery-stat-text').textContent = val + '%';
-            }
-        } catch (e) {
-            console.error('Failed to save battery percent:', e);
-        }
-    }
-</script>

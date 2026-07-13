@@ -665,7 +665,12 @@ if (file_exists($profilePicAbsolute)) {
         }
 
         function htmlspecialchars(str) {
-            return str.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """).replace(/'/g, "&#039;");
+            var amp = '&' + 'amp;';
+            var lt = '&' + 'lt;';
+            var gt = '&' + 'gt;';
+            var quot = '&' + 'quot;';
+            var apos = '&' + '#039;';
+            return str.replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, apos);
         }
 
         // --- bookings.php (session start/stop) ---

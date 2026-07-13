@@ -133,6 +133,13 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
 
+        // Run once on initial page load for the pre-rendered section
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { initializeSection(currentSection); });
+        } else {
+            initializeSection(currentSection);
+        }
+
         // Map functions
         function getDefaultLocationPlaceName() {
             fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${userLocation.lat}&lon=${userLocation.lng}`)

@@ -116,34 +116,3 @@ $bookings = $stmt->fetchAll();
     </div>
 </div>
 
-<script>
-    function updateSession(bookingId, action) {
-        var msg = action === 'start_session' 
-            ? 'Start charging session for this vehicle?' 
-            : 'Complete charging session and generate billing receipt?';
-        showConfirm(msg, function() {
-            doUpdateSession(bookingId, action);
-        });
-    }
-
-    async function doUpdateSession(bookingId, action) {
-        try {
-            const response = await fetch(`../../api/bookings.php?id=${bookingId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: action })
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                showAlert(result.message, 'success');
-                loadSection('bookings');
-            } else {
-                showAlert(result.message || 'Operation failed.', 'error');
-            }
-        } catch (e) {
-            console.error(e);
-            showAlert('Error updating session. Try again.', 'error');
-        }
-    }
-</script>

@@ -563,7 +563,7 @@ if (file_exists($profilePicAbsolute)) {
             });
             const data = { name, description, latitude, longitude, address, city, chargers };
             try {
-                const response = await fetch('../../api/stations.php', {
+                const response = await fetch('../api/stations.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -587,7 +587,7 @@ if (file_exists($profilePicAbsolute)) {
             const body = document.getElementById('chargers-table-body');
             body.innerHTML = `<tr><td colspan="5" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>`;
             try {
-                const response = await fetch(`../../api/stations.php?id=${stationId}`);
+                const response = await fetch(`../api/stations.php?id=${stationId}`);
                 const result = await response.json();
                 if (result.status === 'success') {
                     body.innerHTML = '';
@@ -631,7 +631,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function updateChargerStatus(chargerId, newStatus, stationId, stationName) {
             try {
-                const response = await fetch(`../../api/stations.php?action=update_charger_status`, {
+                const response = await fetch(`../api/stations.php?action=update_charger_status`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ charger_id: chargerId, status: newStatus })
@@ -656,7 +656,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doDeleteStation(id) {
             try {
-                const response = await fetch(`../../api/stations.php?id=${id}`, {
+                const response = await fetch(`../api/stations.php?id=${id}`, {
                     method: 'DELETE'
                 });
                 const result = await response.json();
@@ -692,7 +692,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doUpdateSession(bookingId, action) {
             try {
-                const response = await fetch(`../../api/bookings.php?id=${bookingId}`, {
+                const response = await fetch(`../api/bookings.php?id=${bookingId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: action })

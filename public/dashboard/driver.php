@@ -159,9 +159,11 @@ if (file_exists($profilePicAbsolute)) {
             const placeholder = document.querySelector('#map .map-placeholder');
             if (placeholder) placeholder.remove();
 
-            map = L.map('map').setView([userLocation.lat, userLocation.lng], 12);
+            map = L.map('map', { scrollWheelZoom: false }).setView([userLocation.lat, userLocation.lng], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
             updateUserMarker(userLocation.lat, userLocation.lng, 'Kathmandu');
+            map.on('click', function() { map.scrollWheelZoom.enable(); });
+            document.addEventListener('click', function(e) { if (!e.target.closest('#map')) { map.scrollWheelZoom.disable(); } });
         }
 
         function updateUserMarker(lat, lon, placeName) {

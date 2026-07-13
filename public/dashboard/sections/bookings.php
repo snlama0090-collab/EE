@@ -120,28 +120,3 @@ $bookings = $stmt->fetchAll();
     </div>
 </div>
 
-<script>
-    function cancelBooking(id) {
-        showConfirm('Are you sure you want to cancel this reservation?', function() {
-            doCancelBooking(id);
-        }, { confirmLabel: 'Cancel Reservation', confirmClass: 'btn-danger' });
-    }
-
-    async function doCancelBooking(id) {
-        try {
-            const response = await fetch(`../../api/bookings.php?id=${id}`, {
-                method: 'DELETE'
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                showAlert('Reservation cancelled successfully.', 'success');
-                loadSection('bookings');
-            } else {
-                showAlert(result.message || 'Failed to cancel reservation.', 'error');
-            }
-        } catch (e) {
-            showAlert('Network error. Try again.', 'error');
-        }
-    }
-</script>

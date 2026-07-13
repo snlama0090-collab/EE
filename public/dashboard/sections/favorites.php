@@ -79,35 +79,3 @@ $favorites = $stmt->fetchAll();
     <?php endif; ?>
 </div>
 
-<script>
-    function removeFavorite(stationId) {
-        showConfirm('Remove this station from your favorites?', function() {
-            doRemoveFavorite(stationId);
-        }, { confirmLabel: 'Remove', confirmClass: 'btn-danger' });
-    }
-
-    async function doRemoveFavorite(stationId) {
-        const formData = new FormData();
-        formData.append('station_id', stationId);
-
-        try {
-            const response = await fetch('sections/favorites.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            if (result.status === 'success') {
-                loadSection('favorites');
-            } else {
-                showAlert(result.message || 'Failed to remove.', 'error');
-            }
-        } catch (e) {
-            showAlert('Error updating favorites list.', 'error');
-        }
-    }
-
-    function bookFavorite(stationId) {
-        history.pushState(null, '', '#find-stations');
-        loadSection('find-stations');
-    }
-</script>

@@ -505,6 +505,13 @@ if (file_exists($profilePicAbsolute)) {
             document.getElementById('register-view').style.display = 'none';
             document.getElementById('chargers-management-view').style.display = 'none';
             document.getElementById(viewId).style.display = 'block';
+
+            // Leaflet renders at the size its container was when initialized.
+            // If the container was hidden (display:none), tiles only load partially.
+            // Force a recalculation after the container layout is settled.
+            if (viewId === 'register-view') {
+                setTimeout(function() { if (map) map.invalidateSize(); }, 100);
+            }
         }
 
         function addChargerRow() {

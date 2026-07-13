@@ -34,6 +34,7 @@ if (file_exists($profilePicAbsolute)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         /* Extra styles specific to owner dashboard - adapted from driver page structure */
         .metrics-grid {
@@ -310,7 +311,6 @@ if (file_exists($profilePicAbsolute)) {
     </div>
 
     <script src="../assets/js/modal.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         let currentSection = '<?php echo $page; ?>';

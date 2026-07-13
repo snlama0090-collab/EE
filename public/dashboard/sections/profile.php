@@ -144,30 +144,3 @@ if (file_exists($profilePicAbsolute)) {
     </div>
 </div>
 
-<script>
-    async function saveProfile(event) {
-        event.preventDefault();
-        
-        const form = document.getElementById('driver-profile-form');
-        const formData = new FormData(form);
-
-        try {
-            const response = await fetch('sections/profile.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            
-            if (result.status === 'success') {
-                showAlert(result.message, 'success');
-                // Reload sidebar avatar after modal closes
-                setTimeout(function() { location.reload(); }, 500);
-            } else {
-                showAlert(result.message || 'Failed to update profile.', 'error');
-            }
-        } catch (e) {
-            console.error(e);
-            showAlert('Error updating profile. Try again.', 'error');
-        }
-    }
-</script>

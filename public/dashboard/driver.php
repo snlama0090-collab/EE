@@ -199,7 +199,9 @@ if (file_exists($profilePicAbsolute)) {
         function detectLocation() {
             if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
             var input = document.getElementById('location-input');
+            var btn = document.querySelector('[onclick="detectLocation()"]');
             if (input) input.value = 'Detecting...';
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Detecting...'; }
             navigator.geolocation.getCurrentPosition(
                 function(pos) {
                     updateUserMarker(pos.coords.latitude, pos.coords.longitude);
@@ -211,9 +213,15 @@ if (file_exists($profilePicAbsolute)) {
                         .then(r => r.json()).then(d => {
                             var name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || (pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4));
                             if (input) input.value = name; updateUserMarker(pos.coords.latitude, pos.coords.longitude, name);
-                        }).catch(function(){ if (input) input.value = pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4); });
+                        }).catch(function(){ if (input) input.value = pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4); })
+                        .finally(function(){ if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Detect location'; } });
                 },
-                function(err) { if (input) input.value = ''; alert('Location error: ' + err.message); }
+                function(err) {
+                    if (input) input.value = '';
+                    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-location-crosshairs"></i> Detect location'; }
+                    alert('Location error: ' + err.message);
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
             );
         }
 

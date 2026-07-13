@@ -155,5 +155,20 @@ $db = getDB();
         window.location.href = '../logout.php';
     }
 </script>
+<!-- Station Detail Modal (hidden by default) -->
+<div id="station-detail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:16px; width:90%; max-width:720px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 40px rgba(0,0,0,0.3); padding:28px; position:relative;">
+        <button onclick="closeStationDetail()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#8E8E93; line-height:1;">&times;</button>
+        <div id="station-detail-content">
+            <div style="text-align:center; padding:32px; color:#8E8E93;"><i class="fas fa-spinner fa-spin" style="font-size:48px; display:block; margin-bottom:16px;"></i><p>Loading details...</p></div>
+        </div>
+        <div id="station-detail-actions" style="display:none; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); gap:12px; justify-content:flex-end;">
+            <button class="btn btn-sm btn-secondary" onclick="closeStationDetail()">Cancel</button>
+            <button class="btn btn-sm btn-primary" id="modal-approve-btn">Approve</button>
+            <button class="btn btn-sm btn-danger" id="modal-reject-btn">Reject</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

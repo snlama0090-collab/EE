@@ -247,6 +247,113 @@ if (file_exists($profilePicAbsolute)) {
 
         function bookStation(id) { window.location.href = '../index.html#book-' + id; }
         function logout() { window.location.href = '../logout.php'; }
+
+        // --- dashboard.php (battery slider) ---
+        function updateBatteryText(val) {
+            document.getElementById('slider-val').textContent = val + '%';
+            document.getElementById('slider-val').style.color = val > 20 ? '#34C759' : '#FF3B30';
+        }
+
+        async function saveBatteryPercent(val) {
+            const formData = new FormData();
+            formData.append('battery_percent', val);
+
+            try {
+                const response = await fetch('sections/dashboard-home.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    document.getElementById('battery-stat-text').textContent = val + '%';
+                }
+            } catch (e) {
+                console.error('Failed to save battery percent:', e);
+            }
+        }
+
+        // --- bookings.php (cancel reservation) ---
+        function cancelBooking(id) {
+            showConfirm('Are you sure you want to cancel this reservation?', function() {
+                doCancelBooking(id);
+            }, { confirmLabel: 'Cancel Reservation', confirmClass: 'btn-danger' });
+        }
+
+        async function doCancelBooking(id) {
+            try {
+                const response = await fetch(`../../api/bookings.php?id=${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showAlert('Reservation cancelled successfully.', 'success');
+                    loadSection('bookings');
+                } else {
+                    showAlert(result.message || 'Failed to cancel reservation.', 'error');
+                }
+            } catch (e) {
+                showAlert('Network error. Try again.', 'error');
+            }
+        }
+
+        // --- favorites.php ---
+        function removeFavorite(stationId) {
+            showConfirm('Remove this station from your favorites?', function() {
+                doRemoveFavorite(stationId);
+            }, { confirmLabel: 'Remove', confirmClass: 'btn-danger' });
+        }
+
+        async function doRemoveFavorite(stationId) {
+            const formData = new FormData();
+            formData.append('station_id', stationId);
+
+            try {
+                const response = await fetch('sections/favorites.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    loadSection('favorites');
+                } else {
+                    showAlert(result.message || 'Failed to remove.', 'error');
+                }
+            } catch (e) {
+                showAlert('Error updating favorites list.', 'error');
+            }
+        }
+
+        function bookFavorite(stationId) {
+            history.pushState(null, '', '#find-stations');
+            loadSection('find-stations');
+        }
+
+        // --- profile.php (driver profile form) ---
+        async function saveProfile(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('driver-profile-form');
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('sections/profile.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    showAlert(result.message, 'success');
+                    setTimeout(function() { location.reload(); }, 500);
+                } else {
+                    showAlert(result.message || 'Failed to update profile.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Error updating profile. Try again.', 'error');
+            }
+        }
     </script>
 </body>
 </html>

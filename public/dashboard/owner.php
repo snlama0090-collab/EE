@@ -511,6 +511,11 @@ if (file_exists($profilePicAbsolute)) {
             // Force a recalculation after the container layout is settled.
             if (viewId === 'register-view') {
                 setTimeout(function() { if (map) map.invalidateSize(); }, 100);
+
+                // Auto-add a default charger row so the form isn't empty
+                if (document.querySelectorAll('.charger-config-row').length === 0) {
+                    addChargerRow();
+                }
             }
         }
 

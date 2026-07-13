@@ -496,6 +496,230 @@ if (file_exists($profilePicAbsolute)) {
         function logout() {
             window.location.href = '../logout.php';
         }
+
+        // --- stations.php (station & charger management) ---
+        let chargerCount = 0;
+
+        function toggleStationView(viewId) {
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('register-view').style.display = 'none';
+            document.getElementById('chargers-management-view').style.display = 'none';
+            document.getElementById(viewId).style.display = 'block';
+        }
+
+        function addChargerRow() {
+            chargerCount++;
+            const container = document.getElementById('chargers-builder-container');
+            const row = document.createElement('div');
+            row.className = 'charger-config-row';
+            row.id = `charger-row-${chargerCount}`;
+            row.innerHTML = `
+                <select class="sort-select" style="margin: 0; flex: 2;" required name="charger_type_${chargerCount}">
+                    <option value="DC Fast">DC Fast (CCS2)</option>
+                    <option value="AC 22kW">AC 22kW Type 2</option>
+                    <option value="AC 11kW">AC 11kW Type 2</option>
+                    <option value="AC 7.4kW">AC 7.4kW Type 2</option>
+                    <option value="GB/T Fast DC">GB/T Fast DC</option>
+                </select>
+                <input type="number" class="location-input" style="flex: 1;" placeholder="Wattage (kW)" min="1" max="350" required name="charger_wattage_${chargerCount}" value="22">
+                <button type="button" class="btn btn-danger" style="padding: 12px;" onclick="removeChargerRow(${chargerCount})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(row);
+        }
+
+        function removeChargerRow(id) {
+            const row = document.getElementById(`charger-row-${id}`);
+            if (row) row.remove();
+        }
+
+        async function submitStation(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const description = document.getElementById('description').value;
+            const latitude = document.getElementById('lat-input').value;
+            const longitude = document.getElementById('lon-input').value;
+            const address = document.getElementById('address-input').value;
+            const city = document.getElementById('city-input').value;
+            const chargers = [];
+            const container = document.getElementById('chargers-builder-container');
+            const rows = container.querySelectorAll('.charger-config-row');
+            if (rows.length === 0) {
+                showAlert('Please add at least one charger to this station.', 'error');
+                return;
+            }
+            rows.forEach(row => {
+                const selects = row.querySelectorAll('select');
+                const inputs = row.querySelectorAll('input');
+                chargers.push({ type: selects[0].value, wattage: inputs[0].value });
+            });
+            const data = { name, description, latitude, longitude, address, city, chargers };
+            try {
+                const response = await fetch('../../api/stations.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert('Station submitted successfully for admin approval.', 'success');
+                    loadSection('stations');
+                } else {
+                    showAlert(result.message || 'Failed to submit station.', 'error');
+                }
+            } catch (e) {
+                console.error('Error submitting station:', e);
+                showAlert('Network error. Try again.', 'error');
+            }
+        }
+
+        async function manageStationChargers(stationId, stationName) {
+            document.getElementById('manage-chargers-title').textContent = `🔌 Chargers for "${stationName}"`;
+            toggleStationView('chargers-management-view');
+            const body = document.getElementById('chargers-table-body');
+            body.innerHTML = `<tr><td colspan="5" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>`;
+            try {
+                const response = await fetch(`../../api/stations.php?id=${stationId}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    body.innerHTML = '';
+                    const chargers = result.data.chargers || [];
+                    if (chargers.length === 0) {
+                        body.innerHTML = `<tr><td colspan="5" style="text-align:center;">No chargers added yet.</td></tr>`;
+                        return;
+                    }
+                    chargers.forEach(charger => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>#<strong>${charger.charger_number}</strong></td>
+                            <td>${htmlspecialchars(charger.charger_type)}</td>
+                            <td>${charger.wattage_kw} kW</td>
+                            <td><span class="badge ${getChargerBadge(charger.status)}">${charger.status}</span></td>
+                            <td>
+                                <select onchange="updateChargerStatus(${charger.id}, this.value, ${stationId}, '${stationName}')" class="sort-select" style="margin: 0; padding: 4px 8px; font-size: 12px; width: auto; height: auto;">
+                                    <option value="available" ${charger.status === 'available' ? 'selected' : ''}>Available</option>
+                                    <option value="maintenance" ${charger.status === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+                                    <option value="offline" ${charger.status === 'offline' ? 'selected' : ''}>Offline</option>
+                                    <option value="charging" ${charger.status === 'charging' ? 'selected' : ''} disabled>Charging (In Session)</option>
+                                </select>
+                            </td>
+                        `;
+                        body.appendChild(row);
+                    });
+                } else {
+                    body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">${result.message}</td></tr>`;
+                }
+            } catch (e) {
+                body.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading details.</td></tr>`;
+            }
+        }
+
+        function getChargerBadge(status) {
+            if (status === 'available') return 'badge-success';
+            if (status === 'charging') return 'badge-warning';
+            if (status === 'maintenance') return 'badge-info';
+            return 'badge-danger';
+        }
+
+        async function updateChargerStatus(chargerId, newStatus, stationId, stationName) {
+            try {
+                const response = await fetch(`../../api/stations.php?action=update_charger_status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ charger_id: chargerId, status: newStatus })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    manageStationChargers(stationId, stationName);
+                } else {
+                    showAlert(result.message || 'Failed to update status.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Error updating charger status.', 'error');
+            }
+        }
+
+        function deleteStation(id) {
+            showConfirm('Are you absolutely sure you want to delete this station? All charger slots and related bookings will be deleted.', function() {
+                doDeleteStation(id);
+            }, { confirmLabel: 'Delete Station', confirmClass: 'btn-danger' });
+        }
+
+        async function doDeleteStation(id) {
+            try {
+                const response = await fetch(`../../api/stations.php?id=${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert('Station deleted successfully.', 'success');
+                    loadSection('stations');
+                } else {
+                    showAlert(result.message || 'Failed to delete.', 'error');
+                }
+            } catch (e) {
+                showAlert('Connection error.', 'error');
+            }
+        }
+
+        function htmlspecialchars(str) {
+            return str.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">").replace(/"/g, """).replace(/'/g, "&#039;");
+        }
+
+        // --- bookings.php (session start/stop) ---
+        function updateSession(bookingId, action) {
+            var msg = action === 'start_session'
+                ? 'Start charging session for this vehicle?'
+                : 'Complete charging session and generate billing receipt?';
+            showConfirm(msg, function() {
+                doUpdateSession(bookingId, action);
+            });
+        }
+
+        async function doUpdateSession(bookingId, action) {
+            try {
+                const response = await fetch(`../../api/bookings.php?id=${bookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: action })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert(result.message, 'success');
+                    loadSection('bookings');
+                } else {
+                    showAlert(result.message || 'Operation failed.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Error updating session. Try again.', 'error');
+            }
+        }
+
+        // --- profile.php (owner profile form) ---
+        async function saveProfile(event) {
+            event.preventDefault();
+            const form = document.getElementById('owner-profile-form');
+            const formData = new FormData(form);
+            try {
+                const response = await fetch('owner_sections/profile.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert(result.message, 'success');
+                    setTimeout(function() { location.reload(); }, 500);
+                } else {
+                    showAlert(result.message || 'Failed to update profile.', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Error updating profile. Try again.', 'error');
+            }
+        }
     </script>
 </body>
 </html>

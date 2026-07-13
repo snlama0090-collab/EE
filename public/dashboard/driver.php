@@ -154,6 +154,11 @@ if (file_exists($profilePicAbsolute)) {
             const el = document.getElementById('map');
             if (!el) return;
             if (map) { map.remove(); map = null; userMarker = null; stationMarkers = []; }
+
+            // Remove the static placeholder child so it doesn't show below the real map tiles
+            const placeholder = document.querySelector('#map .map-placeholder');
+            if (placeholder) placeholder.remove();
+
             map = L.map('map').setView([userLocation.lat, userLocation.lng], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
             updateUserMarker(userLocation.lat, userLocation.lng, 'Kathmandu');

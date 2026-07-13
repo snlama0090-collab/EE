@@ -151,6 +151,100 @@ $db = getDB();
         }
     }
 
+    let detailMap = null;
+    let detailStationId = null;
+
+    function closeStationDetail() {
+        document.getElementById('station-detail-modal').style.display = 'none';
+        if (detailMap) { detailMap.remove(); detailMap = null; }
+    }
+
+    function viewStationDetails(stationId) {
+        detailStationId = stationId;
+        document.getElementById('station-detail-modal').style.display = 'flex';
+        document.getElementById('station-detail-actions').style.display = 'none';
+
+        fetch(`../../api/stations.php?id=${stationId}`)
+            .then(r => r.json())
+            .then(result => {
+                if (result.status !== 'success') throw new Error(result.message || 'Failed');
+                const s = result.data;
+                const content = document.getElementById('station-detail-content');
+
+                let chargerRows = '';
+                (s.chargers || []).forEach(c => {
+                    const badge = c.status === 'available' ? 'badge-success' : c.status === 'maintenance' ? 'badge-info' : c.status === 'charging' ? 'badge-warning' : 'badge-danger';
+                    chargerRows += `<tr><td>#${c.charger_number}</td><td>${c.charger_type}</td><td>${c.wattage_kw} kW</td><td><span class="badge ${badge}">${c.status}</span></td></tr>`;
+                });
+
+                content.innerHTML = `
+                    <h2 style="margin-bottom:8px;">🔌 ${s.name}</h2>
+                    <p style="color:var(--gray); margin-bottom:16px;">${s.description || ''}</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; font-size:14px;">
+                        <div><strong>Owner:</strong> ${s.owner_company || 'N/A'}</div>
+                        <div><strong>Submitted:</strong> ${new Date(s.created_at).toLocaleDateString()}</div>
+                        <div><strong>Address:</strong> ${s.address || ''}, ${s.city || ''}</div>
+                        <div><strong>Status:</strong> <span class="badge badge-warning">${s.approval_status}</span></div>
+                    </div>
+                    <div id="detail-map" style="height:200px; border-radius:10px; border:1px solid var(--border); margin-bottom:16px;"></div>
+                    <h4 style="margin-bottom:8px;">🔌 Chargers</h4>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>#</th><th>Type</th><th>Wattage</th><th>Status</th></tr></thead>
+                            <tbody>${chargerRows || '<tr><td colspan="4" style="text-align:center;color:var(--gray);">No chargers</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Init Leaflet on the detail map container
+                setTimeout(function() {
+                    if (detailMap) detailMap.remove();
+                    const lat = parseFloat(s.latitude) || 27.7172;
+                    const lng = parseFloat(s.longitude) || 85.3240;
+                    detailMap = L.map('detail-map').setView([lat, lng], 14);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors', maxZoom: 19 }).addTo(detailMap);
+                    L.marker([lat, lng]).addTo(detailMap);
+                    detailMap.invalidateSize();
+                }, 150);
+
+                document.getElementById('station-detail-actions').style.display = 'flex';
+                document.getElementById('modal-approve-btn').onclick = function() { doModalApprove(s.id); };
+                document.getElementById('modal-reject-btn').onclick = function() { doModalReject(s.id); };
+            })
+            .catch(function() {
+                document.getElementById('station-detail-content').innerHTML = `
+                    <div style="text-align:center;padding:32px;color:#FF3B30;">
+                        <i class="fas fa-exclamation-circle" style="font-size:48px;display:block;margin-bottom:16px;"></i>
+                        <p>Failed to load station details.</p>
+                    </div>`;
+            });
+    }
+
+    function doModalApprove(id) {
+        showConfirm('Approve this station?', function() {
+            fetch(`../../api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
+                .then(r => r.json()).then(function(data) {
+                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection); }
+                });
+        });
+    }
+
+    function doModalReject(id) {
+        var sid = id || detailStationId;
+        showConfirm('Reject this station? A rejection reason is required.', function() {
+            var reason = prompt('Reason for rejection:');
+            if (reason) {
+                fetch(`../../api/stations.php?action=reject&id=${sid}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason: reason })
+                }).then(r => r.json()).then(function(data) {
+                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection); }
+                });
+            }
+        }, { confirmLabel: 'Reject Station', confirmClass: 'btn-danger' });
+    }
+
     function logout() {
         window.location.href = '../logout.php';
     }

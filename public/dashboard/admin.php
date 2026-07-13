@@ -28,6 +28,7 @@ $db = getDB();
         }
     </style>
     <script src="../assets/js/modal.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <div class="dashboard-container">

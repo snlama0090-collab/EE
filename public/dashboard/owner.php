@@ -449,12 +449,15 @@ if (file_exists($profilePicAbsolute)) {
             let startLat = parseFloat(latInput.value) || 27.7172;
             let startLon = parseFloat(lonInput.value) || 85.3240;
 
-            map = L.map('map-picker').setView([startLat, startLon], 13);
+            map = L.map('map-picker', { scrollWheelZoom: false }).setView([startLat, startLon], 13);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 19
             }).addTo(map);
+
+            map.on('click', function() { map.scrollWheelZoom.enable(); });
+            document.addEventListener('click', function(e) { if (!e.target.closest('#map-picker')) { map.scrollWheelZoom.disable(); } });
 
             stationMarker = L.marker([startLat, startLon], {
                 draggable: true

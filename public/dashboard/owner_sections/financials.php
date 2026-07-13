@@ -31,8 +31,6 @@ $profit_margin = $revenue > 0 ? round(($net_revenue / $revenue) * 100, 1) : 0;
 $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
 ?>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-
 <!-- METRICS GRID -->
 <div class="metrics-grid">
     <div class="metric-card success">
@@ -76,13 +74,13 @@ $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
         </div>
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
-        <div>
+        <div class="chart-wrapper">
             <h4 style="margin-bottom:12px;">Revenue vs Platform Fee</h4>
-            <canvas id="revenueChart" height="200"></canvas>
+            <canvas id="revenueChart"></canvas>
         </div>
-        <div>
+        <div class="chart-wrapper">
             <h4 style="margin-bottom:12px;">Energy Consumption (kWh)</h4>
-            <canvas id="kwhChart" height="200"></canvas>
+            <canvas id="kwhChart"></canvas>
         </div>
     </div>
 </div>
@@ -155,6 +153,6 @@ $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
         });
     }
 
-    // Default to months view on load
-    document.addEventListener('DOMContentLoaded', function() { switchFinancialView('months'); });
+    // Default to months view (works on both AJAX and full page load)
+    switchFinancialView('months');
 </script>

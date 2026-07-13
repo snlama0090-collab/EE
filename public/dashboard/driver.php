@@ -202,6 +202,9 @@ if (file_exists($profilePicAbsolute)) {
                 function(pos) {
                     updateUserMarker(pos.coords.latitude, pos.coords.longitude);
                     showStations(); calculateDistancesAndFilter(pos.coords.latitude, pos.coords.longitude);
+                    // Default range filter to 2km after location detection
+                    var rangeEl = document.getElementById('range-filter');
+                    if (rangeEl) { rangeEl.value = '2'; filterStations(); }
                     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude)
                         .then(r => r.json()).then(d => {
                             var name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || (pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4));

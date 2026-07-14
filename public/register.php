@@ -310,17 +310,64 @@ if (Auth::isLoggedIn()) {
 
                     <div class="form-group">
                         <label for="driver-phone">Phone Number</label>
-                        <input type="tel" id="driver-phone" name="phone" placeholder="+977 98XXXXXXXX" required>
+                        <input type="tel" id="driver-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required>
                     </div>
 
                     <div class="form-group">
                         <label for="car-model">Car Model</label>
-                        <input type="text" id="car-model" name="car_model" placeholder="e.g., Tesla Model 3" required>
+                        <input type="text" id="car-model" name="car_model" placeholder="e.g., Tesla Model 3" list="ev-models" required>
+                        <datalist id="ev-models">
+                            <option value="Tata Nexon EV">
+                            <option value="MG ZS EV">
+                            <option value="Hyundai Kona Electric">
+                            <option value="BYD Atto 3">
+                            <option value="BYD Dolphin">
+                            <option value="BYD Seal">
+                            <option value="Tata Tigor EV">
+                            <option value="Tata Punch EV">
+                            <option value="Tata Curvv EV">
+                            <option value="Hyundai Ioniq 5">
+                            <option value="Hyundai Ioniq 6">
+                            <option value="Kia EV6">
+                            <option value="Kia EV9">
+                            <option value="Nissan Leaf">
+                            <option value="Tesla Model 3">
+                            <option value="Tesla Model Y">
+                            <option value="Tesla Model S">
+                            <option value="Mercedes-Benz EQS">
+                            <option value="Mercedes-Benz EQB">
+                            <option value="BMW iX">
+                            <option value="BMW i4">
+                            <option value="Volvo XC40 Recharge">
+                            <option value="Mahindra XUV400">
+                            <option value="MG Comet EV">
+                            <option value="Citroën ë-C3">
+                            <option value="Porsche Taycan">
+                            <option value="Audi e-tron GT">
+                        </datalist>
                     </div>
 
                     <div class="form-group">
                         <label for="battery-capacity">Battery Capacity (kWh)</label>
-                        <input type="number" id="battery-capacity" name="battery_capacity" placeholder="75" step="0.1" required>
+                        <select id="battery-capacity" name="battery_capacity" required>
+                            <option value="">Select battery capacity</option>
+                            <option value="17.3">17.3 kWh (MG Comet)</option>
+                            <option value="20">20 kWh</option>
+                            <option value="26">26 kWh (Tata Punch EV)</option>
+                            <option value="30">30 kWh</option>
+                            <option value="40">40 kWh</option>
+                            <option value="50">50 kWh</option>
+                            <option value="60">60 kWh</option>
+                            <option value="70">70 kWh</option>
+                            <option value="72">72 kWh (Kia EV6)</option>
+                            <option value="77">77 kWh (Hyundai Ioniq 5)</option>
+                            <option value="82">82 kWh (Tata Curvv EV)</option>
+                            <option value="100">100 kWh</option>
+                            <option value="other">Other (custom)</option>
+                        </select>
+                        <div id="battery-other-wrapper" style="display:none; margin-top:8px;">
+                            <input type="number" id="battery-other-input" placeholder="Enter custom capacity (kWh)" step="0.1" min="0">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -354,7 +401,7 @@ if (Auth::isLoggedIn()) {
 
                     <div class="form-group">
                         <label for="owner-phone">Phone Number</label>
-                        <input type="tel" id="owner-phone" name="phone" placeholder="+977 98XXXXXXXX" required>
+                        <input type="tel" id="owner-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required>
                     </div>
 
                     <div class="form-group">
@@ -426,6 +473,21 @@ if (Auth::isLoggedIn()) {
 
     <script>
         let selectedUserType = 'driver';
+
+        // Battery capacity "Other" toggle
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'battery-capacity') {
+                var wrapper = document.getElementById('battery-other-wrapper');
+                var otherInput = document.getElementById('battery-other-input');
+                if (e.target.value === 'other') {
+                    wrapper.style.display = 'block';
+                    otherInput.setAttribute('required', '');
+                } else {
+                    wrapper.style.display = 'none';
+                    otherInput.removeAttribute('required');
+                }
+            }
+        });
 
         function selectUserType(element, type) {
             if (typeof type === 'undefined') {

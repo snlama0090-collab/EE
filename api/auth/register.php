@@ -27,6 +27,11 @@ if (strlen($password) < PASSWORD_MIN_LENGTH) {
     exit;
 }
 
+if (!validate_phone($phone)) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid phone number. Expected format: +977 98XXXXXXXX or 98XXXXXXXX']);
+    exit;
+}
+
 try {
     $db = getDB();
     $hashed_password = hash_password($password);

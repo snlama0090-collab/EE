@@ -885,3 +885,4 @@ Stack trace:
 [2026-07-13 20:33:24] [INFO] User 4 (driver) logged in
 [2026-07-14 14:17:14] [INFO] New driver registered: nislaa0090@gmail.com
 [2026-07-14 14:21:01] [INFO] New driver registered: testuser123@example.com
+[14-Jul-2026 14:27:34 Asia/Kathmandu] DB connection failed: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it

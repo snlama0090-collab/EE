@@ -11,11 +11,18 @@ Auth::requireUserType('driver');
 $db = getDB();
 
 // Get all available stations with charger details
+// available_chargers = chargers that are bookable (available+no active bookings, or charging+has single active=bookable next-in-line)
 $stmt = $db->prepare("
     SELECT 
         s.*,
         COUNT(c.id) as charger_count,
-        SUM(CASE WHEN c.status = 'available' THEN 1 ELSE 0 END) as available_chargers,
+        SUM(CASE WHEN c.status = 'available' AND (
+            SELECT COUNT(*) FROM bookings b WHERE b.charger_id = c.id AND b.status IN ('booked', 'charging')
+        ) = 0 THEN 1
+        WHEN c.status = 'charging' AND (
+            SELECT COUNT(*) FROM bookings b WHERE b.charger_id = c.id AND b.status IN ('booked', 'charging')
+        ) = 1 THEN 1
+        ELSE 0 END) as available_chargers,
         GROUP_CONCAT(DISTINCT c.charger_type ORDER BY c.charger_type) as charger_types,
         GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)') ORDER BY c.wattage_kw DESC SEPARATOR ', ') as charger_details,
         5.0 as average_rating

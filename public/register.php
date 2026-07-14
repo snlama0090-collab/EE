@@ -556,6 +556,16 @@ if (Auth::isLoggedIn()) {
             const formData = new FormData(form);
             const data = Object.fromEntries(formData);
             
+            // Battery capacity "Other" — swap in the custom value
+            if (data.battery_capacity === 'other') {
+                const customVal = document.getElementById('battery-other-input').value;
+                if (!customVal) {
+                    showError('Please enter a custom battery capacity');
+                    return;
+                }
+                data.battery_capacity = customVal;
+            }
+            
             const errorMsg = document.getElementById('error-message');
             const successMsg = document.getElementById('success-message');
             
@@ -657,7 +667,7 @@ if (Auth::isLoggedIn()) {
 
         // Clear form fields on page load (single clean listener)
         document.addEventListener('DOMContentLoaded', function() {
-            ['driver-name','driver-email','driver-phone','car-model','battery-capacity','preferred-charger',
+            ['driver-name','driver-email','driver-phone','car-model','battery-capacity','battery-other-input','preferred-charger',
              'owner-name','company-name','owner-email','owner-phone','bank-account','company-description',
              'password','confirm-password'].forEach(function(id) {
                 var el = document.getElementById(id);

@@ -263,7 +263,101 @@ if (file_exists($profilePicAbsolute)) {
             if (container) cards.forEach(function(c){ if (c.style.display !== 'none') container.appendChild(c); });
         }
 
-        function bookStation(id) { window.location.href = '../index.html#book-' + id; }
+
+        // --- booking modal ---
+        function bookStation(stationId) {
+            fetch(`../api/stations.php?id=${stationId}`)
+                .then(r => r.json())
+                .then(result => {
+                    if (result.status !== 'success') throw new Error(result.message);
+                    const station = result.data;
+                    const available = (station.chargers || []).filter(c => c.status === 'available');
+                    if (available.length === 0) {
+                        showAlert('No chargers currently available at this station.', 'error');
+                        return;
+                    }
+
+                    // Build modal content
+                    const overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay';
+                    const box = document.createElement('div');
+                    box.className = 'modal-box';
+                    box.style.textAlign = 'left';
+
+                    let chargerOptions = available.map((c, i) =>
+                        `<option value="${c.id}">#${c.charger_number} — ${c.charger_type} (${c.wattage_kw}kW)</option>`
+                    ).join('');
+
+                    box.innerHTML = `
+                        <div style="margin-bottom:20px;">
+                            <h3 style="margin-bottom:4px;">🔌 ${station.name}</h3>
+                            <p style="color:var(--gray); font-size:13px;">Select an available charger and enter your battery level</p>
+                        </div>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Available Chargers</label>
+                            <select id="modal-charger-select" class="sort-select" style="width:100%; margin:0;">
+                                ${chargerOptions}
+                            </select>
+                        </div>
+                        <div style="margin-bottom:24px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Current Battery %</label>
+                            <input type="number" id="modal-battery-input" class="location-input" style="width:100%;" min="1" max="100" placeholder="Enter your current battery %" value="">
+                        </div>
+                        <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
+                            <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+                            <button class="btn btn-primary" id="modal-confirm-btn">Confirm Booking</button>
+                        </div>
+                    `;
+
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+
+                    requestAnimationFrame(() => overlay.classList.add('show'));
+
+                    const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); };
+                    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+                    box.querySelector('#modal-cancel-btn').onclick = close;
+
+                    box.querySelector('#modal-confirm-btn').onclick = function() {
+                        const chargerId = parseInt(box.querySelector('#modal-charger-select').value);
+                        const batteryPct = parseInt(box.querySelector('#modal-battery-input').value);
+
+                        if (!batteryPct || batteryPct < 1 || batteryPct > 100) {
+                            showAlert('Please enter your current battery percentage (1–100).', 'error');
+                            return;
+                        }
+
+                        this.disabled = true;
+                        this.textContent = 'Booking...';
+
+                        fetch('../api/bookings.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ charger_id: chargerId, battery_percent: batteryPct })
+                        })
+                        .then(r => r.json())
+                        .then(res => {
+                            close();
+                            if (res.status === 'success') {
+                                const cost = res.data.cost.toFixed(2);
+                                const time = res.data.charge_time;
+                                showAlert(`Booking confirmed! Estimated cost: NPR ${cost}, charge time: ~${time} min.`, 'success');
+                                setTimeout(() => loadSection('bookings'), 1000);
+                            } else {
+                                showAlert(res.message || 'Booking failed.', 'error');
+                            }
+                        })
+                        .catch(() => {
+                            this.disabled = false;
+                            this.textContent = 'Confirm Booking';
+                            showAlert('Network error. Please try again.', 'error');
+                        });
+                    };
+                })
+                .catch(() => {
+                    showAlert('Failed to load station details.', 'error');
+                });
+        }
         function logout() { window.location.href = '../logout.php'; }
 
         // --- dashboard.php (battery slider) ---

@@ -131,7 +131,7 @@ $db = getDB();
 
     function approveStation(stationId) {
         showConfirm('Approve this station?', function() {
-            fetch(`../../api/stations.php?action=approve&id=${stationId}`, { method: 'POST' })
+            fetch(`../api/stations.php?action=approve&id=${stationId}`, { method: 'POST' })
                 .then(r => r.json()).then(data => {
                     if (data.status === 'success') loadSection(currentSection);
                 });
@@ -141,7 +141,7 @@ $db = getDB();
     function rejectStation(stationId) {
         const reason = prompt('Reason for rejection:');
         if (reason) {
-            fetch(`../../api/stations.php?action=reject&id=${stationId}`, {
+            fetch(`../api/stations.php?action=reject&id=${stationId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason })
@@ -164,7 +164,7 @@ $db = getDB();
         document.getElementById('station-detail-modal').style.display = 'flex';
         document.getElementById('station-detail-actions').style.display = 'none';
 
-        fetch(`../../api/stations.php?id=${stationId}`)
+        fetch(`../api/stations.php?id=${stationId}`)
             .then(r => r.json())
             .then(result => {
                 if (result.status !== 'success') throw new Error(result.message || 'Failed');
@@ -224,7 +224,7 @@ $db = getDB();
 
     function doModalApprove(id) {
         showConfirm('Approve this station?', function() {
-            fetch(`../../api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
+            fetch(`../api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
                 .then(r => r.json()).then(function(data) {
                     if (data.status === 'success') { closeStationDetail(); loadSection(currentSection); }
                 });
@@ -236,7 +236,7 @@ $db = getDB();
         showConfirm('Reject this station? A rejection reason is required.', function() {
             var reason = prompt('Reason for rejection:');
             if (reason) {
-                fetch(`../../api/stations.php?action=reject&id=${sid}`, {
+                fetch(`../api/stations.php?action=reject&id=${sid}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reason: reason })

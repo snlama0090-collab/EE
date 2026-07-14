@@ -103,7 +103,13 @@ try {
             $stmt = $db->prepare("
                 SELECT s.*, 
                        COUNT(c.id) as charger_count,
-                       SUM(CASE WHEN c.status = 'available' THEN 1 ELSE 0 END) as available_chargers,
+                       SUM(CASE WHEN c.status = 'available' AND (
+                           SELECT COUNT(*) FROM bookings WHERE charger_id = c.id AND status IN ('booked', 'charging')
+                       ) = 0 THEN 1
+                       WHEN c.status = 'charging' AND (
+                           SELECT COUNT(*) FROM bookings WHERE charger_id = c.id AND status IN ('booked', 'charging')
+                       ) = 1 THEN 1
+                       ELSE 0 END) as available_chargers,
                        GROUP_CONCAT(DISTINCT c.charger_type ORDER BY c.charger_type) as charger_types,
                        GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)') ORDER BY c.wattage_kw DESC SEPARATOR ', ') as charger_details
                 FROM stations s

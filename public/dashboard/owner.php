@@ -269,6 +269,9 @@ if (file_exists($profilePicAbsolute)) {
                 <button class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')"<?php echo $page === 'overview' ? ' style="border-color:#34C759;background:linear-gradient(135deg,#34C759 0%,#20c997 100%);box-shadow:0 4px 12px rgba(52,199,89,0.4);transform:translateX(4px);"' : ''; ?>>
                     <i class="fas fa-chart-pie"></i> Overview
                 </button>
+                <button class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
+                    <i class="fas fa-store"></i> Company Profile
+                </button>
                 <button class="nav-btn<?php echo $page === 'financials' ? ' active' : ''; ?>" data-section="financials" onclick="loadSection('financials')">
                     <i class="fas fa-chart-bar"></i> Financials
                 </button>
@@ -277,9 +280,6 @@ if (file_exists($profilePicAbsolute)) {
                 </button>
                 <button class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
                     <i class="fas fa-receipt"></i> Bookings
-                </button>
-                <button class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
-                    <i class="fas fa-store"></i> Company Profile
                 </button>
             </div>
 

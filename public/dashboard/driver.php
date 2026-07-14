@@ -299,7 +299,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doCancelBooking(id) {
             try {
-                const response = await fetch(`../../api/bookings.php?id=${id}`, {
+                const response = await fetch(`../api/bookings.php?id=${id}`, {
                     method: 'DELETE'
                 });
                 const result = await response.json();

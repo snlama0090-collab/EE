@@ -161,22 +161,42 @@ try {
                     exit;
                 }
                 
+                // Battery % is required from the owner at session start
+                $battery_percent = intval($input['battery_percent'] ?? 0);
+                if ($battery_percent < 1 || $battery_percent > 100) {
+                    echo json_encode(['status' => 'error', 'message' => 'Please provide the current battery percentage (1–100).']);
+                    exit;
+                }
+                
                 $db->beginTransaction();
                 
-                // Update booking status
-                $stmt = $db->prepare("UPDATE bookings SET status = 'charging' WHERE id = ?");
-                $stmt->execute([$id]);
+                // Get charger wattage for calculations
+                $stmt2 = $db->prepare("SELECT wattage_kw FROM chargers WHERE id = ?");
+                $stmt2->execute([$booking['charger_id']]);
+                $charger_data = $stmt2->fetch();
+                $capacity = floatval($booking['car_full_capacity_kwh']);
+                $wattage = floatval($charger_data['wattage_kw']);
+                
+                // Calculate charge time and cost
+                // ponytail: using battery % here at session start gives accurate price based on actual starting state
+                $charge_time = ceil((100 - $battery_percent) / 100 * $capacity / $wattage * 60);
+                $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
+                $estimated_cost = BOOKING_BASE_FEE + ($kwh_needed * ELECTRICITY_RATE_PER_KWH);
+                
+                // Store battery % and calculations on the booking row
+                $stmt = $db->prepare("UPDATE bookings SET car_current_battery_percent = ?, calculated_charge_time_minutes = ?, estimated_total_cost = ?, status = 'charging' WHERE id = ?");
+                $stmt->execute([$battery_percent, $charge_time, $estimated_cost, $id]);
                 
                 // Update charger status
                 $stmt = $db->prepare("UPDATE chargers SET status = 'charging' WHERE id = ?");
                 $stmt->execute([$booking['charger_id']]);
                 
-                // Create charging session
+                // Create charging session — battery_start_percent from the owner's input
                 $stmt = $db->prepare("
                     INSERT INTO charging_sessions (booking_id, start_time, battery_start_percent, per_kwh_rate, payment_status)
                     VALUES (?, NOW(), ?, ?, 'pending')
                 ");
-                $stmt->execute([$id, $booking['car_current_battery_percent'], ELECTRICITY_RATE_PER_KWH]);
+                $stmt->execute([$id, $battery_percent, ELECTRICITY_RATE_PER_KWH]);
                 
                 $db->commit();
                 echo json_encode(['status' => 'success', 'message' => 'Charging session started successfully']);

@@ -284,17 +284,20 @@ if (file_exists($profilePicAbsolute)) {
                     box.className = 'modal-box';
                     box.style.textAlign = 'left';
 
-                    let chargerOptions = available.map((c, i) =>
-                        `<option value="${c.id}">#${c.charger_number} — ${c.charger_type} (${c.wattage_kw}kW)</option>`
-                    ).join('');
+                    // Show ALL chargers with display_status; only bookable ones are selectable
+                    let chargerOptions = station.chargers.map(c => {
+                        const label = `#${c.charger_number} — ${c.charger_type} (${c.wattage_kw}kW) — ${c.display_status}`;
+                        const disabled = c.bookable ? '' : 'disabled';
+                        return `<option value="${c.id}" ${disabled}>${label}</option>`;
+                    }).join('');
 
                     box.innerHTML = `
                         <div style="margin-bottom:20px;">
                             <h3 style="margin-bottom:4px;">🔌 ${station.name}</h3>
-                            <p style="color:var(--gray); font-size:13px;">Select an available charger and enter your battery level</p>
+                            <p style="color:var(--gray); font-size:13px;">Select a charger and enter your battery level</p>
                         </div>
                         <div style="margin-bottom:16px;">
-                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Available Chargers</label>
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Chargers</label>
                             <select id="modal-charger-select" class="sort-select" style="width:100%; margin:0;">
                                 ${chargerOptions}
                             </select>

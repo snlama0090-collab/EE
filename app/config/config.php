@@ -122,7 +122,14 @@ class Database {
             
             return $this->connection;
         } catch (PDOException $e) {
-            die('Database connection failed: ' . $e->getMessage());
+            http_response_code(503);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Database connection failed. Please try again later.'
+            ]);
+            error_log('DB connection failed: ' . $e->getMessage());
+            exit;
         }
     }
 

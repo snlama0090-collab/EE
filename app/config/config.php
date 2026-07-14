@@ -193,6 +193,14 @@ function validate_email($email) {
 }
 
 /**
+ * Validate Nepali phone number
+ * Accepts: +977 98XXXXXXXX, +97798XXXXXXXX, 98XXXXXXXX, 97XXXXXXXX
+ */
+function validate_phone($phone) {
+    return preg_match('/^(?:\+977\s?)?9[78]\d{8}$/', trim($phone)) === 1;
+}
+
+/**
  * Generate random token
  */
 function generate_token($length = 32) {

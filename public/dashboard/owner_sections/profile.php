@@ -123,10 +123,15 @@ $owner = $stmt->fetch();
                     $logoPath = "../assets/uploads/pfp/owner_{$user_id}.jpg";
                 }
                 ?>
-                <img src="<?php echo htmlspecialchars($logoPath); ?>?t=<?php echo time(); ?>" alt="Logo" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #34C759;">
+                <div style="position:relative; display:inline-block;">
+                    <img src="<?php echo htmlspecialchars($logoPath); ?>?t=<?php echo time(); ?>" alt="Logo" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid var(--secondary);">
+                    <label for="logo-input" style="position:absolute; bottom:0; right:0; background:var(--secondary); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
+                        <i class="fas fa-camera" style="font-size:14px;"></i>
+                    </label>
+                    <input type="file" id="logo-input" name="logo" accept="image/*" style="display:none;">
+                </div>
                 <div>
                     <h4 style="margin-bottom:6px;">Upload Logo</h4>
-                    <input type="file" name="logo" accept="image/*" style="font-size:12px;">
                     <p style="font-size:11px; color:var(--gray); margin-top:4px;">PNG, JPG, or GIF up to 5MB.</p>
                 </div>
             </div>

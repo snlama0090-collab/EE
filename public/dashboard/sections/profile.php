@@ -83,10 +83,15 @@ if (file_exists($profilePicAbsolute)) {
             
             <!-- Avatar Section -->
             <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:20px;">
-                <img src="<?php echo htmlspecialchars($profilePicPath); ?>?t=<?php echo time(); ?>" alt="Avatar" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #007AFF;">
+                <div style="position:relative; display:inline-block;">
+                    <img src="<?php echo htmlspecialchars($profilePicPath); ?>?t=<?php echo time(); ?>" alt="Avatar" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid var(--primary);">
+                    <label for="avatar-input" style="position:absolute; bottom:0; right:0; background:var(--primary); color:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.2);">
+                        <i class="fas fa-camera" style="font-size:14px;"></i>
+                    </label>
+                    <input type="file" id="avatar-input" name="avatar" accept="image/*" style="display:none;">
+                </div>
                 <div>
                     <h4 style="margin-bottom:6px;">Profile Picture</h4>
-                    <input type="file" name="avatar" accept="image/*" style="font-size:12px;">
                     <p style="font-size:11px; color:var(--gray); margin-top:4px;">Supports PNG, JPG, or GIF up to 5MB.</p>
                 </div>
             </div>

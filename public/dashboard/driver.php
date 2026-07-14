@@ -294,17 +294,13 @@ if (file_exists($profilePicAbsolute)) {
                     box.innerHTML = `
                         <div style="margin-bottom:20px;">
                             <h3 style="margin-bottom:4px;">🔌 ${station.name}</h3>
-                            <p style="color:var(--gray); font-size:13px;">Select a charger and enter your battery level</p>
+                            <p style="color:var(--gray); font-size:13px;">Select an available charger to book.</p>
                         </div>
-                        <div style="margin-bottom:16px;">
+                        <div style="margin-bottom:24px;">
                             <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Chargers</label>
                             <select id="modal-charger-select" class="sort-select" style="width:100%; margin:0;">
                                 ${chargerOptions}
                             </select>
-                        </div>
-                        <div style="margin-bottom:24px;">
-                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Current Battery %</label>
-                            <input type="number" id="modal-battery-input" class="location-input" style="width:100%;" min="1" max="100" placeholder="Enter your current battery %" value="">
                         </div>
                         <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
                             <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>

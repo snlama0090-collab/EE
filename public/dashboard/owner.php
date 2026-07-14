@@ -690,20 +690,63 @@ if (file_exists($profilePicAbsolute)) {
 
         // --- bookings.php (session start/stop) ---
         function updateSession(bookingId, action) {
-            var msg = action === 'start_session'
-                ? 'Start charging session for this vehicle?'
-                : 'Complete charging session and generate billing receipt?';
-            showConfirm(msg, function() {
-                doUpdateSession(bookingId, action);
-            });
+            if (action === 'start_session') {
+                // Themed modal for battery % at session start
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay';
+                const box = document.createElement('div');
+                box.className = 'modal-box';
+                box.style.textAlign = 'left';
+
+                box.innerHTML = `
+                    <div style="margin-bottom:20px;">
+                        <h3 style="margin-bottom:4px;">🔌 Start Charging Session</h3>
+                        <p style="color:var(--gray); font-size:13px;">Enter the vehicle's current battery percentage to calculate the estimated charge time and cost.</p>
+                    </div>
+                    <div style="margin-bottom:24px;">
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Current Battery %</label>
+                        <input type="number" id="start-battery-input" class="location-input" style="width:100%;" min="1" max="100" placeholder="Enter battery % (1–100)" value="">
+                    </div>
+                    <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
+                        <button class="btn btn-secondary" id="start-cancel-btn">Cancel</button>
+                        <button class="btn btn-primary" id="start-confirm-btn">Start Session</button>
+                    </div>
+                `;
+
+                overlay.appendChild(box);
+                document.body.appendChild(overlay);
+                requestAnimationFrame(() => overlay.classList.add('show'));
+
+                const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); };
+                overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+                box.querySelector('#start-cancel-btn').onclick = close;
+
+                box.querySelector('#start-confirm-btn').onclick = function() {
+                    const batteryPct = parseInt(box.querySelector('#start-battery-input').value);
+                    if (!batteryPct || batteryPct < 1 || batteryPct > 100) {
+                        showAlert('Please enter a valid battery percentage (1–100).', 'error');
+                        return;
+                    }
+                    close();
+                    doUpdateSession(bookingId, 'start_session', batteryPct);
+                };
+            } else {
+                showConfirm('Complete charging session and generate billing receipt?', function() {
+                    doUpdateSession(bookingId, 'complete_session');
+                });
+            }
         }
 
-        async function doUpdateSession(bookingId, action) {
+        async function doUpdateSession(bookingId, action, batteryPercent) {
             try {
+                const body = { action: action };
+                if (batteryPercent !== undefined) {
+                    body.battery_percent = batteryPercent;
+                }
                 const response = await fetch(`../api/bookings.php?id=${bookingId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: action })
+                    body: JSON.stringify(body)
                 });
                 const result = await response.json();
                 if (result.status === 'success') {

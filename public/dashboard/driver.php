@@ -271,8 +271,8 @@ if (file_exists($profilePicAbsolute)) {
                 .then(result => {
                     if (result.status !== 'success') throw new Error(result.message);
                     const station = result.data;
-                    const available = (station.chargers || []).filter(c => c.status === 'available');
-                    if (available.length === 0) {
+                    const bookable = (station.chargers || []).filter(c => c.bookable);
+                    if (bookable.length === 0) {
                         showAlert('No chargers currently available at this station.', 'error');
                         return;
                     }

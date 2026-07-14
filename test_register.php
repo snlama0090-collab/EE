@@ -16,8 +16,7 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 $response = curl_exec($ch);
-if ($response === false) {
-    echo "CURL ERROR: " . curl_error($ch) . "\n";
-}
-echo "RAW RESPONSE START>>>\n" . $response . "\n<<<RAW RESPONSE END\n";
+$http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+echo "HTTP CODE: " . $http_code . "\n";
+echo "RAW RESPONSE START >>>\n" . $response . "\n<<< RAW RESPONSE END\n";
 curl_close($ch);

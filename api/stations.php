@@ -28,10 +28,43 @@ try {
                 exit;
             }
             
-            // Get chargers
-            $stmt = $db->prepare("SELECT * FROM chargers WHERE station_id = ? ORDER BY charger_number ASC");
+            // Get chargers with active booking counts
+            $stmt = $db->prepare("
+                SELECT c.*,
+                       (SELECT COUNT(*) FROM bookings WHERE charger_id = c.id AND status IN ('booked', 'charging')) as active_booking_count
+                FROM chargers c
+                WHERE c.station_id = ?
+                ORDER BY c.charger_number ASC
+            ");
             $stmt->execute([$station_id]);
             $chargers = $stmt->fetchAll();
+
+            // Compute bookable status per charger
+            foreach ($chargers as &$c) {
+                if ($c['status'] === 'maintenance' || $c['status'] === 'offline') {
+                    $c['bookable'] = false;
+                    $c['display_status'] = $c['status'] === 'maintenance' ? 'Maintenance' : 'Offline';
+                } elseif ($c['active_booking_count'] == 0) {
+                    $c['bookable'] = true;
+                    $c['display_status'] = 'Available';
+                } elseif ($c['active_booking_count'] == 1) {
+                    // Check if the single active booking is 'booked' (reserved) or 'charging' (in use)
+                    $stmt2 = $db->prepare("SELECT status FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging') ORDER BY created_at ASC LIMIT 1");
+                    $stmt2->execute([$c['id']]);
+                    $first = $stmt2->fetch();
+                    if ($first && $first['status'] === 'booked') {
+                        $c['bookable'] = false;
+                        $c['display_status'] = 'Reserved';
+                    } else {
+                        $c['bookable'] = true;
+                        $c['display_status'] = 'Charging — Available for Next Turn';
+                    }
+                } else {
+                    $c['bookable'] = false;
+                    $c['display_status'] = 'Charging — Fully Booked';
+                }
+            }
+            unset($c);
             $station['chargers'] = $chargers;
             
             // Get reviews and average rating

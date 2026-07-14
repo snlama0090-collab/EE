@@ -59,15 +59,48 @@ try {
         $charger_id = intval($input['charger_id'] ?? 0);
         $battery_percent = intval($input['battery_percent'] ?? 50);
         
+        // Get charger details (including station for ownership check)
+        $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ?");
+        $stmt->execute([$charger_id]);
+        $charger = $stmt->fetch();
+        
+        if (!$charger) {
+            echo json_encode(['status' => 'error', 'message' => 'Charger not found']);
+            exit;
+        }
+        
+        // Enforce bookable rule
+        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging')");
+        $stmt->execute([$charger_id]);
+        $active_count = intval($stmt->fetch()['cnt']);
+        
+        if ($active_count >= 2) {
+            echo json_encode(['status' => 'error', 'message' => 'This charger\'s queue is full. Please select another charger or station.']);
+            exit;
+        }
+        
+        if ($active_count == 1) {
+            // One active booking — bookable only if it's 'charging' (in use), not 'booked' (reserved)
+            $stmt = $db->prepare("SELECT status FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging') ORDER BY created_at ASC LIMIT 1");
+            $stmt->execute([$charger_id]);
+            $first = $stmt->fetch();
+            if ($first && $first['status'] === 'booked') {
+                echo json_encode(['status' => 'error', 'message' => 'This charger is already reserved by another driver.']);
+                exit;
+            }
+            // If it's 'charging', a next-in-line booking is allowed
+        }
+        
+        // Also reject if charger physical status precludes use
+        if ($charger['status'] === 'maintenance' || $charger['status'] === 'offline') {
+            echo json_encode(['status' => 'error', 'message' => 'This charger is currently unavailable.']);
+            exit;
+        }
+        
         // Get user details
         $stmt = $db->prepare("SELECT car_full_capacity_kwh FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
-        
-        // Get charger details
-        $stmt = $db->prepare("SELECT wattage_kw FROM chargers WHERE id = ?");
-        $stmt->execute([$charger_id]);
-        $charger = $stmt->fetch();
         
         // Calculate charge time
         $charge_time = ceil((100 - $battery_percent) / 100 * $user['car_full_capacity_kwh'] / $charger['wattage_kw'] * 60);

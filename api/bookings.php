@@ -53,13 +53,12 @@ try {
         ]);
         
     } elseif ($method === 'POST') {
-        // Create booking
+        // Create booking — flat fee, no battery dependency
         $input = json_decode(file_get_contents('php://input'), true);
         
         $charger_id = intval($input['charger_id'] ?? 0);
-        $battery_percent = intval($input['battery_percent'] ?? 50);
         
-        // Get charger details (including station for ownership check)
+        // Get charger details
         $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ?");
         $stmt->execute([$charger_id]);
         $charger = $stmt->fetch();
@@ -69,66 +68,66 @@ try {
             exit;
         }
         
-        // Enforce bookable rule
-        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging')");
-        $stmt->execute([$charger_id]);
-        $active_count = intval($stmt->fetch()['cnt']);
-        
-        if ($active_count >= 2) {
-            echo json_encode(['status' => 'error', 'message' => 'This charger\'s queue is full. Please select another charger or station.']);
-            exit;
-        }
-        
-        if ($active_count == 1) {
-            // One active booking — bookable only if it's 'charging' (in use), not 'booked' (reserved)
-            $stmt = $db->prepare("SELECT status FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging') ORDER BY created_at ASC LIMIT 1");
-            $stmt->execute([$charger_id]);
-            $first = $stmt->fetch();
-            if ($first && $first['status'] === 'booked') {
-                echo json_encode(['status' => 'error', 'message' => 'This charger is already reserved by another driver.']);
-                exit;
-            }
-            // If it's 'charging', a next-in-line booking is allowed
-        }
-        
-        // Also reject if charger physical status precludes use
-        if ($charger['status'] === 'maintenance' || $charger['status'] === 'offline') {
-            echo json_encode(['status' => 'error', 'message' => 'This charger is currently unavailable.']);
-            exit;
-        }
-        
         // Get user details
         $stmt = $db->prepare("SELECT car_full_capacity_kwh FROM users WHERE id = ?");
         $stmt->execute([$user_id]);
         $user = $stmt->fetch();
         
-        // Calculate charge time
-        $charge_time = ceil((100 - $battery_percent) / 100 * $user['car_full_capacity_kwh'] / $charger['wattage_kw'] * 60);
+        // Bookable check + insert in a single transaction to prevent race
+        $db->beginTransaction();
         
-        // Calculate cost
-        $kwh_needed = (100 - $battery_percent) / 100 * $user['car_full_capacity_kwh'];
-        $cost = BOOKING_BASE_FEE + ($kwh_needed * ELECTRICITY_RATE_PER_KWH);
+        // Re-check bookable rule immediately before insert
+        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging')");
+        $stmt->execute([$charger_id]);
+        $active_count = intval($stmt->fetch()['cnt']);
         
+        if ($active_count >= 2) {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'This charger\'s queue is full. Please select another charger or station.']);
+            exit;
+        }
+        
+        if ($active_count == 1) {
+            $stmt = $db->prepare("SELECT status FROM bookings WHERE charger_id = ? AND status IN ('booked', 'charging') ORDER BY created_at ASC LIMIT 1");
+            $stmt->execute([$charger_id]);
+            $first = $stmt->fetch();
+            if ($first && $first['status'] === 'booked') {
+                $db->rollBack();
+                echo json_encode(['status' => 'error', 'message' => 'This charger is already reserved by another driver.']);
+                exit;
+            }
+        }
+        
+        // Also reject if charger physical status precludes use
+        if ($charger['status'] === 'maintenance' || $charger['status'] === 'offline') {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'This charger is currently unavailable.']);
+            exit;
+        }
+        
+        // Flat fee only — battery/charge time calculated at session start
+        $cost = BOOKING_BASE_FEE;
         $arrival_deadline = date('Y-m-d H:i:s', time() + (BOOKING_ARRIVAL_DEADLINE_MINUTES * 60));
         
         $stmt = $db->prepare("
             INSERT INTO bookings 
             (user_id, charger_id, car_current_battery_percent, car_full_capacity_kwh,
              calculated_charge_time_minutes, arrival_deadline, estimated_total_cost)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, NULL, ?, NULL, ?, ?)
         ");
         
         $stmt->execute([
-            $user_id, $charger_id, $battery_percent, $user['car_full_capacity_kwh'],
-            $charge_time, $arrival_deadline, $cost
+            $user_id, $charger_id, $user['car_full_capacity_kwh'],
+            $arrival_deadline, $cost
         ]);
         
         $booking_id = $db->lastInsertId();
+        $db->commit();
         
         echo json_encode([
             'status' => 'success',
             'message' => 'Booking created',
-            'data' => ['booking_id' => $booking_id, 'cost' => $cost, 'charge_time' => $charge_time]
+            'data' => ['booking_id' => $booking_id, 'cost' => $cost]
         ]);
         
     } elseif ($method === 'PUT') {

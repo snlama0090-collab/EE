@@ -319,12 +319,6 @@ if (file_exists($profilePicAbsolute)) {
 
                     box.querySelector('#modal-confirm-btn').onclick = function() {
                         const chargerId = parseInt(box.querySelector('#modal-charger-select').value);
-                        const batteryPct = parseInt(box.querySelector('#modal-battery-input').value);
-
-                        if (!batteryPct || batteryPct < 1 || batteryPct > 100) {
-                            showAlert('Please enter your current battery percentage (1–100).', 'error');
-                            return;
-                        }
 
                         this.disabled = true;
                         this.textContent = 'Booking...';
@@ -332,15 +326,13 @@ if (file_exists($profilePicAbsolute)) {
                         fetch('../api/bookings.php', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ charger_id: chargerId, battery_percent: batteryPct })
+                            body: JSON.stringify({ charger_id: chargerId })
                         })
                         .then(r => r.json())
                         .then(res => {
                             close();
                             if (res.status === 'success') {
-                                const cost = res.data.cost.toFixed(2);
-                                const time = res.data.charge_time;
-                                showAlert(`Booking confirmed! Estimated cost: NPR ${cost}, charge time: ~${time} min.`, 'success');
+                                showAlert('Booking confirmed!', 'success');
                                 setTimeout(() => loadSection('bookings'), 1000);
                             } else {
                                 showAlert(res.message || 'Booking failed.', 'error');

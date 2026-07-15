@@ -7,33 +7,35 @@
  */
 
 // ===== ENVIRONMENT SETUP =====
-define('ENV', 'development'); // development, production
-define('DEBUG', true);
+define('ENV', 'production'); // development, production
+define('DEBUG', false);
 
 // ===== DATABASE CONFIGURATION =====
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', ''); // Leave empty for localhost without password
-define('DB_NAME', 'ev_charging_db');
+define('DB_HOST', 'sqlXXX.infinityfree.com'); // Replace with your MySQL hostname from InfinityFree panel
+define('DB_USER', 'if0_XXXXXXX');             // Replace with your InfinityFree DB username
+define('DB_PASS', 'your_db_password');        // Replace with your InfinityFree DB password
+define('DB_NAME', 'if0_XXXXXXX_ev_charging'); // Replace with your InfinityFree DB name
 define('DB_PORT', 3306);
 define('DB_CHARSET', 'utf8mb4');
 
 // ===== APPLICATION PATHS =====
 define('APP_ROOT', dirname(dirname(__FILE__)));
 define('APP_PATH', APP_ROOT . '/app');
-define('PUBLIC_PATH', APP_ROOT . '/public');
+define('PUBLIC_PATH', APP_ROOT);
 define('UPLOADS_PATH', PUBLIC_PATH . '/assets/uploads');
-define('LOGS_PATH', APP_ROOT . '/logs');
+define('LOGS_PATH', sys_get_temp_dir() . '/ev_charging_logs');
 
 // ===== APPLICATION URLs =====
-define('APP_URL', 'http://localhost/ev-charging-station');
+define('APP_URL', 'https://your-domain.infinityfreeapp.com'); // Replace with your actual InfinityFree domain
 define('API_URL', APP_URL . '/api');
 
 // ===== SESSION CONFIGURATION =====
 define('SESSION_TIMEOUT', 3600); // 1 hour in seconds
-define('SESSION_COOKIE_SECURE', false); // Set to true for HTTPS only
+define('SESSION_COOKIE_SECURE', true); // HTTPS only on production
 define('SESSION_COOKIE_HTTPONLY', true);
 define('SESSION_COOKIE_SAMESITE', 'Lax');
+
+ini_set('session.save_path', sys_get_temp_dir());
 
 // ===== SECURITY CONFIGURATION =====
 define('PASSWORD_HASH_ALGO', PASSWORD_BCRYPT);
@@ -78,7 +80,7 @@ define('NAME_MIN_LENGTH', 2);
 define('NAME_MAX_LENGTH', 100);
 
 // ===== FEATURE FLAGS =====
-define('GOOGLE_CLIENT_ID', '34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com');
+define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'); // Replace with your production OAuth client ID
 
 // ===== TIMEZONE =====
 date_default_timezone_set('Asia/Kathmandu');

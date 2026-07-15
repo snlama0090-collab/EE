@@ -26,7 +26,7 @@ $stmt = $db->prepare("
     FROM bookings b
     JOIN chargers c ON b.charger_id = c.id
     JOIN stations s ON c.station_id = s.id
-    WHERE b.user_id = ? AND b.status IN ('booked', 'charging')
+    WHERE b.user_id = ? AND b.status IN ('booked', 'pending_payment', 'charging')
     ORDER BY b.created_at DESC
     LIMIT 3
 ");

@@ -66,15 +66,22 @@ function tickChargingSessions($db) {
             ");
             $stmt3->execute([$kwh, $duration_minutes, $electricity_cost, $total_amount, $booking['booking_id']]);
 
-            // Update booking
+            // Update booking — guard with status check to prevent double-completion
+            // ponytail: race-safe — only transitions if still 'charging'
             $stmt4 = $db->prepare("
                 UPDATE bookings SET 
                     status = 'completed',
                     payment_amount = ?,
                     payment_status = 'completed'
-                WHERE id = ?
+                WHERE id = ? AND status = 'charging'
             ");
             $stmt4->execute([$total_amount, $booking['booking_id']]);
+
+            // If no rows affected, another tick already completed this booking
+            if ($stmt4->rowCount() === 0) {
+                $db->rollBack();
+                continue;
+            }
 
             // Release the charger
             $stmt5 = $db->prepare("UPDATE chargers SET status = 'available' WHERE id = ?");

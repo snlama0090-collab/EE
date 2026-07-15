@@ -19,7 +19,7 @@ class Auth {
         
         if ($remember) {
             setcookie('remember_token', self::generateRememberToken($user_id, $user_type), 
-                      time() + (30 * 24 * 60 * 60), '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
+                      time() + (30 * 24 * 60 * 60), self::getCookiePath(), '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
         }
         
         log_message('INFO', "User $user_id ($user_type) logged in");

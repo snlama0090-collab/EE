@@ -10,10 +10,11 @@
 function tickChargingSessions($db) {
     // Find any charging sessions that have exceeded their session_ends_at
     $stmt = $db->prepare("
-        SELECT b.id as booking_id, b.charger_id, b.station_id,
+        SELECT b.id as booking_id, b.charger_id, c.station_id,
                b.car_full_capacity_kwh, b.car_current_battery_percent,
                b.base_fee
         FROM bookings b
+        JOIN chargers c ON b.charger_id = c.id
         WHERE b.status = 'charging'
           AND b.session_ends_at IS NOT NULL
           AND b.session_ends_at <= NOW()

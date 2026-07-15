@@ -903,3 +903,8 @@ Stack trace:
 [2026-07-14 16:19:09] [INFO] User 4 (driver) logged in
 [2026-07-14 16:20:09] [INFO] User 3 (owner) logged in
 [2026-07-14 16:20:09] [INFO] User 3 (owner) logged in
+[15-Jul-2026 14:30:11 Asia/Kathmandu] DB connection failed: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2026-07-15 14:30:35] [INFO] User 4 (driver) logged in
+[2026-07-15 14:30:35] [INFO] User 4 (driver) logged in
+[2026-07-15 14:36:03] [INFO] User 3 (owner) logged in
+[2026-07-15 14:36:03] [INFO] User 3 (owner) logged in

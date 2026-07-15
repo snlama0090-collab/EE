@@ -97,6 +97,9 @@ if (file_exists($profilePicAbsolute)) {
         let currentSection = '<?php echo $page; ?>';
 
         function loadSection(sectionName) {
+            // Stop polling when switching sections to avoid stale network strain
+            stopPolling();
+
             // Update URL without reloading
             if (currentSection !== sectionName) {
                 history.pushState(null, '', `?page=${sectionName}`);

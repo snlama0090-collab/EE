@@ -120,7 +120,7 @@ $active_bookings = $stmt->fetchAll();
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div style="text-align: center; padding: 32px 0; color: var(--gray);">
+            <div style="text-align: center; padding: 40px 20px; color: var(--gray);">
                 <i class="fas fa-plug" style="font-size: 48px; margin-bottom: 12px; opacity: 0.3;"></i>
                 <p>No active charging sessions or bookings.</p>
                 <button class="btn btn-primary btn-sm" style="margin-top: 12px;" onclick="loadSection('find-stations')">

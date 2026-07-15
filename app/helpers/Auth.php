@@ -67,11 +67,11 @@ class Auth {
             return false;
         }
         
-        // Check User Agent for security (IP check removed — handles NAT/mobile gracefully)
+        // ponytail: relaxed User-Agent check — shared hosting proxies (Cloudflare, etc.)
+        // can modify headers mid-flight, causing false-positive logouts. Warn + update instead.
         if ($_SERVER['HTTP_USER_AGENT'] !== $_SESSION['user_agent']) {
-            log_message('WARNING', "Session hijacking attempt for user " . $_SESSION['user_id']);
-            self::logout();
-            return false;
+            log_message('WARNING', "User-Agent changed for user " . $_SESSION['user_id'] . " — possible proxy, updating silently");
+            $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
         }
         
         return true;

@@ -1,25 +1,15 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /EE/
-    
-    # Disable directory listing
     Options -Indexes
-    
-    # Allow direct access to files and folders
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    
-    # Redirect all requests to public folder
-    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Block direct web access to sensitive files
+    <FilesMatch "\.(env|json|sql|log)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
 </IfModule>
 
-# Block access to sensitive files
-<FilesMatch "\.(env|json|sql|log)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# Set proper headers
+# Security headers
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"

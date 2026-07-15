@@ -615,6 +615,33 @@ body {
     }
 }
 
+/* ===== FORM INPUTS (profile, settings, stations) ===== */
+.form-control-group input,
+.form-control-group select,
+.form-control-group textarea {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    background: white;
+}
+
+.form-control-group input:focus,
+.form-control-group select:focus,
+.form-control-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* .btn-submit — remove any hardcoded width constraints so text never overflows */
+.btn-submit {
+    width: auto !important;
+    padding: 10px 20px;
+}
+
 /* ===== BUTTONS ===== */
 .btn {
     padding: 10px 16px;

@@ -19,7 +19,7 @@ class Auth {
         
         if ($remember) {
             setcookie('remember_token', self::generateRememberToken($user_id, $user_type), 
-                      time() + (30 * 24 * 60 * 60), self::getCookiePath(), '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
+                      time() + (30 * 24 * 60 * 60), '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
         }
         
         log_message('INFO', "User $user_id ($user_type) logged in");
@@ -67,11 +67,11 @@ class Auth {
             return false;
         }
         
-        // ponytail: relaxed User-Agent check — shared hosting proxies (Cloudflare, etc.)
-        // can modify headers mid-flight, causing false-positive logouts. Warn + update instead.
+        // Check User Agent for security (IP check removed — handles NAT/mobile gracefully)
         if ($_SERVER['HTTP_USER_AGENT'] !== $_SESSION['user_agent']) {
-            log_message('WARNING', "User-Agent changed for user " . $_SESSION['user_id'] . " — possible proxy, updating silently");
-            $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+            log_message('WARNING', "Session hijacking attempt for user " . $_SESSION['user_id']);
+            self::logout();
+            return false;
         }
         
         return true;
@@ -100,17 +100,6 @@ class Auth {
     }
     
     /**
-     * Get dynamic cookie path based on APP_URL (handles subfolder deployments).
-     */
-    private static function getCookiePath() {
-        if (defined('APP_URL')) {
-            $path = parse_url(APP_URL, PHP_URL_PATH);
-            return $path ?: '/';
-        }
-        return '/';
-    }
-
-    /**
      * Logout user
      */
     public static function logout() {
@@ -120,7 +109,7 @@ class Auth {
         
         // Clear remember token
         if (isset($_COOKIE['remember_token'])) {
-            setcookie('remember_token', '', time() - 3600, self::getCookiePath(), '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
+            setcookie('remember_token', '', time() - 3600, '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
         }
         
         log_message('INFO', "User $user_id logged out");

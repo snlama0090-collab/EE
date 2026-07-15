@@ -418,12 +418,22 @@ if (Auth::isLoggedIn()) {
                 <!-- Password -->
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" value="" required>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" value="" required style="width: 100%; padding-right: 40px;">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon-password')" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 16px; color: #007AFF; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-eye" id="eye-icon-password"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group">
                     <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" value="" required>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" value="" required style="width: 100%; padding-right: 40px;">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirm-password', 'eye-icon-confirm')" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 16px; color: #007AFF; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-eye" id="eye-icon-confirm"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Terms & Conditions -->
@@ -674,6 +684,21 @@ if (Auth::isLoggedIn()) {
                 if (el) el.value = '';
             });
         });
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
 
         // ===== GOOGLE REGISTER CALLBACK =====
         async function handleGoogleRegister(response) {

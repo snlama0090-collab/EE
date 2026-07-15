@@ -264,7 +264,7 @@ if (file_exists($profilePicAbsolute)) {
         }
 
 
-        // --- booking modal ---
+        // --- booking modal (P2P prepaid flow) ---
         function bookStation(stationId) {
             fetch(`../api/stations.php?id=${stationId}`)
                 .then(r => r.json())
@@ -277,14 +277,12 @@ if (file_exists($profilePicAbsolute)) {
                         return;
                     }
 
-                    // Build modal content
                     const overlay = document.createElement('div');
                     overlay.className = 'modal-overlay';
                     const box = document.createElement('div');
                     box.className = 'modal-box';
                     box.style.textAlign = 'left';
 
-                    // Show ALL chargers with display_status; only bookable ones are selectable
                     let chargerOptions = station.chargers.map(c => {
                         const label = `#${c.charger_number} — ${c.charger_type} (${c.wattage_kw}kW) — ${c.display_status}`;
                         const disabled = c.bookable ? '' : 'disabled';
@@ -294,23 +292,26 @@ if (file_exists($profilePicAbsolute)) {
                     box.innerHTML = `
                         <div style="margin-bottom:20px;">
                             <h3 style="margin-bottom:4px;">🔌 ${station.name}</h3>
-                            <p style="color:var(--gray); font-size:13px;">Select an available charger to book.</p>
+                            <p style="color:var(--gray); font-size:13px;">Select a charger and enter your current battery % to get a prepaid quote.</p>
                         </div>
-                        <div style="margin-bottom:24px;">
-                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Chargers</label>
+                        <div style="margin-bottom:16px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Charger</label>
                             <select id="modal-charger-select" class="sort-select" style="width:100%; margin:0;">
                                 ${chargerOptions}
                             </select>
                         </div>
+                        <div style="margin-bottom:24px;">
+                            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Current Battery %</label>
+                            <input type="number" id="modal-battery-input" class="location-input" style="width:100%;" min="1" max="100" placeholder="Enter your current battery %" value="">
+                        </div>
                         <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
                             <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-                            <button class="btn btn-primary" id="modal-confirm-btn">Confirm Booking</button>
+                            <button class="btn btn-primary" id="modal-confirm-btn">Get Quote & Pay</button>
                         </div>
                     `;
 
                     overlay.appendChild(box);
                     document.body.appendChild(overlay);
-
                     requestAnimationFrame(() => overlay.classList.add('show'));
 
                     const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); };
@@ -319,28 +320,43 @@ if (file_exists($profilePicAbsolute)) {
 
                     box.querySelector('#modal-confirm-btn').onclick = function() {
                         const chargerId = parseInt(box.querySelector('#modal-charger-select').value);
+                        const batteryPct = parseInt(box.querySelector('#modal-battery-input').value);
+                        if (!batteryPct || batteryPct < 1 || batteryPct > 100) {
+                            showAlert('Please enter your current battery percentage (1–100).', 'error');
+                            return;
+                        }
 
                         this.disabled = true;
-                        this.textContent = 'Booking...';
+                        this.textContent = 'Creating booking...';
 
                         fetch('../api/bookings.php', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ charger_id: chargerId })
+                            body: JSON.stringify({ action: 'initiate_payment', charger_id: chargerId, current_percentage: batteryPct })
                         })
                         .then(r => r.json())
                         .then(res => {
-                            close();
-                            if (res.status === 'success') {
-                                showAlert('Booking confirmed!', 'success');
-                                setTimeout(() => loadSection('bookings'), 1000);
-                            } else {
+                            if (res.status !== 'success') {
+                                this.disabled = false;
+                                this.textContent = 'Get Quote & Pay';
                                 showAlert(res.message || 'Booking failed.', 'error');
+                                return;
                             }
+
+                            // Show payment confirmation preview
+                            close();
+                            const data = res.data;
+                            showConfirm(
+                                `Prepaid Booking Summary\nEstimated cost: NPR ${data.estimated_cost.toFixed(2)}\nCharge time: ~${data.charge_time_minutes} min\n\nProceed with payment?`,
+                                function() {
+                                    confirmPayment(data.booking_id);
+                                },
+                                { confirmLabel: `Pay NPR ${data.estimated_cost.toFixed(2)}`, confirmClass: 'btn-primary' }
+                            );
                         })
                         .catch(() => {
                             this.disabled = false;
-                            this.textContent = 'Confirm Booking';
+                            this.textContent = 'Get Quote & Pay';
                             showAlert('Network error. Please try again.', 'error');
                         });
                     };
@@ -349,6 +365,112 @@ if (file_exists($profilePicAbsolute)) {
                     showAlert('Failed to load station details.', 'error');
                 });
         }
+
+        async function confirmPayment(bookingId) {
+            try {
+                const response = await fetch('../api/bookings.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'confirm_payment', booking_id: bookingId })
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert('Payment confirmed! Charging session started.', 'success');
+                    loadSection('bookings');
+                    startPollingIfNeeded();
+                } else {
+                    showAlert(result.message || 'Payment confirmation failed.', 'error');
+                }
+            } catch (e) {
+                showAlert('Network error during payment confirmation.', 'error');
+            }
+        }
+
+        // --- polling loop for active booking timers ---
+        let pollingInterval = null;
+
+        function startPollingIfNeeded() {
+            // Only poll if there's an active charging/pending_payment booking
+            fetch('../api/bookings.php')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status !== 'success') return;
+                    const active = (res.data || []).filter(b => b.status === 'pending_payment' || b.status === 'charging');
+                    if (active.length > 0) {
+                        if (pollingInterval) return; // already running
+                        pollingInterval = setInterval(pollTick, 12000);
+                    } else {
+                        stopPolling();
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        function pollTick() {
+            fetch('../api/bookings.php')
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status !== 'success') return;
+                    const active = (res.data || []).filter(b => b.status === 'pending_payment' || b.status === 'charging');
+                    if (active.length === 0) {
+                        stopPolling();
+                        // Timer hit zero — reload section to get completed template
+                        if (currentSection === 'bookings' || currentSection === 'dashboard') {
+                            loadSection(currentSection);
+                        }
+                        return;
+                    }
+                    // Update any visible countdown displays
+                    document.querySelectorAll('[data-booking-id]').forEach(el => {
+                        const bid = parseInt(el.dataset.bookingId);
+                        const booking = active.find(b => b.id === bid);
+                        if (!booking || !booking.buffer_ends_at) return;
+                        const now = Date.now();
+                        const bufEnd = new Date(booking.buffer_ends_at.replace(' ', 'T') + '+05:45').getTime();
+                        const sessEnd = new Date(booking.session_ends_at.replace(' ', 'T') + '+05:45').getTime();
+
+                        let display = el.querySelector('.timer-display');
+                        if (!display) {
+                            display = document.createElement('div');
+                            display.className = 'timer-display';
+                            el.querySelector('.booking-status-area')?.appendChild(display);
+                        }
+
+                        if (now < bufEnd) {
+                            // Buffer phase — warning
+                            const sec = Math.max(0, Math.floor((bufEnd - now) / 1000));
+                            const m = Math.floor(sec / 60);
+                            const s = sec % 60;
+                            el.style.borderLeftColor = '#FF9500';
+                            display.innerHTML = `<span style="color:#FF9500;font-weight:600;">🔌 Owner connecting... ${m}:${String(s).padStart(2,'0')} buffer remaining</span>`;
+                        } else if (now < sessEnd) {
+                            // Active charging — green countdown
+                            const sec = Math.max(0, Math.floor((sessEnd - now) / 1000));
+                            const m = Math.floor(sec / 60);
+                            const s = sec % 60;
+                            el.style.borderLeftColor = '#34C759';
+                            display.innerHTML = `<span style="color:#34C759;font-weight:600;">⚡ Charging — ${m}:${String(s).padStart(2,'0')} remaining</span>`;
+                        } else {
+                            // Timer expired — trigger reload
+                            stopPolling();
+                            if (currentSection === 'bookings' || currentSection === 'dashboard') {
+                                loadSection(currentSection);
+                            }
+                        }
+                    });
+                })
+                .catch(() => {});
+        }
+
+        // Start polling on page load if needed
+        document.addEventListener('DOMContentLoaded', startPollingIfNeeded);
         function logout() { window.location.href = '../logout.php'; }
 
 

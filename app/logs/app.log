@@ -939,3 +939,5 @@ Stack trace:
 [2026-07-15 15:57:49] [INFO] User 4 (driver) logged in
 [2026-07-15 15:57:49] [INFO] User 4 (driver) logged in
 [2026-07-15 15:57:49] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:57:59] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:58:03] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'

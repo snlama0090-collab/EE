@@ -89,8 +89,8 @@ $active_bookings = $stmt->fetchAll();
                 <?php foreach ($active_bookings as $booking): 
                     $badge = $booking['status'] === 'charging' ? 'badge-warning' : 'badge-info';
                 ?>
-                <div style="border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative;">
-                    <div style="position: absolute; right: 16px; top: 16px;">
+                <div data-booking-id="<?php echo $booking['id']; ?>" style="border: 1px solid var(--border); border-radius: 10px; padding: 16px; position: relative;">
+                    <div style="position: absolute; right: 16px; top: 16px;" class="booking-status-area">
                         <span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($booking['status']); ?></span>
                     </div>
                     <h4 style="margin-bottom: 6px; font-size: 15px;"><?php echo htmlspecialchars($booking['station_name']); ?></h4>

@@ -177,9 +177,11 @@ CREATE TABLE bookings (
     car_current_battery_percent INT,
     car_full_capacity_kwh DECIMAL(5, 2),
     calculated_charge_time_minutes INT,
+    buffer_ends_at TIMESTAMP NULL,
+    session_ends_at TIMESTAMP NULL,
     
     -- Status
-    status ENUM('booked', 'charging', 'completed', 'cancelled') DEFAULT 'booked',
+    status ENUM('booked', 'pending_payment', 'charging', 'completed', 'cancelled') DEFAULT 'booked',
     
     -- Payments
     base_fee DECIMAL(8, 2) DEFAULT 20,

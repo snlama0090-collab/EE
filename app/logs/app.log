@@ -916,3 +916,15 @@ Stack trace:
 [2026-07-15 15:32:11] [INFO] User 4 (driver) logged in
 [2026-07-15 15:32:52] [INFO] User 4 (driver) logged in
 [2026-07-15 15:32:52] [INFO] User 4 (driver) logged in
+[2026-07-15 15:51:09] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:51:13] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:51:14] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:51:21] [INFO] User 5 (driver) logged in
+[2026-07-15 15:51:21] [INFO] User 5 (driver) logged in
+[2026-07-15 15:51:21] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:51:48] [INFO] User 4 (driver) logged in
+[2026-07-15 15:51:48] [INFO] User 4 (driver) logged in
+[2026-07-15 15:51:48] [ERROR] Booking API error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'b.station_id' in 'field list'
+[2026-07-15 15:52:05] [WARNING] Failed login attempt for ball@gmail.com (driver)
+[2026-07-15 15:52:11] [INFO] User 3 (owner) logged in
+[2026-07-15 15:52:11] [INFO] User 3 (owner) logged in

@@ -100,6 +100,17 @@ class Auth {
     }
     
     /**
+     * Get dynamic cookie path based on APP_URL (handles subfolder deployments).
+     */
+    private static function getCookiePath() {
+        if (defined('APP_URL')) {
+            $path = parse_url(APP_URL, PHP_URL_PATH);
+            return $path ?: '/';
+        }
+        return '/';
+    }
+
+    /**
      * Logout user
      */
     public static function logout() {
@@ -109,7 +120,7 @@ class Auth {
         
         // Clear remember token
         if (isset($_COOKIE['remember_token'])) {
-            setcookie('remember_token', '', time() - 3600, '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
+            setcookie('remember_token', '', time() - 3600, self::getCookiePath(), '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
         }
         
         log_message('INFO', "User $user_id logged out");

@@ -56,7 +56,7 @@ $db = getDB();
         </div>
 
         <div class="sidebar-logout">
-            <button onclick="logout()" class="logout-btn">
+            <button type="button" onclick="logout()" class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>
         </div>
@@ -66,18 +66,18 @@ $db = getDB();
     <div class="main-content">
         <div class="top-header">
             <div class="header-left">
-                <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                <button type="button" class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1>Admin Panel</h1>
             </div>
             <div class="header-right">
                 <!-- Theme Toggle -->
-                <button class="header-btn" id="theme-toggle" title="Toggle theme">
+                <button type="button" class="header-btn" id="theme-toggle" title="Toggle theme">
                     <i class="fas fa-moon"></i>
                 </button>
                 <!-- Notifications -->
-                <button class="header-btn" id="notif-btn" title="Notifications">
+                <button type="button" class="header-btn" id="notif-btn" title="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notification-dot"></span>
                 </button>
@@ -158,7 +158,7 @@ $db = getDB();
                     <div style="padding: 32px; text-align: center; color: #FF3B30;">
                         <i class="fas fa-exclamation-circle" style="font-size: 48px; display: block; margin-bottom: 16px;"></i>
                         <p>Failed to load this section</p>
-                        <button onclick="loadSection('${sectionName}')" style="margin-top: 16px; padding: 8px 16px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        <button type="button" onclick="loadSection('${sectionName}')" style="margin-top: 16px; padding: 8px 16px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer;">
                             Try Again
                         </button>
                     </div>

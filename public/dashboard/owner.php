@@ -34,225 +34,97 @@ if (file_exists($profilePicAbsolute)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
-        /* Extra styles specific to owner dashboard - adapted from driver page structure */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        .metric-card {
-            background: white;
-            padding: 24px;
-            border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            border-bottom: 4px solid var(--primary);
-            position: relative;
-            overflow: hidden;
-        }
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary) 0%, #0051D5 100%);
-            opacity: 0.6;
-        }
-        .metric-card.success { border-bottom-color: var(--secondary); }
-        .metric-card.warning { border-bottom-color: var(--warning); }
-        .metric-card.danger { border-bottom-color: var(--danger); }
-        
-        .metric-icon {
-            font-size: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(0, 122, 255, 0.15) 0%, rgba(0, 81, 213, 0.15) 100%);
-            color: var(--primary);
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.2);
-        }
-        .metric-card.success .metric-icon { 
-            background: linear-gradient(135deg, rgba(52, 199, 89, 0.15) 0%, rgba(37, 162, 69, 0.15) 100%);
-            color: var(--secondary);
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2);
-        }
-        .metric-card.warning .metric-icon { 
-            background: linear-gradient(135deg, rgba(255, 149, 0, 0.15) 0%, rgba(210, 110, 0, 0.15) 100%);
-            color: var(--warning);
-            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.2);
-        }
-        .metric-card.danger .metric-icon { 
-            background: linear-gradient(135deg, rgba(255, 59, 48, 0.15) 0%, rgba(188, 29, 29, 0.15) 100%);
-            color: var(--danger);
-            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
-        }
-
-        .metric-info h3 { 
-            font-size: 13px; 
-            color: var(--text-light); 
-            text-transform: uppercase; 
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        .metric-info p { 
-            font-size: 28px; 
-            font-weight: 700; 
-            color: var(--dark); 
-            margin-bottom: 4px;
-        }
-        .metric-info .trend {
-            font-size: 12px;
-            color: #34C759;
-            font-weight: 500;
-        }
-
-        .dashboard-section-card {
-            background: white;
-            padding: 28px;
-            border-radius: 14px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-            margin-bottom: 24px;
-            border: 1px solid var(--border);
-        }
-
-        .station-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        .station-header h2 {
-            font-size: 18px;
-            color: var(--dark);
-            font-weight: 600;
-        }
-        
-        /* Form styling */
+        /* Owner-specific overrides */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
+            gap: 16px;
             margin-bottom: 24px;
         }
         .form-full { grid-column: 1 / -1; }
         .form-control-group { 
             display: flex; 
             flex-direction: column; 
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
         }
         .form-control-group label { 
             font-size: 13px; 
             font-weight: 600;
-            color: var(--dark);
+            color: var(--foreground);
         }
-        .form-control-group input, 
-        .form-control-group select, 
-        .form-control-group textarea {
-            padding: 12px 16px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        .form-control-group input:focus, 
-        .form-control-group select:focus, 
-        .form-control-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-        }
-        .btn-submit {
-            background: linear-gradient(135deg, #34C759 0%, #25A245 100%);
-            color: white; border: none; padding: 14px 28px; border-radius: 10px;
-            font-weight: 600; cursor: pointer; transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-submit:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 6px 16px rgba(52, 199, 89, 0.4);
-        }
-        .btn-submit:active { transform: translateY(0); }
-
-        /* Charger Configurator List */
         .charger-config-row {
-            display: flex; gap: 12px; align-items: center; margin-bottom: 8px;
+            display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
         }
-
         .status-toggle {
             cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: var(--radius);
             border: 1px solid var(--border);
-            background: var(--light);
-            font-size: 13px;
+            background: var(--muted);
+            font-size: 12px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
         .status-toggle.active {
-            background: linear-gradient(135deg, var(--success-bg) 0%, #E8F8F0 100%);
-            border-color: #A3E4D7;
-            color: #1e7e34;
-            box-shadow: 0 2px 8px rgba(52, 199, 89, 0.2);
+            background: #dcfce7;
+            border-color: #bbf7d0;
+            color: #166534;
         }
         .status-toggle.offline {
-            background: linear-gradient(135deg, var(--danger-bg) 0%, #FFDCDC 100%);
-            border-color: #F5B041;
-            color: #bd2130;
-            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.2);
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
         }
-        .status-toggle i { font-size: 14px; }
-
-        /* Card Header with Action Buttons */
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .header-actions {
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
         .btn-icon {
-            background: white;
+            background: var(--card);
             border: 1px solid var(--border);
-            padding: 8px 12px;
-            border-radius: 8px;
+            padding: 6px 10px;
+            border-radius: var(--radius);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
             gap: 6px;
-            font-size: 13px;
+            font-size: 12px;
+            color: var(--muted-foreground);
         }
         .btn-icon:hover {
-            background: var(--light);
-            border-color: var(--primary);
-            color: var(--primary);
-            transform: translateY(-1px);
+            background: var(--accent);
+            border-color: var(--ring);
+            color: var(--accent-foreground);
         }
         .chart-wrapper { height: 300px; position: relative; }
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .station-header h2 {
+            font-size: 16px;
+            color: var(--foreground);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -296,9 +168,16 @@ if (file_exists($profilePicAbsolute)) {
             <!-- TOP HEADER -->
             <div class="top-header">
                 <div class="header-left">
+                    <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <h1>Owner Portal 🏢</h1>
                 </div>
                 <div class="header-right">
+                    <button class="header-btn" onclick="" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
                     <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic">
                 </div>
             </div>

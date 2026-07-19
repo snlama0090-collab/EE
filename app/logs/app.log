@@ -1022,3 +1022,42 @@ Stack trace:
 #1 D:\Xampp\htdocs\EE\public\dashboard\admin.php(111): include('D:\\Xampp\\htdocs...')
 #2 {main}
   thrown in D:\Xampp\htdocs\EE\public\dashboard\admin_sections\stations.php on line 13
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\public\dashboard\sections\find-stations.php on line 37
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165

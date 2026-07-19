@@ -29,10 +29,6 @@ $db = getDB();
 <div class="dashboard-container">
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-title">Zenith</div>
-            <div class="brand-subtitle">Dashboard</div>
-        </div>
         <div class="sidebar-profile">
             <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--muted); font-size:18px; color:var(--foreground);">🛡️</div>
             <div class="profile-name">Admin Panel</div>

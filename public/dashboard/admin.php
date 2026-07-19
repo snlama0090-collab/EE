@@ -19,23 +19,18 @@ $db = getDB();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        /* Admin-specific overrides — shared layout comes from dashboard.css */
-        .nav-btn.active {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E72 100%);
-            border-color: #FF6B6B;
-            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../assets/js/modal.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <div class="dashboard-container">
-    <!-- SIDEBAR (same structure as driver/owner dashboards) -->
+    <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-profile">
-            <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.2); font-size:32px; color:white;">🛡️</div>
+            <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--primary); font-size:18px; color:white; border:none;">🛡️</div>
             <div class="profile-name">Admin Panel</div>
         </div>
 
@@ -68,8 +63,25 @@ $db = getDB();
     </div>
 
     <!-- MAIN CONTENT -->
-    <div class="main-content" id="content-area">
-        <?php include "admin_sections/{$page}.php"; ?>
+    <div class="main-content">
+        <div class="top-header">
+            <div class="header-left">
+                <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Admin Panel</h1>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" onclick="" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-dot"></span>
+                </button>
+                <div class="header-profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--primary); color:white; font-size:14px; border:none;">A</div>
+            </div>
+        </div>
+        <div id="content-area">
+            <?php include "admin_sections/{$page}.php"; ?>
+        </div>
     </div>
 </div>
 
@@ -250,6 +262,27 @@ $db = getDB();
     function logout() {
         window.location.href = '../logout.php';
     }
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('active');
+    }
+
+    // Close sidebar on mobile when clicking outside
+    document.addEventListener('click', function(e) {
+        var sidebar = document.getElementById('sidebar');
+        var menuBtn = document.getElementById('mobile-menu-btn');
+        if (window.innerWidth <= 768 && sidebar.classList.contains('active') && !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+            sidebar.classList.remove('active');
+        }
+    });
+
+    // Show mobile menu button on small screens
+    function checkMobile() {
+        var btn = document.getElementById('mobile-menu-btn');
+        if (btn) btn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+    }
+    window.addEventListener('resize', checkMobile);
+    document.addEventListener('DOMContentLoaded', checkMobile);
 </script>
 <!-- Station Detail Modal (hidden by default) -->
 <div id="station-detail-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">

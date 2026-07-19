@@ -38,9 +38,37 @@ if (file_exists($profilePicAbsolute)) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- SIDEBAR -->
-        <div class="sidebar" id="sidebar">
+<!-- FIXED TOP HEADER (full width) -->
+<div class="top-header">
+    <div class="header-left">
+        <div class="header-brand">
+            <span class="brand-name">Zenith</span>
+            <span class="brand-sub">Dashboard</span>
+        </div>
+    </div>
+    <div class="header-right">
+        <!-- Theme Toggle -->
+        <button type="button" class="header-btn" id="theme-toggle" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+        </button>
+        <!-- Notifications -->
+        <button type="button" class="header-btn" onclick="loadSection('bookings')" title="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notification-dot"></span>
+        </button>
+        <!-- Profile -->
+        <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic" onclick="loadSection('profile')">
+    </div>
+</div>
+
+<div class="dashboard-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+        <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="Toggle sidebar">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="sidebar-inner">
             <div class="sidebar-profile">
                 <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="profile-pic">
                 <div class="profile-name"><?php echo htmlspecialchars($user['name']); ?></div>
@@ -49,53 +77,37 @@ if (file_exists($profilePicAbsolute)) {
             <!-- Navigation — active class set server-side, no flicker -->
             <div class="sidebar-nav">
                 <button type="button" class="nav-btn<?php echo $page === 'dashboard' ? ' active' : ''; ?>" data-section="dashboard" onclick="loadSection('dashboard')">
-                    <i class="fas fa-home"></i> Dashboard
+                    <i class="fas fa-home"></i> <span>Dashboard</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'find-stations' ? ' active' : ''; ?>" data-section="find-stations" onclick="loadSection('find-stations')">
-                    <i class="fas fa-map"></i> Find Stations
+                    <i class="fas fa-map"></i> <span>Find Stations</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
-                    <i class="fas fa-clock"></i> My Bookings
+                    <i class="fas fa-clock"></i> <span>My Bookings</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'favorites' ? ' active' : ''; ?>" data-section="favorites" onclick="loadSection('favorites')">
-                    <i class="fas fa-heart"></i> Favorites
+                    <i class="fas fa-heart"></i> <span>Favorites</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
-                    <i class="fas fa-user"></i> Profile
+                    <i class="fas fa-user"></i> <span>Profile</span>
                 </button>
             </div>
 
             <div class="sidebar-logout">
                 <button type="button" onclick="logout()" class="logout-btn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                    <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
                 </button>
             </div>
         </div>
+    </div>
 
-        <!-- MAIN CONTENT -->
-        <div class="main-content">
-            <div class="top-header">
-                <div class="header-left">
-                    <button type="button" class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h1>EV Charging Station</h1>
-                </div>
-                <div class="header-right">
-                    <button type="button" class="header-btn" onclick="loadSection('bookings')" title="Notifications">
-                        <i class="fas fa-bell"></i>
-                        <span class="notification-dot"></span>
-                    </button>
-                    <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic" onclick="loadSection('profile')">
-                </div>
-            </div>
-
-            <!-- CONTENT AREA — rendered server-side on first load, no spinner -->
-            <div id="content-area">
-                <?php include "sections/{$page}.php"; ?>
-            </div>
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div id="content-area">
+            <?php include "sections/{$page}.php"; ?>
         </div>
     </div>
+</div>
 
     <script src="../assets/js/modal.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

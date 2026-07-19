@@ -80,51 +80,70 @@ $pending_stations = $stmt->fetchAll();
     </div>
 </div>
 
-<div class="card">
-    <h3><i class="fas fa-hourglass-half"></i> Pending Station Approvals</h3>
-    <?php if (count($pending_stations) > 0): ?>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr><th>Station</th><th>Owner</th><th>Chargers</th><th>Requested</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($pending_stations as $station): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($station['name']); ?></td>
-                        <td><?php echo htmlspecialchars($station['company_name']); ?></td>
-                        <td><?php echo $station['num_chargers']; ?></td>
-                        <td><?php echo date('M d, Y', strtotime($station['created_at'])); ?></td>
-                        <td>
-                            <button class="btn btn-sm btn-secondary" onclick="parent.viewStationDetails(<?php echo $station['id']; ?>)">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    <?php else: ?>
-        <p style="text-align: center; color: var(--muted-foreground); padding: 24px; font-size: 13px;">No pending approvals</p>
-    <?php endif; ?>
-</div>
-
-<div class="card">
-    <h3><i class="fas fa-history"></i> Recent Activities</h3>
-    <div class="table-container">
-        <table>
-            <thead><tr><th>Admin</th><th>Action</th><th>Resource</th><th>Time</th></tr></thead>
-            <tbody>
-                <?php foreach ($activities as $activity): ?>
+<div class="listing-table" style="margin-bottom:24px;">
+    <div style="padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:15px;font-weight:600;color:var(--foreground);display:flex;align-items:center;gap:8px;"><i class="fas fa-hourglass-half" style="color:var(--muted-foreground);font-size:16px;"></i> Pending Station Approvals</h3>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Station</th><th>Owner</th><th>Chargers</th><th>Requested</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+            <?php if (count($pending_stations) > 0): ?>
+                <?php foreach ($pending_stations as $station): ?>
                 <tr>
-                    <td><?php echo $activity['admin_id'] ? 'Admin #'.$activity['admin_id'] : 'System'; ?></td>
-                    <td><?php echo htmlspecialchars($activity['action']); ?></td>
-                    <td><?php echo htmlspecialchars($activity['resource_type']); ?></td>
-                    <td><?php echo date('M d, H:i', strtotime($activity['created_at'])); ?></td>
+                    <td><div class="cell-avatar"><div class="avatar"><i class="fas fa-charging-station"></i></div><div class="info"><div class="name"><?php echo htmlspecialchars($station['name']); ?></div></div></div></td>
+                    <td><?php echo htmlspecialchars($station['company_name']); ?></td>
+                    <td><?php echo $station['num_chargers']; ?></td>
+                    <td><?php echo date('M d, Y', strtotime($station['created_at'])); ?></td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="parent.viewStationDetails(<?php echo $station['id']; ?>)">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
-            </tbody>
-        </table>
+            <?php else: ?>
+                <tr><td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:24px;font-size:13px;">No pending approvals</td></tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+
+<div class="listing-table">
+    <div style="padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:15px;font-weight:600;color:var(--foreground);display:flex;align-items:center;gap:8px;"><i class="fas fa-history" style="color:var(--muted-foreground);font-size:16px;"></i> Recent Activities</h3>
+    </div>
+    <table>
+        <thead><tr><th>Admin</th><th>Action</th><th>Resource</th><th>Time</th></tr></thead>
+        <tbody>
+            <?php foreach ($activities as $activity): ?>
+            <tr>
+                <td><?php echo $activity['admin_id'] ? 'Admin #'.$activity['admin_id'] : 'System'; ?></td>
+                <td><?php echo htmlspecialchars($activity['action']); ?></td>
+                <td><?php echo htmlspecialchars($activity['resource_type']); ?></td>
+                <td><?php echo date('M d, H:i', strtotime($activity['created_at'])); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+    <div class="listing-footer">
+        <div class="rows-select">Showing <?php echo count($activities); ?> results</div>
+        <div class="pagination">
+            <button disabled><i class="fas fa-chevron-left"></i> Previous</button>
+            <button class="active">1</button>
+            <button disabled>Next <i class="fas fa-chevron-right"></i></button>
+        </div>
     </div>
 </div>
+</write_to_file>
+<task_progress>
+- [x] Read all listing section files
+- [x] Add modern listing CSS to dashboard.css
+- [x] Refactor admin_sections/users.php
+- [x] Refactor admin_sections/stations.php
+- [x] Refactor admin_sections/reviews.php
+- [x] Refactor admin_sections/overview.php tables
+- [ ] Refactor sections/bookings.php
+</task_progress>
+</write_to_file>

@@ -45,30 +45,38 @@ $pending_stations = $stmt->fetchAll();
     </div>
 </div>
 
-<div class="cards-grid">
-    <div class="card">
-        <div class="card-icon"><i class="fas fa-users"></i></div>
-        <div class="card-title">Active Users</div>
-        <div class="card-value"><?php echo $user_count['total']; ?></div>
-        <div class="card-subtitle">EV drivers</div>
+<div class="metrics-grid">
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Active Users</span>
+            <span class="stat-icon"><i class="fas fa-users"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $user_count['total']; ?></div>
+        <div class="stat-subtitle">EV drivers</div>
     </div>
-    <div class="card">
-        <div class="card-icon"><i class="fas fa-building"></i></div>
-        <div class="card-title">Station Owners</div>
-        <div class="card-value"><?php echo $owner_count['total']; ?></div>
-        <div class="card-subtitle">Active companies</div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Station Owners</span>
+            <span class="stat-icon"><i class="fas fa-building"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $owner_count['total']; ?></div>
+        <div class="stat-subtitle">Active companies</div>
     </div>
-    <div class="card">
-        <div class="card-icon"><i class="fas fa-charging-station"></i></div>
-        <div class="card-title">Total Stations</div>
-        <div class="card-value"><?php echo $station_count['total']; ?></div>
-        <div class="card-subtitle">Registered locations</div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Total Stations</span>
+            <span class="stat-icon"><i class="fas fa-charging-station"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $station_count['total']; ?></div>
+        <div class="stat-subtitle">Registered locations</div>
     </div>
-    <div class="card">
-        <div class="card-icon"><i class="fas fa-hourglass-end"></i></div>
-        <div class="card-title">Pending</div>
-        <div class="card-value"><?php echo $pending_approvals['total'] + $flagged_reviews['total']; ?></div>
-        <div class="card-subtitle">Action required</div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Pending</span>
+            <span class="stat-icon"><i class="fas fa-hourglass-end"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $pending_approvals['total'] + $flagged_reviews['total']; ?></div>
+        <div class="stat-subtitle">Action required</div>
     </div>
 </div>
 

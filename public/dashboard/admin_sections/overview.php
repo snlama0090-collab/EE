@@ -102,7 +102,7 @@ $pending_stations = $stmt->fetchAll();
     <?php endif; ?>
 </div>
 
-<div class="card" style="margin-bottom: 1px;">
+<div class="card">
     <h3><i class="fas fa-history"></i> Recent Activities</h3>
     <div class="table-container">
         <table>

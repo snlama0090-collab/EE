@@ -425,14 +425,6 @@ body {
     gap: 8px;
 }
 
-/* ===== METRICS GRID (driver/owner style) ===== */
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
 /* ===== STAT CARD ===== */
 .stat-card {
     background: var(--card);

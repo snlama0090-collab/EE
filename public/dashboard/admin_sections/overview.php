@@ -35,11 +35,11 @@ $pending_stations = $stmt->fetchAll();
 
 <div class="dashboard-header">
     <div class="header-title">
-        <h1>Admin Dashboard 👨‍💼</h1>
-        <p><?php echo date('l, F j, Y'); ?></p>
+        <h1>Dashboard</h1>
+        <p>Welcome back, Admin</p>
     </div>
     <div class="header-actions">
-        <button class="btn btn-secondary" onclick="location.reload()">
+        <button type="button" class="btn btn-secondary" onclick="location.reload()">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

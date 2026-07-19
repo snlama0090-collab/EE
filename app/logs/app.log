@@ -989,3 +989,5 @@ Stack trace:
 [2026-07-19 17:47:23] [INFO] User 1 logged out
 [19-Jul-2026 17:47:23 Asia/Kathmandu] PHP Warning:  session_destroy(): Trying to destroy uninitialized session in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 108
 [2026-07-19 17:47:23] [INFO] User 1 logged out
+[2026-07-19 17:48:05] [INFO] User 1 (admin) logged in
+[2026-07-19 17:48:05] [INFO] User 1 (admin) logged in

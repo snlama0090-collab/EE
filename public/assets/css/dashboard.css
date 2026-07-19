@@ -499,8 +499,12 @@ body {
     height: calc(100vh - var(--header-height));
     overflow-y: auto;
     min-width: 0;
-    margin-left: 0;
+    margin-left: var(--sidebar-width);
     transition: margin-left 0.3s ease;
+}
+
+.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-collapsed-width);
 }
 
 #content-area {

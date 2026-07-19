@@ -32,57 +32,38 @@ $stations = $stmt->fetchAll();
     <!-- STATIONS LIST VIEW -->
     <div id="list-view" class="dashboard-section-card">
         <?php if (count($stations) > 0): ?>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Station Name</th>
-                            <th>City / Address</th>
-                            <th>Chargers</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($stations as $station): 
-                            $approval = $station['approval_status'];
-                            $badge = 'badge-warning';
-                            if ($approval === 'approved') $badge = 'badge-success';
-                            elseif ($approval === 'rejected') $badge = 'badge-danger';
-                        ?>
-                        <tr>
-                            <td>
-                                <strong><?php echo htmlspecialchars($station['name']); ?></strong>
-                                <?php if ($station['rejection_reason']): ?>
-                                    <div style="font-size: 11px; color: var(--danger); margin-top: 4px;">
-                                        Reason: <?php echo htmlspecialchars($station['rejection_reason']); ?>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div><?php echo htmlspecialchars($station['city']); ?></div>
-                                <div style="font-size: 11px; color: var(--gray);"><?php echo htmlspecialchars($station['address']); ?></div>
-                            </td>
-                            <td>
-                                <strong><?php echo $station['available_chargers']; ?></strong> / <?php echo $station['charger_count']; ?> Available
-                            </td>
-                            <td>
-                                <span class="badge <?php echo $badge; ?>"><?php echo $approval; ?></span>
-                            </td>
-                            <td>
-                                <div class="header-actions">
-                                    <button class="btn-icon" onclick="manageStationChargers(<?php echo $station['id']; ?>, '<?php echo addslashes($station['name']); ?>')">
-                                        <i class="fas fa-eye"></i> View
-                                    </button>
-                                    <button class="btn-icon" onclick="deleteStation(<?php echo $station['id']; ?>)">
-                                        <i class="fas fa-trash"></i> Delete
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+            <div class="stations-section visible">
+                <?php foreach ($stations as $station): 
+                    $approval = $station['approval_status'];
+                    $badge = 'badge-warning';
+                    if ($approval === 'approved') $badge = 'badge-success';
+                    elseif ($approval === 'rejected') $badge = 'badge-danger';
+                ?>
+                <div class="station-card">
+                    <div class="station-info">
+                        <div class="station-name"><?php echo htmlspecialchars($station['name']); ?></div>
+                        <div class="station-details">
+                            <span class="detail-item"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($station['city']); ?></span>
+                            <span class="detail-item"><i class="fas fa-road"></i> <?php echo htmlspecialchars($station['address']); ?></span>
+                            <span class="detail-item"><i class="fas fa-plug"></i> <span class="available-chargers"><?php echo $station['available_chargers']; ?></span> / <?php echo $station['charger_count']; ?> Available</span>
+                        </div>
+                        <?php if ($station['rejection_reason']): ?>
+                            <div style="font-size: 11px; color: var(--destructive); margin-top: 4px;">
+                                <i class="fas fa-exclamation-circle"></i> <?php echo htmlspecialchars($station['rejection_reason']); ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        <span class="badge <?php echo $badge; ?>"><?php echo $approval; ?></span>
+                        <button class="btn btn-primary btn-sm" onclick="manageStationChargers(<?php echo $station['id']; ?>, '<?php echo addslashes($station['name']); ?>')">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteStation(<?php echo $station['id']; ?>)">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <?php endforeach; ?>
             </div>
         <?php else: ?>
             <div style="text-align: center; padding: 48px 0; color: var(--gray);">

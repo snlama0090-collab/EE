@@ -87,11 +87,10 @@ $recent_bookings = $stmt->fetchAll();
     </div>
     
     <?php if (count($recent_bookings) > 0): ?>
-        <div class="table-responsive">
+        <div class="listing-table">
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>User</th>
                         <th>Station</th>
                         <th>Charger Details</th>
@@ -108,13 +107,23 @@ $recent_bookings = $stmt->fetchAll();
                         elseif ($booking['status'] === 'charging') $status_badge = 'badge-warning';
                     ?>
                     <tr>
-                        <td>#<?php echo $booking['id']; ?></td>
-                        <td><strong><?php echo htmlspecialchars($booking['user_name']); ?></strong></td>
+                        <td>
+                            <div class="cell-avatar">
+                                <div class="avatar"><?php echo strtoupper(substr($booking['user_name'], 0, 1)); ?></div>
+                                <div class="info">
+                                    <span class="name"><?php echo htmlspecialchars($booking['user_name']); ?></span>
+                                    <span class="sub">#<?php echo $booking['id']; ?></span>
+                                </div>
+                            </div>
+                        </td>
                         <td><?php echo htmlspecialchars($booking['station_name']); ?></td>
-                        <td>Charger #<?php echo $booking['charger_number']; ?> (<?php echo htmlspecialchars($booking['charger_type']); ?>)</td>
-                        <td>NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></td>
+                        <td>
+                            <span class="charger-badge">#<?php echo $booking['charger_number']; ?></span>
+                            <span style="font-size: 12px; color: var(--muted-foreground);"><?php echo htmlspecialchars($booking['charger_type']); ?></span>
+                        </td>
+                        <td class="amount">NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></td>
                         <td><span class="badge <?php echo $status_badge; ?>"><?php echo htmlspecialchars($booking['status']); ?></span></td>
-                        <td><?php echo date('M d, H:i', strtotime($booking['created_at'])); ?></td>
+                        <td style="font-size: 12px; color: var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($booking['created_at'])); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

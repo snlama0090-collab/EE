@@ -23,6 +23,7 @@ $db = getDB();
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="../assets/js/modal.js"></script>
+    <script src="../assets/js/dashboard.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
@@ -30,7 +31,7 @@ $db = getDB();
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-profile">
-            <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--primary); font-size:18px; color:white; border:none;">🛡️</div>
+            <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--muted); font-size:18px; color:var(--foreground);">🛡️</div>
             <div class="profile-name">Admin Panel</div>
         </div>
 
@@ -72,11 +73,36 @@ $db = getDB();
                 <h1>Admin Panel</h1>
             </div>
             <div class="header-right">
-                <button class="header-btn" onclick="" title="Notifications">
+                <!-- Theme Toggle -->
+                <button class="header-btn" id="theme-toggle" title="Toggle theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <!-- Notifications -->
+                <button class="header-btn" id="notif-btn" title="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notification-dot"></span>
                 </button>
-                <div class="header-profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--primary); color:white; font-size:14px; border:none;">A</div>
+                <!-- Notifications Dropdown -->
+                <div class="dropdown" id="notif-dropdown">
+                    <div class="dropdown-header">Notifications</div>
+                    <div class="dropdown-body">
+                        <div class="dropdown-item">No new notifications</div>
+                    </div>
+                    <div class="dropdown-footer">View all notifications</div>
+                </div>
+                <!-- Profile Avatar / Trigger -->
+                <div class="header-profile-pic" id="profile-btn" style="display:flex; align-items:center; justify-content:center; background:var(--muted); color:var(--foreground); font-size:14px; cursor:pointer;">A</div>
+                <!-- Profile Dropdown -->
+                <div class="dropdown profile-dropdown" id="profile-dropdown">
+                    <div class="dropdown-user">
+                        <div class="user-name">Admin</div>
+                        <div class="user-email">admin@evcharge.com</div>
+                    </div>
+                    <div class="dropdown-body">
+                        <div class="dropdown-item" onclick="loadSection('settings')"><i class="fas fa-cog" style="width:16px;"></i> Settings</div>
+                    </div>
+                    <div class="dropdown-footer" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+                </div>
             </div>
         </div>
         <div id="content-area">

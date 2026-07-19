@@ -1,7 +1,7 @@
 /* ===== ZENITH DASHBOARD — SaaS Theme ===== */
 
 :root {
-    --background: #ffffff;
+    --background: #f4f4f5;
     --foreground: #09090b;
     --muted: #f4f4f5;
     --muted-foreground: #71717a;
@@ -40,7 +40,7 @@
     --secondary-foreground: #fafafa;
     --accent: #27272a;
     --accent-foreground: #fafafa;
-    --card: #09090b;
+    --card: #18181b;
     --card-foreground: #fafafa;
 }
 
@@ -78,8 +78,10 @@ body {
     background: var(--card);
     border-right: 1px solid var(--border);
     padding: 0;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    width: var(--sidebar-width);
     height: 100vh;
     overflow-y: auto;
     display: flex;
@@ -88,8 +90,32 @@ body {
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
+.sidebar-brand {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-brand .brand-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.sidebar-brand .brand-subtitle {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
 .sidebar-profile {
-    padding: 24px 20px 20px;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -97,9 +123,9 @@ body {
 }
 
 .profile-pic {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
     object-fit: cover;
     border: 2px solid var(--border);
 }
@@ -129,7 +155,7 @@ body {
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
-    transition: background-color 0.15s ease, color 0.15s ease, background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -184,6 +210,7 @@ body {
 
 /* ===== MAIN CONTENT ===== */
 .main-content {
+    margin-left: var(--sidebar-width);
     padding: 0;
     overflow-y: auto;
     display: flex;
@@ -191,7 +218,7 @@ body {
     min-height: 100vh;
 }
 
-/* ===== TOP HEADER ===== */
+/* ===== TOP HEADER (Fixed) ===== */
 .top-header {
     background: var(--card);
     border-bottom: 1px solid var(--border);
@@ -200,8 +227,10 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: var(--sidebar-width);
+    right: 0;
     z-index: 40;
     transition: background-color 0.25s ease, border-color 0.25s ease;
 }
@@ -212,16 +241,8 @@ body {
     gap: 12px;
 }
 
-.header-left h1 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--foreground);
-    letter-spacing: -0.02em;
-}
-
 .header-search {
     position: relative;
-    margin-left: 24px;
 }
 
 .header-search input {
@@ -292,7 +313,7 @@ body {
 .header-profile-pic {
     width: 32px;
     height: 32px;
-    border-radius: var(--radius);
+    border-radius: 9999px;
     object-fit: cover;
     cursor: pointer;
     border: 2px solid var(--border);
@@ -301,6 +322,13 @@ body {
 
 .header-profile-pic:hover {
     border-color: var(--ring);
+}
+
+/* ===== CONTENT AREA (offset for fixed header) ===== */
+#content-area {
+    padding: 24px;
+    flex: 1;
+    margin-top: var(--header-height);
 }
 
 /* ===== DROPDOWNS ===== */
@@ -393,12 +421,6 @@ body {
     color: var(--muted-foreground);
 }
 
-/* ===== CONTENT AREA ===== */
-#content-area {
-    padding: 24px;
-    flex: 1;
-}
-
 /* ===== ADMIN OVERVIEW — DASHBOARD HEADER ===== */
 .dashboard-header {
     display: flex;
@@ -425,14 +447,28 @@ body {
     gap: 8px;
 }
 
+/* ===== METRICS GRID (4-column on desktop) ===== */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (min-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
 /* ===== STAT CARD ===== */
 .stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius);
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.25s ease, border-color 0.25s ease;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.25s ease;
 }
 
 .stat-card:hover {
@@ -856,14 +892,7 @@ body {
     margin-bottom: 16px;
 }
 
-/* ===== METRICS GRID (driver/owner style) ===== */
-.metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
+/* ===== METRIC CARD (driver/owner style) ===== */
 .metric-card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -907,67 +936,6 @@ body {
     line-height: 1;
 }
 
-/* ===== OLD cards-grid kept for backward compat but pointed at stat-card ===== */
-.cards-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.cards-grid .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    position: relative;
-}
-
-.cards-grid .card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: var(--ring);
-}
-
-.card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    color: var(--foreground);
-    background: var(--muted);
-    margin-bottom: 4px;
-}
-
-.card-icon i {
-    font-size: 18px;
-}
-
-.card-title {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted-foreground);
-}
-
-.card-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--foreground);
-    letter-spacing: -0.03em;
-    line-height: 1;
-}
-
-.card-subtitle {
-    font-size: 12px;
-    color: var(--muted-foreground);
-}
-
 /* ===== FORM INPUTS ===== */
 .form-control-group input,
 .form-control-group select,
@@ -976,7 +944,7 @@ body {
     border-radius: var(--radius);
     padding: 8px 12px;
     font-size: 14px;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.25s ease;
     width: 100%;
     background: var(--card);
     color: var(--foreground);
@@ -1134,10 +1102,6 @@ body {
     #content-area {
         padding: 20px;
     }
-
-    .cards-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 
 @media (max-width: 768px) {
@@ -1145,23 +1109,24 @@ body {
         --sidebar-width: 0px;
     }
 
-    .dashboard-container {
-        grid-template-columns: 1fr;
-    }
-
     .sidebar {
-        display: none;
-        position: fixed;
-        left: 0;
-        top: 0;
+        left: -280px;
         width: 280px;
-        height: 100vh;
-        z-index: 1000;
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+        transition: left 0.25s ease;
+        box-shadow: none;
     }
 
     .sidebar.active {
-        display: flex;
+        left: 0;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .top-header {
+        left: 0;
     }
 
     .header-search {
@@ -1176,7 +1141,7 @@ body {
         padding: 16px;
     }
 
-    .cards-grid {
+    .metrics-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
@@ -1226,10 +1191,6 @@ body {
 }
 
 @media (max-width: 480px) {
-    .cards-grid {
-        grid-template-columns: 1fr;
-    }
-
     .metrics-grid {
         grid-template-columns: 1fr;
     }
@@ -1263,9 +1224,4 @@ body {
     #map {
         height: 200px;
     }
-}
-
-/* ===== OVERRIDE for admin overview: the cards-grid in admin uses stat-card pattern now ===== */
-.cards-grid .card .card-icon i {
-    color: var(--foreground);
 }

@@ -717,5 +717,6 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
     </script>
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>

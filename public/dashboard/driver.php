@@ -33,6 +33,9 @@ if (file_exists($profilePicAbsolute)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="dashboard-container">
@@ -73,10 +76,21 @@ if (file_exists($profilePicAbsolute)) {
         <div class="main-content">
             <div class="top-header">
                 <div class="header-left">
+                    <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
                     <h1>EV Charging Station</h1>
+                    <div class="header-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search stations..." id="global-search" onkeydown="if(event.key==='Enter'){loadSection('find-stations');setTimeout(function(){var i=document.getElementById('location-input');if(i)i.value=this.value;searchStations();}.bind(this),200);}">
+                    </div>
                 </div>
                 <div class="header-right">
-                    <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic">
+                    <button class="header-btn" onclick="loadSection('bookings')" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic" onclick="loadSection('profile')">
                 </div>
             </div>
 

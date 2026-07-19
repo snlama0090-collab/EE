@@ -490,6 +490,27 @@ if (file_exists($profilePicAbsolute)) {
         document.addEventListener('DOMContentLoaded', startPollingIfNeeded);
         function logout() { window.location.href = '../logout.php'; }
 
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', function(e) {
+            var sidebar = document.getElementById('sidebar');
+            var menuBtn = document.getElementById('mobile-menu-btn');
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active') && !sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Show mobile menu button on small screens
+        function checkMobile() {
+            var btn = document.getElementById('mobile-menu-btn');
+            if (btn) btn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+        }
+        window.addEventListener('resize', checkMobile);
+        document.addEventListener('DOMContentLoaded', checkMobile);
+
 
         // --- bookings.php (cancel reservation) ---
         function cancelBooking(id) {

@@ -114,6 +114,9 @@ $db = getDB();
     let currentSection = '<?php echo $page; ?>';
 
     function loadSection(sectionName) {
+        // Guard: do nothing if already on this section
+        if (currentSection === sectionName) return;
+
         if (currentSection !== sectionName) {
             history.pushState(null, '', `?page=${sectionName}`);
         }

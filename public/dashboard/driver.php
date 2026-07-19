@@ -111,6 +111,9 @@ if (file_exists($profilePicAbsolute)) {
         let currentSection = '<?php echo $page; ?>';
 
         function loadSection(sectionName) {
+            // Guard: do nothing if already on this section
+            if (currentSection === sectionName) return;
+
             // Stop polling when switching sections to avoid stale network strain
             stopPolling();
 

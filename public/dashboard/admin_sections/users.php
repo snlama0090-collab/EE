@@ -77,13 +77,3 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
         </div>
     </div>
 </div>
-<task_progress>
-- [x] Read all listing section files
-- [x] Add modern listing CSS to dashboard.css
-- [x] Refactor admin_sections/users.php
-- [ ] Refactor admin_sections/stations.php
-- [ ] Refactor admin_sections/reviews.php
-- [ ] Refactor admin_sections/overview.php tables
-- [ ] Refactor sections/bookings.php
-</task_progress>
-</write_to_file>

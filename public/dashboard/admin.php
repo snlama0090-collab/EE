@@ -33,10 +33,6 @@ $db = getDB();
             <span class="brand-name">Zenith</span>
             <span class="brand-sub">Dashboard</span>
         </div>
-        <div class="header-search">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search...">
-        </div>
     </div>
     <div class="header-right">
         <!-- Theme Toggle -->

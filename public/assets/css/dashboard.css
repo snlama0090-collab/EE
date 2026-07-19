@@ -356,8 +356,9 @@ body {
 /* Sidebar collapse toggle button */
 .sidebar-toggle-btn {
     position: absolute;
-    right: -12px;
+    right: 0;
     top: 20px;
+    transform: translateX(50%);
     width: 24px;
     height: 24px;
     border-radius: 50%;

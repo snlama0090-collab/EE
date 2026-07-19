@@ -1142,6 +1142,301 @@ body {
     justify-content: center;
 }
 
+/* ===== MODERN LISTING TABLE ===== */
+.listing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.listing-header .listing-title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+}
+
+.listing-header .listing-title p {
+    font-size: 13px;
+    color: var(--muted-foreground);
+}
+
+.listing-header .listing-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    margin-bottom: 16px;
+}
+
+.breadcrumb a {
+    color: var(--muted-foreground);
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.breadcrumb a:hover {
+    color: var(--foreground);
+}
+
+.breadcrumb .current {
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.breadcrumb i {
+    font-size: 10px;
+    color: var(--muted-foreground);
+}
+
+.filter-pills {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-pill {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-pill:hover {
+    border-color: var(--ring);
+    color: var(--foreground);
+}
+
+.filter-pill.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.listing-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.listing-toolbar .toolbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+}
+
+.listing-toolbar .toolbar-search input {
+    border: 1px solid var(--input);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 100%;
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.listing-toolbar .toolbar-search input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(9, 9, 11, 0.1);
+}
+
+.listing-toolbar .toolbar-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.listing-table {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.listing-table table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.listing-table th {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.listing-table th:hover {
+    color: var(--foreground);
+}
+
+.listing-table th i {
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.5;
+}
+
+.listing-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    font-size: 13px;
+    color: var(--foreground);
+}
+
+.listing-table tr:last-child td {
+    border-bottom: none;
+}
+
+.listing-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.listing-table tbody tr:hover {
+    background: var(--muted);
+}
+
+.listing-table .cell-avatar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.listing-table .cell-avatar .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    background: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.listing-table .cell-avatar .avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius);
+    object-fit: cover;
+}
+
+.listing-table .cell-avatar .info {
+    display: flex;
+    flex-direction: column;
+}
+
+.listing-table .cell-avatar .info .name {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.listing-table .cell-avatar .info .sub {
+    font-size: 11px;
+    color: var(--muted-foreground);
+}
+
+.listing-table .amount {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.listing-table .trend-up { color: var(--success); }
+.listing-table .trend-down { color: var(--destructive); }
+
+.listing-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted-foreground);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.listing-footer .rows-select {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.listing-footer .rows-select select {
+    padding: 4px 8px;
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 12px;
+    background: var(--card);
+    color: var(--foreground);
+}
+
+.listing-footer .pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.listing-footer .pagination button {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--card);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.listing-footer .pagination button:hover {
+    border-color: var(--ring);
+    color: var(--foreground);
+}
+
+.listing-footer .pagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.listing-footer .pagination button.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     #content-area {

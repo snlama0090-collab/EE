@@ -26,9 +26,58 @@ $db = getDB();
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
+<!-- FIXED TOP HEADER (full width) -->
+<div class="top-header">
+    <div class="header-left">
+        <div class="header-brand">
+            <span class="brand-name">Zenith</span>
+            <span class="brand-sub">Dashboard</span>
+        </div>
+        <div class="header-search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search...">
+        </div>
+    </div>
+    <div class="header-right">
+        <!-- Theme Toggle -->
+        <button type="button" class="header-btn" id="theme-toggle" title="Toggle theme">
+            <i class="fas fa-moon"></i>
+        </button>
+        <!-- Notifications -->
+        <button type="button" class="header-btn" id="notif-btn" title="Notifications">
+            <i class="fas fa-bell"></i>
+            <span class="notification-dot"></span>
+        </button>
+        <!-- Notifications Dropdown -->
+        <div class="dropdown" id="notif-dropdown">
+            <div class="dropdown-header">Notifications</div>
+            <div class="dropdown-body">
+                <div class="dropdown-item">No new notifications</div>
+            </div>
+            <div class="dropdown-footer">View all notifications</div>
+        </div>
+        <!-- Profile Avatar / Trigger -->
+        <div class="header-profile-pic" id="profile-btn" style="display:flex; align-items:center; justify-content:center; background:var(--muted); color:var(--foreground); font-size:14px; cursor:pointer;">A</div>
+        <!-- Profile Dropdown -->
+        <div class="dropdown profile-dropdown" id="profile-dropdown">
+            <div class="dropdown-user">
+                <div class="user-name">Admin</div>
+                <div class="user-email">admin@evcharge.com</div>
+            </div>
+            <div class="dropdown-body">
+                <div class="dropdown-item" onclick="loadSection('settings')"><i class="fas fa-cog" style="width:16px;"></i> Settings</div>
+            </div>
+            <div class="dropdown-footer" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
+    </div>
+</div>
+
 <div class="dashboard-container">
     <!-- SIDEBAR -->
     <div class="sidebar" id="sidebar">
+        <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="Toggle sidebar">
+            <i class="fas fa-chevron-left"></i>
+        </button>
         <div class="sidebar-profile">
             <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--muted); font-size:18px; color:var(--foreground);">🛡️</div>
             <div class="profile-name">Admin Panel</div>
@@ -36,74 +85,34 @@ $db = getDB();
 
         <div class="sidebar-nav">
             <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">
-                <i class="fas fa-chart-pie"></i> Overview
+                <i class="fas fa-chart-pie"></i> <span>Overview</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
-                <i class="fas fa-charging-station"></i> Stations
+                <i class="fas fa-charging-station"></i> <span>Stations</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'users' ? ' active' : ''; ?>" data-section="users" onclick="loadSection('users')">
-                <i class="fas fa-users"></i> Users
+                <i class="fas fa-users"></i> <span>Users</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'reviews' ? ' active' : ''; ?>" data-section="reviews" onclick="loadSection('reviews')">
-                <i class="fas fa-star"></i> Reviews
+                <i class="fas fa-star"></i> <span>Reviews</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'reports' ? ' active' : ''; ?>" data-section="reports" onclick="loadSection('reports')">
-                <i class="fas fa-chart-bar"></i> Reports
+                <i class="fas fa-chart-bar"></i> <span>Reports</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'settings' ? ' active' : ''; ?>" data-section="settings" onclick="loadSection('settings')">
-                <i class="fas fa-cog"></i> Settings
+                <i class="fas fa-cog"></i> <span>Settings</span>
             </button>
         </div>
 
         <div class="sidebar-logout">
             <button type="button" onclick="logout()" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
+                <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
             </button>
         </div>
     </div>
 
     <!-- MAIN CONTENT -->
     <div class="main-content">
-        <div class="top-header">
-            <div class="header-left">
-                <button type="button" class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1>Admin Panel</h1>
-            </div>
-            <div class="header-right">
-                <!-- Theme Toggle -->
-                <button type="button" class="header-btn" id="theme-toggle" title="Toggle theme">
-                    <i class="fas fa-moon"></i>
-                </button>
-                <!-- Notifications -->
-                <button type="button" class="header-btn" id="notif-btn" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-dot"></span>
-                </button>
-                <!-- Notifications Dropdown -->
-                <div class="dropdown" id="notif-dropdown">
-                    <div class="dropdown-header">Notifications</div>
-                    <div class="dropdown-body">
-                        <div class="dropdown-item">No new notifications</div>
-                    </div>
-                    <div class="dropdown-footer">View all notifications</div>
-                </div>
-                <!-- Profile Avatar / Trigger -->
-                <div class="header-profile-pic" id="profile-btn" style="display:flex; align-items:center; justify-content:center; background:var(--muted); color:var(--foreground); font-size:14px; cursor:pointer;">A</div>
-                <!-- Profile Dropdown -->
-                <div class="dropdown profile-dropdown" id="profile-dropdown">
-                    <div class="dropdown-user">
-                        <div class="user-name">Admin</div>
-                        <div class="user-email">admin@evcharge.com</div>
-                    </div>
-                    <div class="dropdown-body">
-                        <div class="dropdown-item" onclick="loadSection('settings')"><i class="fas fa-cog" style="width:16px;"></i> Settings</div>
-                    </div>
-                    <div class="dropdown-footer" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
-                </div>
-            </div>
-        </div>
         <div id="content-area">
             <?php include "admin_sections/{$page}.php"; ?>
         </div>

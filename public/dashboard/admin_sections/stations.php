@@ -75,7 +75,6 @@ $stations = $stmt->fetchAll();
         </div>
     </div>
 </div>
-</write_to_file>
 <task_progress>
 - [x] Read all listing section files
 - [x] Add modern listing CSS to dashboard.css

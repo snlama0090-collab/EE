@@ -1,10 +1,44 @@
 /**
- * dashboard.js — Theme controller & dropdown toggles
+ * dashboard.js — Sidebar toggle, Theme controller & Dropdown toggles
  * Vanilla JS, no dependencies.
  */
 
 (function () {
   'use strict';
+
+  /* ── Sidebar Collapse Toggle ── */
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const dashboardContainer = document.querySelector('.dashboard-container');
+
+  function getSidebarState() {
+    return localStorage.getItem('sidebar-collapsed') === 'true';
+  }
+
+  function applySidebarState(collapsed) {
+    if (!dashboardContainer) return;
+    if (collapsed) {
+      dashboardContainer.classList.add('sidebar-collapsed');
+      if (sidebarToggle) {
+        sidebarToggle.querySelector('i').className = 'fas fa-chevron-right';
+      }
+    } else {
+      dashboardContainer.classList.remove('sidebar-collapsed');
+      if (sidebarToggle) {
+        sidebarToggle.querySelector('i').className = 'fas fa-chevron-left';
+      }
+    }
+    localStorage.setItem('sidebar-collapsed', collapsed);
+  }
+
+  // Init sidebar state on load
+  applySidebarState(getSidebarState());
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', function () {
+      const isCollapsed = dashboardContainer.classList.contains('sidebar-collapsed');
+      applySidebarState(!isCollapsed);
+    });
+  }
 
   /* ── Theme Controller ── */
   const themeBtn = document.getElementById('theme-toggle');
@@ -20,7 +54,6 @@
     } else {
       htmlEl.removeAttribute('data-theme');
     }
-    // Update icon
     if (themeBtn) {
       const icon = themeBtn.querySelector('i');
       if (icon) {
@@ -46,12 +79,8 @@
   const profileBtn = document.getElementById('profile-btn');
   const profileDropdown = document.getElementById('profile-dropdown');
 
-  function toggleDropdown(dropdown, forceClose) {
+  function toggleDropdown(dropdown) {
     if (!dropdown) return;
-    if (forceClose) {
-      dropdown.classList.remove('show');
-      return;
-    }
     // Close all other dropdowns first
     [notifDropdown, profileDropdown].forEach(function (d) {
       if (d && d !== dropdown) d.classList.remove('show');

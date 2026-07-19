@@ -78,10 +78,6 @@ $db = getDB();
         <button type="button" class="sidebar-toggle-btn" id="sidebar-toggle" title="Toggle sidebar">
             <i class="fas fa-chevron-left"></i>
         </button>
-        <div class="sidebar-profile">
-            <div class="profile-pic" style="display:flex; align-items:center; justify-content:center; background:var(--muted); font-size:18px; color:var(--foreground);">🛡️</div>
-            <div class="profile-name">Admin Panel</div>
-        </div>
 
         <div class="sidebar-nav">
             <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">

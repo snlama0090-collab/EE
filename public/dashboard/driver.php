@@ -80,10 +80,6 @@ if (file_exists($profilePicAbsolute)) {
                         <i class="fas fa-bars"></i>
                     </button>
                     <h1>EV Charging Station</h1>
-                    <div class="header-search">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search stations..." id="global-search" onkeydown="if(event.key==='Enter'){loadSection('find-stations');setTimeout(function(){var i=document.getElementById('location-input');if(i)i.value=this.value;searchStations();}.bind(this),200);}">
-                    </div>
                 </div>
                 <div class="header-right">
                     <button type="button" class="header-btn" onclick="loadSection('bookings')" title="Notifications">

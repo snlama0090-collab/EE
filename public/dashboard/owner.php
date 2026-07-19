@@ -142,12 +142,31 @@ if (file_exists($profilePicAbsolute)) {
             <i class="fas fa-moon"></i>
         </button>
         <!-- Notifications -->
-        <button type="button" class="header-btn" onclick="" title="Notifications">
+        <button type="button" class="header-btn" id="notif-btn" title="Notifications">
             <i class="fas fa-bell"></i>
             <span class="notification-dot"></span>
         </button>
+        <div class="dropdown" id="notif-dropdown">
+            <div class="dropdown-header">Notifications</div>
+            <div class="dropdown-body">
+                <div class="dropdown-item">No new notifications</div>
+            </div>
+            <div class="dropdown-footer">View all notifications</div>
+        </div>
         <!-- Profile -->
-        <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" class="header-profile-pic">
+        <div class="header-profile-pic" id="profile-btn" style="display:flex; align-items:center; justify-content:center; background:var(--muted); color:var(--foreground); font-size:14px; cursor:pointer;">
+            <img src="<?php echo htmlspecialchars($profilePicPath); ?>" alt="Profile" style="width:32px;height:32px;border-radius:var(--radius);object-fit:cover;">
+        </div>
+        <div class="dropdown profile-dropdown" id="profile-dropdown">
+            <div class="dropdown-user">
+                <div class="user-name"><?php echo htmlspecialchars($owner['company_name']); ?></div>
+                <div class="user-email">owner@evcharge.com</div>
+            </div>
+            <div class="dropdown-body">
+                <div class="dropdown-item" onclick="loadSection('profile')"><i class="fas fa-store" style="width:16px;"></i> Company Profile</div>
+            </div>
+            <div class="dropdown-footer" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        </div>
     </div>
 </div>
 

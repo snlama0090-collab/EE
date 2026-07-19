@@ -80,14 +80,3 @@ $reviews = $stmt->fetchAll();
         </div>
     </div>
 </div>
-</write_to_file>
-<task_progress>
-- [x] Read all listing section files
-- [x] Add modern listing CSS to dashboard.css
-- [x] Refactor admin_sections/users.php
-- [x] Refactor admin_sections/stations.php
-- [x] Refactor admin_sections/reviews.php
-- [ ] Refactor admin_sections/overview.php tables
-- [ ] Refactor sections/bookings.php
-</task_progress>
-</write_to_file>

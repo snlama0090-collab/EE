@@ -302,11 +302,17 @@ body {
     height: calc(100vh - var(--header-height));
     position: sticky;
     top: var(--header-height);
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
     z-index: 50;
     transition: width 0.3s ease, min-width 0.3s ease, background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.sidebar-inner {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Collapsed state */

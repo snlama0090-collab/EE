@@ -102,6 +102,7 @@ $db = getDB();
                 <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
             </button>
         </div>
+        </div><!-- end sidebar-inner -->
     </div>
 
     <!-- MAIN CONTENT -->

@@ -86,7 +86,7 @@ if (file_exists($profilePicAbsolute)) {
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="header-btn" onclick="loadSection('bookings')" title="Notifications">
+                    <button type="button" class="header-btn" onclick="loadSection('bookings')" title="Notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-dot"></span>
                     </button>

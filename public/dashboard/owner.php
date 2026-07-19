@@ -174,7 +174,7 @@ if (file_exists($profilePicAbsolute)) {
                     <h1>Owner Portal 🏢</h1>
                 </div>
                 <div class="header-right">
-                    <button class="header-btn" onclick="" title="Notifications">
+                    <button type="button" class="header-btn" onclick="" title="Notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-dot"></span>
                     </button>

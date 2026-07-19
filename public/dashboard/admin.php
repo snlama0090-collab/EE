@@ -79,6 +79,7 @@ $db = getDB();
             <i class="fas fa-chevron-left"></i>
         </button>
 
+        <div class="sidebar-inner">
         <div class="sidebar-nav">
             <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">
                 <i class="fas fa-chart-pie"></i> <span>Overview</span>

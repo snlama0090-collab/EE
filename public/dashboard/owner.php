@@ -138,26 +138,26 @@ if (file_exists($profilePicAbsolute)) {
 
             <!-- Navigation Buttons -->
             <div class="sidebar-nav">
-                <button class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')"<?php echo $page === 'overview' ? ' style="border-color:#34C759;background:linear-gradient(135deg,#34C759 0%,#20c997 100%);box-shadow:0 4px 12px rgba(52,199,89,0.4);transform:translateX(4px);"' : ''; ?>>
+                <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">
                     <i class="fas fa-chart-pie"></i> Overview
                 </button>
-                <button class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
+                <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
                     <i class="fas fa-store"></i> Company Profile
                 </button>
-                <button class="nav-btn<?php echo $page === 'financials' ? ' active' : ''; ?>" data-section="financials" onclick="loadSection('financials')">
+                <button type="button" class="nav-btn<?php echo $page === 'financials' ? ' active' : ''; ?>" data-section="financials" onclick="loadSection('financials')">
                     <i class="fas fa-chart-bar"></i> Financials
                 </button>
-                <button class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
+                <button type="button" class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
                     <i class="fas fa-charging-station"></i> My Stations
                 </button>
-                <button class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
+                <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
                     <i class="fas fa-receipt"></i> Bookings
                 </button>
             </div>
 
             <!-- Logout Button -->
             <div class="sidebar-logout">
-                <button onclick="logout()" class="logout-btn">
+            <button type="button" onclick="logout()" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
@@ -168,7 +168,7 @@ if (file_exists($profilePicAbsolute)) {
             <!-- TOP HEADER -->
             <div class="top-header">
                 <div class="header-left">
-                    <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                    <button type="button" class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
                         <i class="fas fa-bars"></i>
                     </button>
                     <h1>Owner Portal 🏢</h1>

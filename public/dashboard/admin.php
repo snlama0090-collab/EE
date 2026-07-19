@@ -325,5 +325,9 @@ $db = getDB();
 </div>
 
 <script src="../assets/js/dashboard.js"></script>
+<script>
+// Quick test to confirm script execution
+console.log('dashboard.js loaded');
+</script>
 </body>
 </html>

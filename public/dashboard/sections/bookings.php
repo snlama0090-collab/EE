@@ -140,4 +140,3 @@ $bookings = $stmt->fetchAll();
         </div>
     </div>
 <?php endif; ?>
-</write_to_file>

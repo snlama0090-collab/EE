@@ -997,3 +997,7 @@ Stack trace:
 [2026-07-19 17:54:35] [INFO] User 4 (driver) logged in
 [2026-07-19 17:56:10] [INFO] User 1 (admin) logged in
 [2026-07-19 17:56:10] [INFO] User 1 (admin) logged in
+[2026-07-19 18:13:38] [INFO] User 3 (owner) logged in
+[2026-07-19 18:13:38] [INFO] User 3 (owner) logged in
+[2026-07-19 18:16:40] [INFO] User 4 (driver) logged in
+[2026-07-19 18:16:40] [INFO] User 4 (driver) logged in

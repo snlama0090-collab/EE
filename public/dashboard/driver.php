@@ -48,25 +48,25 @@ if (file_exists($profilePicAbsolute)) {
 
             <!-- Navigation — active class set server-side, no flicker -->
             <div class="sidebar-nav">
-                <button class="nav-btn<?php echo $page === 'dashboard' ? ' active' : ''; ?>" data-section="dashboard" onclick="loadSection('dashboard')">
+                <button type="button" class="nav-btn<?php echo $page === 'dashboard' ? ' active' : ''; ?>" data-section="dashboard" onclick="loadSection('dashboard')">
                     <i class="fas fa-home"></i> Dashboard
                 </button>
-                <button class="nav-btn<?php echo $page === 'find-stations' ? ' active' : ''; ?>" data-section="find-stations" onclick="loadSection('find-stations')">
+                <button type="button" class="nav-btn<?php echo $page === 'find-stations' ? ' active' : ''; ?>" data-section="find-stations" onclick="loadSection('find-stations')">
                     <i class="fas fa-map"></i> Find Stations
                 </button>
-                <button class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
+                <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
                     <i class="fas fa-clock"></i> My Bookings
                 </button>
-                <button class="nav-btn<?php echo $page === 'favorites' ? ' active' : ''; ?>" data-section="favorites" onclick="loadSection('favorites')">
+                <button type="button" class="nav-btn<?php echo $page === 'favorites' ? ' active' : ''; ?>" data-section="favorites" onclick="loadSection('favorites')">
                     <i class="fas fa-heart"></i> Favorites
                 </button>
-                <button class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
+                <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
                     <i class="fas fa-user"></i> Profile
                 </button>
             </div>
 
             <div class="sidebar-logout">
-                <button onclick="logout()" class="logout-btn">
+                <button type="button" onclick="logout()" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </button>
             </div>
@@ -76,7 +76,7 @@ if (file_exists($profilePicAbsolute)) {
         <div class="main-content">
             <div class="top-header">
                 <div class="header-left">
-                    <button class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
+                    <button type="button" class="header-btn" onclick="toggleSidebar()" style="display:none;" id="mobile-menu-btn">
                         <i class="fas fa-bars"></i>
                     </button>
                     <h1>EV Charging Station</h1>

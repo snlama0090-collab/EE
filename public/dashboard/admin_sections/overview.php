@@ -72,7 +72,7 @@ $pending_stations = $stmt->fetchAll();
     </div>
 </div>
 
-<div class="card" style="margin-bottom: 24px;">
+<div class="card">
     <h3><i class="fas fa-hourglass-half"></i> Pending Station Approvals</h3>
     <?php if (count($pending_stations) > 0): ?>
         <div class="table-container">
@@ -98,11 +98,11 @@ $pending_stations = $stmt->fetchAll();
             </table>
         </div>
     <?php else: ?>
-        <p style="text-align: center; color: var(--gray); padding: 16px;">No pending approvals</p>
+        <p style="text-align: center; color: var(--muted-foreground); padding: 24px; font-size: 13px;">No pending approvals</p>
     <?php endif; ?>
 </div>
 
-<div class="card">
+<div class="card" style="margin-bottom: 1px;">
     <h3><i class="fas fa-history"></i> Recent Activities</h3>
     <div class="table-container">
         <table>

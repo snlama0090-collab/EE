@@ -23,7 +23,7 @@ $stations = $stmt->fetchAll();
 
 <div class="stations-container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h2>🔌 My Charging Stations</h2>
+        <h2><i class="fas fa-plug" style="margin-right:8px;color:var(--muted-foreground);"></i> My Charging Stations</h2>
         <button class="btn btn-primary" onclick="toggleStationView('register-view')">
             <i class="fas fa-plus"></i> Register New Station
         </button>
@@ -146,7 +146,7 @@ $stations = $stmt->fetchAll();
             <!-- Chargers Builder -->
             <div style="margin: 24px 0; border-top: 1px solid var(--border); padding-top: 16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h4>🔌 Chargers Configurator</h4>
+                    <h4><i class="fas fa-plug" style="margin-right:6px;color:var(--muted-foreground);"></i> Chargers Configurator</h4>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="addChargerRow()">
                         <i class="fas fa-plus"></i> Add Charger
                     </button>

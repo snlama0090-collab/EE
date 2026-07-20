@@ -297,10 +297,8 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             const loginBtn = document.getElementById('login-btn');
             const btnText = document.getElementById('btn-text');
 
-            errorMessage.classList.remove('show');
-
-            if (!email || !password) { showError('Please fill in all fields'); return; }
-            if (password.length < 6) { showError('Password must be at least 6 characters'); return; }
+            if (!email || !password) { showToast('Please fill in all fields', 'error'); return; }
+            if (password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
 
             loginBtn.classList.add('loading');
             btnText.innerHTML = '<span class="spinner"></span>Signing in...';
@@ -325,14 +323,14 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                     }[userType];
                     window.location.href = redirectUrl;
                 } else {
-                    showError(data.message || 'Login failed. Please try again.');
+                    showToast(data.message || 'Login failed. Please try again.', 'error');
                     loginBtn.classList.remove('loading');
                     btnText.textContent = 'Sign In';
                     loginBtn.disabled = false;
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showError('Network error. Please try again.');
+                showToast('Network error. Please try again.', 'error');
                 loginBtn.classList.remove('loading');
                 btnText.textContent = 'Sign In';
                 loginBtn.disabled = false;
@@ -398,7 +396,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                     window.location.href = data.redirect;
                 } else {
                     wrapper.innerHTML = originalHTML;
-                    showError(data.message || 'Google Sign-In failed.');
+                    showToast(data.message || 'Google Sign-In failed.', 'error');
                     if (window.google && google.accounts) {
                         google.accounts.id.renderButton(
                             document.querySelector('.g_id_signin'),
@@ -409,7 +407,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             } catch (err) {
                 console.error('Google sign-in error:', err);
                 wrapper.innerHTML = originalHTML;
-                showError('Network error during Google Sign-In.');
+                showToast('Network error during Google Sign-In.', 'error');
             }
         }
     </script>

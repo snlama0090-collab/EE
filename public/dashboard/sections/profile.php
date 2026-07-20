@@ -75,7 +75,7 @@ if (file_exists($profilePicAbsolute)) {
 ?>
 
 <div class="profile-container">
-    <h2>👤 Profile Settings</h2>
+    <h2><i class="fas fa-user" style="margin-right:8px;color:var(--muted-foreground);"></i> Profile Settings</h2>
     <p style="color:var(--gray); margin-bottom:24px;">Manage your driver information, preferences, and electric vehicle configurations.</p>
 
     <div class="dashboard-section-card">

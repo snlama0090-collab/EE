@@ -37,7 +37,7 @@ $favorites = $stmt->fetchAll();
 ?>
 
 <div class="favorites-container">
-    <h2>❤️ My Favorite Stations</h2>
+    <h2><i class="fas fa-heart" style="margin-right:8px;color:var(--muted-foreground);"></i> My Favorite Stations</h2>
     <p style="color:var(--gray); margin-bottom:24px;">Quickly access and book your preferred charging locations.</p>
 
     <?php if (count($favorites) > 0): ?>

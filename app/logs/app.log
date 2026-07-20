@@ -1083,3 +1083,20 @@ Stack trace:
 [2026-07-20 12:23:06] [INFO] User 1 (admin) logged in
 [2026-07-20 12:31:14] [INFO] User 3 (owner) logged in
 [2026-07-20 12:31:14] [INFO] User 3 (owner) logged in
+[2026-07-20 13:39:32] [WARNING] Failed login attempt for apple@gmail.com (driver)
+[2026-07-20 13:39:41] [INFO] User 5 (driver) logged in
+[2026-07-20 13:39:41] [INFO] User 5 (driver) logged in
+[2026-07-20 13:40:06] [INFO] User 4 (driver) logged in
+[2026-07-20 13:40:06] [INFO] User 4 (driver) logged in
+[2026-07-20 13:40:25] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:31] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:31] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:32] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:32] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:32] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:37] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:37] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:38] [WARNING] Failed login attempt for app@gmail.com (owner)
+[2026-07-20 13:40:42] [INFO] User 4 (driver) logged in
+[2026-07-20 13:40:42] [INFO] User 4 (driver) logged in
+[2026-07-20 13:41:14] [WARNING] Failed login attempt for app@gmail.com (owner)

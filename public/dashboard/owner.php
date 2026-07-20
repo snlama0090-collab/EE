@@ -10,6 +10,12 @@ $user_id = Auth::getCurrentUserId();
 // Server-side initial page — no flicker
 $allowed = ['overview', 'analytics', 'invoices', 'stations', 'bookings', 'team', 'notifications', 'settings', 'support', 'profile'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'overview';
+// ponytail: project branding
+$project_name = 'WattPulse';
+$role_subtitles = ['admin' => 'Admin Portal', 'owner' => 'Station Owner Portal', 'driver' => 'Driver Portal'];
+$user_role = Auth::getCurrentUserType();
+$role_subtitle = $role_subtitles[$user_role] ?? 'Portal';
+
 $db = getDB();
 
 // Get owner details
@@ -132,8 +138,8 @@ if (file_exists($profilePicAbsolute)) {
 <div class="top-header">
     <div class="header-left">
         <div class="header-brand">
-            <span class="brand-name">Zenith</span>
-            <span class="brand-sub">Dashboard</span>
+            <span class="brand-name"><?php echo htmlspecialchars($project_name); ?></span>
+            <span class="brand-sub"><?php echo htmlspecialchars($role_subtitle); ?></span>
         </div>
     </div>
     <div class="header-right">

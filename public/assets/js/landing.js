@@ -42,12 +42,12 @@ tabButtons.forEach(button => {
 // ===== LOCATION DETECTION =====
 getLocationBtn.addEventListener('click', () => {
     getLocationBtn.disabled = true;
-    getLocationBtn.textContent = '🔍 Getting location...';
+        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
     
     if (!navigator.geolocation) {
         showLocationError('Geolocation is not supported');
         getLocationBtn.disabled = false;
-        getLocationBtn.textContent = '📍 Use My Location';
+        getLocationBtn.innerHTML = '<i class="fas fa-location-dot"></i> Use My Location';
         return;
     }
     
@@ -71,7 +71,7 @@ getLocationBtn.addEventListener('click', () => {
             fetchNearbyStations();
             
             getLocationBtn.disabled = false;
-            getLocationBtn.textContent = '📍 Location Updated';
+            getLocationBtn.innerHTML = '<i class="fas fa-check-circle"></i> Location Updated';
         },
         (error) => {
             let message = '';
@@ -91,7 +91,7 @@ getLocationBtn.addEventListener('click', () => {
             
             showLocationError(message);
             getLocationBtn.disabled = false;
-            getLocationBtn.textContent = '📍 Use My Location';
+            getLocationBtn.innerHTML = '<i class="fas fa-location-dot"></i> Use My Location';
         },
         {
             enableHighAccuracy: true,
@@ -103,7 +103,7 @@ getLocationBtn.addEventListener('click', () => {
 
 // ===== SHOW LOCATION ERROR =====
 function showLocationError(message) {
-    locationStatus.textContent = `❌ ${message}`;
+    locationStatus.innerHTML = `<i class="fas fa-exclamation-circle" style="color:#FF3B30;"></i> ${message}`;
     locationStatus.style.color = '#FF3B30';
     
     // Use default location (Kathmandu)
@@ -127,7 +127,7 @@ function getPlaceNameFromCoordinates(lat, lng) {
         .then(data => {
             const placeName = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown Location';
             userLocation.placeName = placeName;
-            locationStatus.textContent = `✅ ${placeName}`;
+            locationStatus.innerHTML = `<i class="fas fa-check-circle" style="color:#34C759;"></i> ${placeName}`;
             locationStatus.style.color = '#34C759';
             console.log('Place name:', placeName);
             
@@ -202,7 +202,7 @@ async function fetchNearbyStations() {
         
     } catch (error) {
         console.error('Error fetching stations:', error);
-        stationsList.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #FF3B30;">❌ Failed to load stations</p>';
+        stationsList.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #FF3B30;"><i class="fas fa-exclamation-circle"></i> Failed to load stations</p>';
     }
 }
 

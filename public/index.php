@@ -31,6 +31,7 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .landing-header .brand .brand-name { font-size: 16px; font-weight: 700; color: var(--foreground); letter-spacing: -0.02em; }
         .landing-header .brand .brand-sub { font-size: 9px; font-weight: 600; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.15em; }
         .landing-nav { display: flex; align-items: center; gap: 8px; }
+        .landing-nav a { text-decoration: none; }
         .hero-section { margin-top: var(--header-height); display: flex; align-items: center; gap: 40px; padding: 60px 24px; max-width: 1100px; margin-left: auto; margin-right: auto; min-height: calc(100vh - var(--header-height) - 200px); }
         .hero-content { flex: 1; }
         .hero-content h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 12px; line-height: 1.15; }
@@ -43,12 +44,12 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .section-title { text-align: center; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
         .section-desc { text-align: center; font-size: 14px; color: var(--muted-foreground); margin-bottom: 32px; }
         .role-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto 48px; padding: 0 24px; }
-        .role-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 24px; text-align: center; transition: all 0.15s ease; text-decoration: none; display: block; }
+        .role-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 24px; text-align: center; transition: all 0.15s ease; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
         .role-card:hover { border-color: var(--ring); box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
         .role-card i { font-size: 32px; color: var(--foreground); margin-bottom: 16px; }
         .role-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--foreground); }
-        .role-card p { font-size: 13px; color: var(--muted-foreground); line-height: 1.5; }
-        .role-card .btn { margin-top: 20px; }
+        .role-card p { font-size: 13px; color: var(--muted-foreground); line-height: 1.5; margin-bottom: 20px; flex: 1; }
+        .role-card .btn { margin-top: auto; text-decoration: none; }
         .features-section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
         .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all 0.15s ease; }
@@ -65,8 +66,9 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .cta-section { padding: 60px 24px; text-align: center; }
         .cta-section h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
         .cta-section p { color: var(--muted-foreground); font-size: 14px; margin-bottom: 24px; }
+        .cta-section a { text-decoration: none; }
         .landing-footer { border-top: 1px solid var(--border); background: var(--card); padding: 40px 24px 24px; }
-        .footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+        .footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-items: start; }
         .footer-col h5 { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--foreground); }
         .footer-col a, .footer-col p { font-size: 12px; color: var(--muted-foreground); text-decoration: none; display: block; margin-bottom: 6px; }
         .footer-col a:hover { color: var(--foreground); }
@@ -110,14 +112,14 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     <!-- HERO SECTION -->
     <section class="hero-section">
         <div class="hero-content">
-            <h1>Find EV Charging Stations Near You ⚡</h1>
+            <h1>Find EV Charging Stations Near You</h1>
             <p>Real-time availability, instant booking, and easy payment in one platform — serving drivers, station owners, and platform operators.</p>
-            <a href="login.php?type=driver" class="btn btn-primary" style="padding:10px 24px;font-size:14px;"><i class="fas fa-car"></i> Book a Charger</a>
-            <a href="login.php?type=owner" class="btn btn-secondary" style="padding:10px 24px;font-size:14px;margin-left:8px;"><i class="fas fa-store"></i> Host a Station</a>
+            <a href="login.php?type=driver" class="btn btn-primary" style="padding:10px 24px;font-size:14px;text-decoration:none;"><i class="fas fa-car"></i> Book a Charger</a>
+            <a href="login.php?type=owner" class="btn btn-secondary" style="padding:10px 24px;font-size:14px;margin-left:8px;text-decoration:none;"><i class="fas fa-store"></i> Host a Station</a>
             <div class="hero-stats">
-                <div class="stat"><h3>324+</h3><p>Active Stations</p></div>
-                <div class="stat"><h3>1,234</h3><p>EV Drivers</p></div>
-                <div class="stat"><h3>87</h3><p>Station Owners</p></div>
+                <div class="stat"><h3 id="stat-stations">0</h3><p>Active Stations</p></div>
+                <div class="stat"><h3 id="stat-drivers">0</h3><p>EV Drivers</p></div>
+                <div class="stat"><h3 id="stat-owners">0</h3><p>Station Owners</p></div>
             </div>
         </div>
         <div class="hero-visual">
@@ -131,21 +133,21 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     <div class="role-cards">
         <a href="login.php?type=driver" class="role-card">
             <i class="fas fa-car"></i>
-            <h3>🚗 Driver Hub</h3>
+            <h3>Driver Hub</h3>
             <p>Find stations, book chargers, track sessions, and manage payments — all from your personal dashboard.</p>
             <span class="btn btn-sm btn-primary">Driver Login / Sign Up</span>
         </a>
         <a href="login.php?type=owner" class="role-card">
             <i class="fas fa-store"></i>
-            <h3>🔌 Station Owner Portal</h3>
+            <h3>Station Owner Portal</h3>
             <p>Host chargers, set pricing, monitor usage in real time, and view payout statements.</p>
             <span class="btn btn-sm btn-primary">Host a Station</span>
         </a>
         <a href="login.php?type=admin" class="role-card">
             <i class="fas fa-shield-alt"></i>
-            <h3>👑 Admin Access</h3>
+            <h3>Admin Access</h3>
             <p>Platform governance, network-wide analytics, user management, and moderation tools.</p>
-            <span class="btn btn-sm btn-secondary">Admin Portal</span>
+            <span class="btn btn-sm btn-primary" style="background:var(--primary);color:var(--primary-foreground);border:1px solid var(--primary);">Admin Portal</span>
         </a>
     </div>
 
@@ -189,10 +191,10 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
 
     <!-- CTA -->
     <section class="cta-section">
-        <h2>Ready to Get Started? 🚀</h2>
+        <h2>Ready to Get Started?</h2>
         <p>Join thousands of EV owners and charging station operators</p>
-        <a href="register.php?type=driver" class="btn btn-primary" style="padding:10px 24px;font-size:14px;"><i class="fas fa-user"></i> I'm a Driver</a>
-        <a href="register.php?type=owner" class="btn btn-secondary" style="padding:10px 24px;font-size:14px;margin-left:8px;"><i class="fas fa-store"></i> I'm an Owner</a>
+        <a href="register.php?type=driver" class="btn btn-primary" style="padding:10px 24px;font-size:14px;text-decoration:none;"><i class="fas fa-user"></i> I'm a Driver</a>
+        <a href="register.php?type=owner" class="btn btn-secondary" style="padding:10px 24px;font-size:14px;margin-left:8px;text-decoration:none;"><i class="fas fa-store"></i> I'm an Owner</a>
     </section>
 
     <!-- FOOTER -->
@@ -212,6 +214,27 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
             </div>
         </div>
     </footer>
+
+    <script>
+    // Real-time counting animation for hero stats
+    document.addEventListener('DOMContentLoaded', function() {
+        function animateCount(el, target) {
+            const duration = 1200;
+            const start = performance.now();
+            const step = (now) => {
+                const progress = Math.min((now - start) / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 3);
+                el.textContent = target < 1000 ? Math.floor(ease * target) + '+' : Math.floor(ease * target);
+                if (progress < 1) requestAnimationFrame(step);
+                else el.textContent = target + '+';
+            };
+            requestAnimationFrame(step);
+        }
+        animateCount(document.getElementById('stat-stations'), 324);
+        animateCount(document.getElementById('stat-drivers'), 1234);
+        animateCount(document.getElementById('stat-owners'), 87);
+    });
+    </script>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="assets/js/landing.js"></script>

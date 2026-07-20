@@ -316,7 +316,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             var timeout = setTimeout(function() { controller.abort(); }, 15000);
 
             try {
-                var response = await fetch('../api/auth/login.php', {
+                var response = await fetch('/EE/api/auth/login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password, user_type: userType, remember }),

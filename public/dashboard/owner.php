@@ -544,7 +544,7 @@ if (file_exists($profilePicAbsolute)) {
         }
 
         async function manageStationChargers(stationId, stationName) {
-            document.getElementById('manage-chargers-title').textContent = `🔌 Chargers for "${stationName}"`;
+            document.getElementById('manage-chargers-title').textContent = `Chargers for "${stationName}"`;
             toggleStationView('chargers-management-view');
             const body = document.getElementById('chargers-table-body');
             body.innerHTML = `<tr><td colspan="5" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>`;
@@ -654,7 +654,7 @@ if (file_exists($profilePicAbsolute)) {
 
                 box.innerHTML = `
                     <div style="margin-bottom:20px;">
-                        <h3 style="margin-bottom:4px;">🔌 Start Charging Session</h3>
+                        <h3 style="margin-bottom:4px;"><i class="fas fa-plug" style="margin-right:6px;"></i> Start Charging Session</h3>
                         <p style="color:var(--gray); font-size:13px;">Enter the vehicle's current battery percentage to calculate the estimated charge time and cost.</p>
                     </div>
                     <div style="margin-bottom:24px;">

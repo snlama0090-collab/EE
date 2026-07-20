@@ -544,3 +544,65 @@ The config file defines `ELECTRICITY_RATE_PER_KWH = 10` and `BOOKING_BASE_FEE = 
 | 🟡 Medium | Password rules not enforced server-side | 15 min | Config intent not honored |
 | 🟢 Low | No centralized JS modules | 4-6 hrs | Code organization, caching, tooling |
 | 🟢 Low | Wrong currency symbol | 30 min | Brand accuracy |
+
+---
+
+## 8. Development Progress & Milestones
+
+### Dashboard Standardization (2026-07-20)
+
+The platform was audited and refactored to align with a standardized **9-page dashboard architecture** across three roles.
+
+#### 9 Core Pages
+
+| # | Page | Admin | Station Owner | Driver |
+|---|---|---|---|---|
+| 1 | **Overview / Dashboard** | `overview.php` | `overview.php` | `dashboard.php` |
+| 2 | **Analytics** | `analytics.php` | `analytics.php` | — |
+| 3 | **Orders / Sessions** | `orders.php` | `bookings.php` | `bookings.php` |
+| 4 | **Customers / Drivers** | `customers.php` | — | — |
+| 5 | **Invoices & Billing** | `invoices.php` | `invoices.php` | `receipts.php` |
+| 6 | **Users & Team** | `users.php` | `team.php` | — |
+| 7 | **Notifications** | `notifications.php` | `notifications.php` | — |
+| 8 | **Settings** | `settings.php` | `settings.php` | `profile.php` |
+| 9 | **Help & Support** | `support.php` | `support.php` | `support.php` |
+
+#### Files Created (10 new section files)
+
+**Admin (6 new):**
+- `admin_sections/analytics.php` — Platform-wide metrics (bookings, revenue, kWh, active sessions)
+- `admin_sections/orders.php` — All platform bookings with status filters
+- `admin_sections/customers.php` — EV driver database (separated from users.php)
+- `admin_sections/invoices.php` — Payment transactions and billing records
+- `admin_sections/notifications.php` — Activity log feed
+- `admin_sections/support.php` — Help resources and system info
+
+**Station Owner (5 new):**
+- `owner_sections/analytics.php` — Owner-specific performance metrics
+- `owner_sections/invoices.php` — Revenue logs with paid/pending summaries
+- `owner_sections/team.php` — Staff management placeholder
+- `owner_sections/notifications.php` — Owner-scoped activity feed
+- `owner_sections/settings.php` — Company info and preferences
+- `owner_sections/support.php` — Owner-specific help resources
+
+**Driver (2 new):**
+- `sections/receipts.php` — Completed session payment receipts
+- `sections/support.php` — Driver help and FAQ
+
+#### RBAC Sidebar Navigation Updated
+
+| Dashboard | Nav Items | Pages |
+|---|---|---|
+| `admin.php` | 12 | Overview, Analytics, Orders, Customers, Invoices, Users, Stations, Reviews, Reports, Notifications, Settings, Support |
+| `owner.php` | 10 | Overview, Analytics, Invoices, My Stations, Bookings, Team, Notifications, Settings, Support, Company Profile |
+| `driver.php` | 7 | My Hub, Find Stations, Charging Sessions, My Receipts, Favorites, Profile, Support |
+
+#### Data Scoping Patterns
+
+- **Admin:** `SELECT *` — global platform-wide data
+- **Station Owner:** `WHERE owner_id = :current_user_id` — station-scoped queries
+- **Driver:** `WHERE user_id = :current_user_id` — self-scoped queries
+
+#### Deliberate Omissions
+
+CRM, SaaS subscription management, and advanced charting dashboards were deliberately omitted to maintain a lean architecture focused on the core EV charging marketplace functionality.

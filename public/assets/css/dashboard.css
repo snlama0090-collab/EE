@@ -1433,6 +1433,23 @@ body {
     border-left: 3px solid var(--primary);
 }
 
+/* ===== SPINNER ===== */
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-rotate 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+@keyframes spinner-rotate {
+    to { transform: rotate(360deg); }
+}
+
 @keyframes toastSlideIn {
     from {
         transform: translateX(100%);

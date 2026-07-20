@@ -57,7 +57,7 @@ $active_bookings = $stmt->fetchAll();
     
     <!-- EV STATE PANEL -->
     <div class="dashboard-section-card">
-        <h3 style="margin-bottom: 16px;">🚗 My Electric Vehicle</h3>
+        <h3 style="margin-bottom: 16px;"><i class="fas fa-car" style="margin-right:8px;color:var(--muted-foreground);"></i> My Electric Vehicle</h3>
         
         <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>

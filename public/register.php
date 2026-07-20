@@ -434,6 +434,27 @@ $project_name = 'WattPulse';
     </div>
 
     <script>
+        // showToast defined inline for early availability (fallback if dashboard.js hasn't loaded yet)
+        function showToast(message, type, duration) {
+            type = type || 'info';
+            duration = duration || 4000;
+            var container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(function () {
+                toast.className = toast.className + ' toast-hiding';
+                setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 200);
+            }, duration);
+        }
+
         let selectedUserType = 'driver';
 
         // Battery capacity "Other" toggle

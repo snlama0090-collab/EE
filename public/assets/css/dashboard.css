@@ -269,8 +269,8 @@ body {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
     height: calc(100vh - var(--header-height));
-    position: sticky;
-    top: var(--header-height);
+    position: relative;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     z-index: 50;

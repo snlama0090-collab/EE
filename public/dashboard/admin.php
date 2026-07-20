@@ -245,7 +245,7 @@ $db = getDB();
                 });
 
                 content.innerHTML = `
-                    <h2 style="margin-bottom:8px;">🔌 ${s.name}</h2>
+                    <h2 style="margin-bottom:8px;"><i class="fas fa-plug"></i> ${s.name}</h2>
                     <p style="color:var(--gray); margin-bottom:16px;">${s.description || ''}</p>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; font-size:14px;">
                         <div><strong>Owner:</strong> ${s.owner_company || 'N/A'}</div>
@@ -254,7 +254,7 @@ $db = getDB();
                         <div><strong>Status:</strong> <span class="badge badge-warning">${s.approval_status}</span></div>
                     </div>
                     <div id="detail-map" style="height:200px; border-radius:10px; border:1px solid var(--border); margin-bottom:16px;"></div>
-                    <h4 style="margin-bottom:8px;">🔌 Chargers</h4>
+                    <h4 style="margin-bottom:8px;"><i class="fas fa-plug" style="margin-right:6px;"></i> Chargers</h4>
                     <div class="table-responsive">
                         <table>
                             <thead><tr><th>#</th><th>Type</th><th>Wattage</th><th>Status</th></tr></thead>

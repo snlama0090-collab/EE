@@ -10,142 +10,179 @@ if (Auth::isLoggedIn()) {
     header('Location: ' . $redirect);
     exit;
 }
+$project_name = 'WattPulse';
+$role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => 'Driver'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - EV Charging Station</title>
+    <title>Login — <?php echo htmlspecialchars($project_name); ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/auth.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        .login-container {
-            background: white;
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .auth-card {
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
             max-width: 420px;
             width: 100%;
             padding: 40px;
         }
-
-        .login-header {
+        .auth-header {
             text-align: center;
             margin-bottom: 32px;
         }
-
-        .login-header i {
-            font-size: 48px;
-            color: #007AFF;
-            margin-bottom: 16px;
+        .auth-header .brand-icon {
+            font-size: 40px;
+            color: var(--foreground);
+            margin-bottom: 12px;
         }
-
-        .login-header h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            color: #1C1C1E;
+        .auth-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--foreground);
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
         }
-
-        .login-header p {
-            color: #8E8E93;
+        .auth-header p {
+            color: var(--muted-foreground);
             font-size: 14px;
         }
-
-        /* User Type Tabs */
+        .auth-header .role-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: var(--muted);
+            color: var(--muted-foreground);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         .user-type-tabs {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
-
-        .tab-btn {
+        .user-type-tabs .tab-btn {
             padding: 10px;
-            border: 2px solid #E5E5EA;
-            background: white;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: var(--radius);
             cursor: pointer;
             font-size: 12px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            color: var(--muted-foreground);
+            transition: all 0.15s ease;
         }
-
-        .tab-btn:hover {
-            border-color: #007AFF;
-            color: #007AFF;
+        .user-type-tabs .tab-btn:hover {
+            border-color: var(--ring);
+            color: var(--foreground);
         }
-
-        .tab-btn.active {
-            background: #007AFF;
-            color: white;
-            border-color: #007AFF;
+        .user-type-tabs .tab-btn.active {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
         }
-
-        /* Login Button */
-        .login-btn {
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-group input {
+            width: 100%;
+            padding-right: 40px;
+        }
+        .input-group .password-toggle {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--muted-foreground);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-group .password-toggle:hover {
+            color: var(--foreground);
+        }
+        .auth-btn {
             width: 100%;
             padding: 12px;
-            background: #007AFF;
-            color: white;
+            background: var(--primary);
+            color: var(--primary-foreground);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius);
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
             margin-bottom: 16px;
         }
-
-        .login-btn:hover {
-            background: #0051D5;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+        .auth-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-
-        .login-btn:active {
-            transform: translateY(0);
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
         }
-
-        /* Register Link */
-        .register-link {
+        .divider hr {
+            flex: 1;
+            border: none;
+            border-top: 1px solid var(--border);
+        }
+        .divider span {
+            color: var(--muted-foreground);
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .auth-footer {
             text-align: center;
             font-size: 13px;
-            color: #8E8E93;
+            color: var(--muted-foreground);
         }
-
-        .register-link a {
-            color: #007AFF;
+        .auth-footer a {
+            color: var(--foreground);
             text-decoration: none;
             font-weight: 500;
         }
-
-        .register-link a:hover {
+        .auth-footer a:hover {
             text-decoration: underline;
         }
-
-        /* Responsive */
         @media (max-width: 480px) {
-            .login-container {
-                padding: 24px;
-            }
-
-            .login-header h1 {
-                font-size: 24px;
-            }
-
-            .user-type-tabs {
-                grid-template-columns: repeat(3, 1fr);
-            }
+            .auth-card { padding: 24px; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <i class="fas fa-plug"></i>
-            <h1>EV Charging Station</h1>
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="brand-icon"><i class="fas fa-plug"></i></div>
+            <h1><?php echo htmlspecialchars($project_name); ?></h1>
             <p>Sign in to your account</p>
+            <div class="role-badge" id="role-badge">Multi-Role Access</div>
         </div>
 
         <!-- User Type Selection -->
@@ -154,10 +191,10 @@ if (Auth::isLoggedIn()) {
                 <i class="fas fa-car"></i> Driver
             </button>
             <button class="tab-btn" data-type="owner" onclick="switchUserType('owner')">
-                <i class="fas fa-building"></i> Owner
+                <i class="fas fa-store"></i> Owner
             </button>
             <button class="tab-btn" data-type="admin" onclick="switchUserType('admin')">
-                <i class="fas fa-lock"></i> Admin
+                <i class="fas fa-shield-alt"></i> Admin
             </button>
         </div>
 
@@ -168,17 +205,17 @@ if (Auth::isLoggedIn()) {
             <div class="error-message" id="error-message"></div>
 
             <!-- Email Field -->
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="off" value="" required>
+            <div class="form-group" style="margin-bottom:16px;">
+                <label for="email" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
             </div>
 
             <!-- Password Field -->
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div style="position: relative; display: flex; align-items: center;">
-                    <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="new-password" value="" required style="width: 100%; padding-right: 40px;">
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 16px; color: #007AFF; padding: 4px; display: flex; align-items: center; justify-content: center;">
+            <div class="form-group" style="margin-bottom:16px;">
+                <label for="password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Password</label>
+                <div class="input-group">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
                         <i class="fas fa-eye" id="eye-icon"></i>
                     </button>
                 </div>
@@ -190,19 +227,15 @@ if (Auth::isLoggedIn()) {
                 <label for="remember">Remember me</label>
             </div>
 
-            <!-- ponytail: forgot-password link removed — page doesn't exist yet -->
-
             <!-- Login Button -->
-            <button type="submit" class="login-btn">
+            <button type="submit" class="auth-btn" id="login-btn">
                 <span id="btn-text">Sign In</span>
             </button>
         </form>
 
         <!-- Google Sign-In Divider -->
-        <div style="display: flex; align-items: center; gap: 12px; margin: 20px 0;">
-            <div style="flex: 1; height: 1px; background: #E5E5EA;"></div>
-            <span style="color: #8E8E93; font-size: 13px; white-space: nowrap;">or continue with</span>
-            <div style="flex: 1; height: 1px; background: #E5E5EA;"></div>
+        <div class="divider">
+            <hr><span>or continue with</span><hr>
         </div>
 
         <!-- Google Sign-In Button -->
@@ -224,8 +257,8 @@ if (Auth::isLoggedIn()) {
         </div>
 
         <!-- Register Link -->
-        <div class="register-link">
-            Don't have an account? 
+        <div class="auth-footer">
+            Don't have an account?
             <a href="register.php">Create one now</a>
         </div>
     </div>
@@ -235,6 +268,8 @@ if (Auth::isLoggedIn()) {
         const userTypeInput = document.getElementById('user-type');
         const errorMessage = document.getElementById('error-message');
         const tabButtons = document.querySelectorAll('.tab-btn');
+        const roleBadge = document.getElementById('role-badge');
+        const roleLabels = <?php echo json_encode($role_subtitles); ?>;
 
         // Get user type from URL parameter if provided
         const urlParams = new URLSearchParams(window.location.search);
@@ -243,99 +278,64 @@ if (Auth::isLoggedIn()) {
 
         function switchUserType(type) {
             userTypeInput.value = type;
-            
-            // Update active button
             tabButtons.forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.type === type) {
                     btn.classList.add('active');
                 }
             });
+            roleBadge.textContent = roleLabels[type] || 'Multi-Role Access';
         }
 
         async function handleLogin(event) {
             event.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const userType = userTypeInput.value;
             const remember = document.getElementById('remember').checked;
-            
-            // Clear previous errors
+            const loginBtn = document.getElementById('login-btn');
+            const btnText = document.getElementById('btn-text');
+
             errorMessage.classList.remove('show');
-            
-            // Validate
-            if (!email || !password) {
-                showError('Please fill in all fields');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showError('Password must be at least 6 characters');
-                return;
-            }
-            
-            // Show loading state
-            const loginBtn = event.target.querySelector('.login-btn');
-            const btnText = loginBtn.querySelector('#btn-text');
+
+            if (!email || !password) { showError('Please fill in all fields'); return; }
+            if (password.length < 6) { showError('Password must be at least 6 characters'); return; }
+
             loginBtn.classList.add('loading');
             btnText.innerHTML = '<span class="spinner"></span>Signing in...';
             loginBtn.disabled = true;
-            
+
             try {
-                // API call to login
                 const response = await fetch('/EE/api/auth/login.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                        user_type: userType,
-                        remember: remember
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, user_type: userType, remember })
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Login response error:', response.status, errorText);
-                    showError('Login failed. Please try again.');
-                    setTimeout(() => {
-                        loginBtn.classList.remove('loading');
-                        btnText.textContent = 'Sign In';
-                        loginBtn.disabled = false;
-                    }, 500);
-                    return;
-                }
-                
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
-                    // Redirect based on user type
                     const redirectUrl = {
                         'driver': 'dashboard/driver.php',
                         'owner': 'dashboard/owner.php',
                         'admin': 'dashboard/admin.php'
                     }[userType];
-                    
                     window.location.href = redirectUrl;
                 } else {
                     showError(data.message || 'Login failed. Please try again.');
-                    setTimeout(() => {
-                        loginBtn.classList.remove('loading');
-                        btnText.textContent = 'Sign In';
-                        loginBtn.disabled = false;
-                    }, 500);
+                    loginBtn.classList.remove('loading');
+                    btnText.textContent = 'Sign In';
+                    loginBtn.disabled = false;
                 }
             } catch (error) {
                 console.error('Login error:', error);
                 showError('Network error. Please try again.');
-                setTimeout(() => {
-                    loginBtn.classList.remove('loading');
-                    btnText.textContent = 'Sign In';
-                    loginBtn.disabled = false;
-                }, 500);
+                loginBtn.classList.remove('loading');
+                btnText.textContent = 'Sign In';
+                loginBtn.disabled = false;
             }
         }
 
@@ -348,7 +348,6 @@ if (Auth::isLoggedIn()) {
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eye-icon');
-            
             if (passwordInput.type === 'password') {
                 passwordInput.type = 'text';
                 eyeIcon.classList.remove('fa-eye');
@@ -360,14 +359,14 @@ if (Auth::isLoggedIn()) {
             }
         }
 
-        // Back-button cache bust: reset form when navigating back
+        // Back-button cache bust
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
                 document.getElementById('email').value = '';
                 document.getElementById('password').value = '';
                 const btnText = document.getElementById('btn-text');
                 if (btnText) btnText.textContent = 'Sign In';
-                const loginBtn = document.querySelector('.login-btn');
+                const loginBtn = document.getElementById('login-btn');
                 if (loginBtn) {
                     loginBtn.classList.remove('loading');
                     loginBtn.disabled = false;
@@ -375,21 +374,18 @@ if (Auth::isLoggedIn()) {
             }
         });
 
-        // Clear form fields on page load (single clean listener)
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('email').value = '';
             document.getElementById('password').value = '';
         });
 
-        // ===== GOOGLE SIGN-IN CALLBACK =====
+        // Google Sign-In callback
         async function handleGoogleSignIn(response) {
             const idToken = response.credential;
             const userType = userTypeInput.value;
-
-            // Show loading on button area
             const wrapper = document.getElementById('google-btn-wrapper');
             const originalHTML = wrapper.innerHTML;
-            wrapper.innerHTML = '<div style="text-align:center; padding: 10px; color: #8E8E93; font-size:14px;"><span class="spinner" style="display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.1); border-top-color:#007AFF; border-radius:50%; animation:spin 0.8s linear infinite;"></span> Signing in with Google...</div>';
+            wrapper.innerHTML = '<div style="text-align:center; padding:10px; color:var(--muted-foreground); font-size:14px;"><span class="spinner"></span> Signing in with Google...</div>';
 
             try {
                 const res = await fetch('/EE/api/auth/google.php', {
@@ -397,15 +393,12 @@ if (Auth::isLoggedIn()) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: idToken, user_type: userType })
                 });
-
                 const data = await res.json();
-
                 if (data.status === 'success') {
                     window.location.href = data.redirect;
                 } else {
                     wrapper.innerHTML = originalHTML;
-                    showError(data.message || 'Google Sign-In failed. Please try again.');
-                    // Re-render Google button
+                    showError(data.message || 'Google Sign-In failed.');
                     if (window.google && google.accounts) {
                         google.accounts.id.renderButton(
                             document.querySelector('.g_id_signin'),
@@ -416,7 +409,7 @@ if (Auth::isLoggedIn()) {
             } catch (err) {
                 console.error('Google sign-in error:', err);
                 wrapper.innerHTML = originalHTML;
-                showError('Network error during Google Sign-In. Please try again.');
+                showError('Network error during Google Sign-In.');
             }
         }
     </script>

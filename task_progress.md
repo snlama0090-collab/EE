@@ -2,37 +2,46 @@
 
 ## Phase 1: Create Missing Section Files
 
-### Admin (needs 9 pages - currently has 6)
-- [x] Overview (overview.php) ✅ exists
-- [ ] Analytics (analytics.php) - new, from reports.php
-- [ ] Orders/Sessions (orders.php) - new
-- [ ] Customers/Drivers (customers.php) - new, split from users.php
-- [ ] Invoices/Billing (invoices.php) - new
-- [x] Users & Team (users.php) ✅ exists
-- [ ] Notifications (notifications.php) - new
-- [x] Settings (settings.php) ✅ exists
-- [ ] Help & Support (support.php) - new
+### Admin (12 pages - all 9 core + extras)
+- [x] Overview (overview.php) ✅
+- [x] Analytics (analytics.php) ✅ new
+- [x] Orders/Sessions (orders.php) ✅ new
+- [x] Customers/Drivers (customers.php) ✅ new
+- [x] Invoices/Billing (invoices.php) ✅ new
+- [x] Users & Team (users.php) ✅
+- [x] Stations (stations.php) ✅
+- [x] Reviews (reviews.php) ✅
+- [x] Reports (reports.php) ✅
+- [x] Notifications (notifications.php) ✅ new
+- [x] Settings (settings.php) ✅
+- [x] Help & Support (support.php) ✅ new
 
-### Station Owner (needs 7 pages - currently has 5)
-- [x] Overview (overview.php) ✅ exists
-- [ ] Analytics (analytics.php) - new
-- [ ] Invoices (invoices.php) - new
-- [ ] Team/Users (team.php) - new
-- [ ] Notifications (notifications.php) - new
-- [ ] Settings (settings.php) - new
-- [ ] Help & Support (support.php) - new
+### Station Owner (10 pages - 7 core + extras)
+- [x] Overview (overview.php) ✅
+- [x] Analytics (analytics.php) ✅ new
+- [x] Invoices (invoices.php) ✅ new
+- [x] Stations (stations.php) ✅
+- [x] Bookings (bookings.php) ✅
+- [x] Team (team.php) ✅ new
+- [x] Notifications (notifications.php) ✅ new
+- [x] Settings (settings.php) ✅ new
+- [x] Help & Support (support.php) ✅ new
+- [x] Profile (profile.php) ✅
 
-### Driver (needs 5 pages - currently has 5)
-- [x] Overview/My Hub (dashboard.php) ✅ exists
-- [x] Orders/My Sessions (bookings.php) ✅ exists
-- [ ] Invoices/Receipts (receipts.php) - new
-- [ ] Settings/Profile (profile.php) ✅ exists
-- [ ] Help & Support (support.php) - new
+### Driver (7 pages - 5 core + extras)
+- [x] Overview/My Hub (dashboard.php) ✅
+- [x] Find Stations (find-stations.php) ✅
+- [x] Charging Sessions (bookings.php) ✅
+- [x] My Receipts (receipts.php) ✅ new
+- [x] Favorites (favorites.php) ✅
+- [x] Profile (profile.php) ✅
+- [x] Help & Support (support.php) ✅ new
 
 ## Phase 2: Update Dashboard Shells with RBAC Sidebar
-- [ ] Update admin.php - add 9 nav items, RBAC redirect
-- [ ] Update owner.php - add 7 nav items, RBAC redirect
-- [ ] Update driver.php - add 5 nav items, RBAC redirect
+- [x] admin.php - 12 nav items ✅
+- [x] owner.php - 10 nav items ✅
+- [x] driver.php - 7 nav items ✅
 
-## Phase 3: Add RBAC Middleware
-- [ ] Add role-check redirect at top of every page
+## Phase 3: RBAC Middleware
+- [x] Auth::requireUserType() at top of every section file ✅
+- [x] Auth::requireUserType() at top of every dashboard shell ✅

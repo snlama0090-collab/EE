@@ -27,7 +27,7 @@ $bookings = $stmt->fetchAll();
 <div class="bookings-container">
     <div class="listing-header">
         <div class="listing-title">
-            <h1>📋 Reservation Logs & Active Sessions</h1>
+            <h1><i class="fas fa-clipboard-list" style="margin-right:8px;color:var(--muted-foreground);"></i> Reservation Logs & Active Sessions</h1>
             <p>Monitor and manage all booking activity across your stations</p>
         </div>
         <div class="listing-actions">
@@ -64,7 +64,7 @@ $bookings = $stmt->fetchAll();
                                 <div class="avatar"><?php echo strtoupper(substr($booking['user_name'], 0, 1)); ?></div>
                                 <div class="info">
                                     <span class="name"><?php echo htmlspecialchars($booking['user_name']); ?></span>
-                                    <span class="sub">📞 <?php echo htmlspecialchars($booking['user_phone'] ?? 'N/A'); ?> · #<?php echo $booking['id']; ?></span>
+                                    <span class="sub"><i class="fas fa-phone" style="margin-right:4px;"></i> <?php echo htmlspecialchars($booking['user_phone'] ?? 'N/A'); ?> · #<?php echo $booking['id']; ?></span>
                                 </div>
                             </div>
                         </td>

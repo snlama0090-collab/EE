@@ -67,7 +67,7 @@ $active_sessions = $stmt->fetch()['active'] ?? 0;
 </div>
 
 <div class="dashboard-section-card">
-    <h2>📊 Key Metrics</h2>
+    <h2><i class="fas fa-chart-bar" style="margin-right:8px;color:var(--muted-foreground);"></i> Key Metrics</h2>
     <div class="table-responsive">
         <table>
             <thead><tr><th>Metric</th><th>Value</th><th>Per Station Avg</th></tr></thead>

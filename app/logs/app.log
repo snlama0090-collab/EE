@@ -1068,3 +1068,6 @@ Stack trace:
 [2026-07-20 10:34:28] [INFO] User 3 (owner) logged in
 [2026-07-20 11:09:13] [INFO] User 4 (driver) logged in
 [2026-07-20 11:09:13] [INFO] User 4 (driver) logged in
+[2026-07-20 11:11:18] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 11:11:21] [INFO] User 1 (admin) logged in
+[2026-07-20 11:11:21] [INFO] User 1 (admin) logged in

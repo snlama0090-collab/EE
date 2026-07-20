@@ -549,13 +549,13 @@ $project_name = 'WattPulse';
 
         function showError(message) {
             const msg = document.getElementById('error-message');
-            msg.textContent = '❌ ' + message;
+            msg.textContent = 'Error: ' + message;
             msg.classList.add('show');
         }
 
         function showSuccess(message) {
             const msg = document.getElementById('success-message');
-            msg.textContent = '✅ ' + message;
+            msg.textContent = message;
             msg.classList.add('show');
         }
 

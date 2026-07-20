@@ -188,17 +188,32 @@ if (file_exists($profilePicAbsolute)) {
                 <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">
                     <i class="fas fa-chart-pie"></i> <span>Overview</span>
                 </button>
-                <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
-                    <i class="fas fa-store"></i> <span>Company Profile</span>
+                <button type="button" class="nav-btn<?php echo $page === 'analytics' ? ' active' : ''; ?>" data-section="analytics" onclick="loadSection('analytics')">
+                    <i class="fas fa-chart-bar"></i> <span>Analytics</span>
                 </button>
-                <button type="button" class="nav-btn<?php echo $page === 'financials' ? ' active' : ''; ?>" data-section="financials" onclick="loadSection('financials')">
-                    <i class="fas fa-chart-bar"></i> <span>Financials</span>
+                <button type="button" class="nav-btn<?php echo $page === 'invoices' ? ' active' : ''; ?>" data-section="invoices" onclick="loadSection('invoices')">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
                     <i class="fas fa-charging-station"></i> <span>My Stations</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
                     <i class="fas fa-receipt"></i> <span>Bookings</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'team' ? ' active' : ''; ?>" data-section="team" onclick="loadSection('team')">
+                    <i class="fas fa-users"></i> <span>Team</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'notifications' ? ' active' : ''; ?>" data-section="notifications" onclick="loadSection('notifications')">
+                    <i class="fas fa-bell"></i> <span>Notifications</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'settings' ? ' active' : ''; ?>" data-section="settings" onclick="loadSection('settings')">
+                    <i class="fas fa-cog"></i> <span>Settings</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'support' ? ' active' : ''; ?>" data-section="support" onclick="loadSection('support')">
+                    <i class="fas fa-question-circle"></i> <span>Support</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
+                    <i class="fas fa-store"></i> <span>Company Profile</span>
                 </button>
             </div>
 

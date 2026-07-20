@@ -287,6 +287,13 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             roleBadge.textContent = roleLabels[type] || 'Multi-Role Access';
         }
 
+        function resetLoginBtn() {
+            var btn = document.getElementById('login-btn');
+            var txt = document.getElementById('btn-text');
+            if (btn) { btn.classList.remove('loading'); btn.disabled = false; }
+            if (txt) txt.textContent = 'Sign In';
+        }
+
         async function handleLogin(event) {
             event.preventDefault();
 
@@ -304,36 +311,35 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             btnText.innerHTML = '<span class="spinner"></span>Signing in...';
             loginBtn.disabled = true;
 
+            // 15-second fetch timeout
+            var controller = new AbortController();
+            var timeout = setTimeout(function() { controller.abort(); }, 15000);
+
             try {
-                const response = await fetch('/EE/api/auth/login.php', {
+                var response = await fetch('../api/auth/login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password, user_type: userType, remember })
+                    body: JSON.stringify({ email, password, user_type: userType, remember }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeout);
 
                 if (!response.ok) { throw new Error('HTTP ' + response.status); }
 
-                const data = await response.json();
+                var data = await response.json();
 
                 if (data.status === 'success') {
-                    const redirectUrl = {
-                        'driver': 'dashboard/driver.php',
-                        'owner': 'dashboard/owner.php',
-                        'admin': 'dashboard/admin.php'
-                    }[userType];
+                    var redirectUrl = { 'driver': 'dashboard/driver.php', 'owner': 'dashboard/owner.php', 'admin': 'dashboard/admin.php' }[userType];
                     window.location.href = redirectUrl;
                 } else {
                     showToast(data.message || 'Login failed. Please try again.', 'error');
-                    loginBtn.classList.remove('loading');
-                    btnText.textContent = 'Sign In';
-                    loginBtn.disabled = false;
+                    resetLoginBtn();
                 }
             } catch (error) {
+                clearTimeout(timeout);
                 console.error('Login error:', error);
                 showToast('Network error. Please try again.', 'error');
-                loginBtn.classList.remove('loading');
-                btnText.textContent = 'Sign In';
-                loginBtn.disabled = false;
+                resetLoginBtn();
             }
         }
 

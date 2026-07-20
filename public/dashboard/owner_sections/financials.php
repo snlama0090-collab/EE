@@ -59,14 +59,14 @@ $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
         <div class="metric-info">
             <h3>Profit Margin</h3>
             <p><?php echo $profit_margin; ?>%</p>
-            <div class="trend"><?php echo $profit_margin >= 50 ? '✅ Healthy' : '⚠️ Needs improvement'; ?></div>
+            <div class="trend"><?php echo $profit_margin >= 50 ? '<i class="fas fa-check-circle" style="color:var(--success);"></i> Healthy' : '<i class="fas fa-exclamation-triangle" style="color:var(--warning);"></i> Needs improvement'; ?></div>
         </div>
     </div>
 </div>
 
 <div class="dashboard-section-card">
     <div class="station-header">
-        <h2>📊 Revenue Breakdown</h2>
+        <h2><i class="fas fa-chart-bar" style="margin-right:8px;color:var(--muted-foreground);"></i> Revenue Breakdown</h2>
         <div style="display:flex; gap:8px;">
             <button class="btn btn-sm btn-secondary" onclick="switchFinancialView('days')" id="view-days">Days</button>
             <button class="btn btn-sm btn-primary" onclick="switchFinancialView('months')" id="view-months">Months</button>
@@ -86,7 +86,7 @@ $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
 </div>
 
 <div class="dashboard-section-card">
-    <h2>📋 Key Metrics Summary</h2>
+    <h2><i class="fas fa-clipboard-list" style="margin-right:8px;color:var(--muted-foreground);"></i> Key Metrics Summary</h2>
     <div class="table-responsive">
         <table>
             <thead>

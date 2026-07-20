@@ -63,7 +63,7 @@ $owner = $stmt->fetch();
 ?>
 
 <div class="profile-container">
-    <h2>🏢 Manage Company Profile</h2>
+    <h2><i class="fas fa-building" style="margin-right:8px;color:var(--muted-foreground);"></i> Manage Company Profile</h2>
     <p style="color:var(--gray); margin-bottom:24px;">Update details for your charging station business and billing details.</p>
 
     <div class="dashboard-section-card">

@@ -10,182 +10,210 @@ if (Auth::isLoggedIn()) {
     header('Location: ' . $redirect);
     exit;
 }
+$project_name = 'WattPulse';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - EV Charging Station</title>
+    <title>Register — <?php echo htmlspecialchars($project_name); ?></title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/auth.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
             align-items: flex-start;
-            padding: 20px;
+            justify-content: center;
+            padding: 40px 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-
-        .register-container {
-            max-width: 500px;
-            margin: 40px auto;
-            background: white;
+        .auth-card {
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
             padding: 40px;
         }
-
-        .register-header {
+        .auth-header {
             text-align: center;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
-
-        .register-header i {
-            font-size: 48px;
-            color: #007AFF;
-            margin-bottom: 16px;
+        .auth-header .brand-icon {
+            font-size: 40px;
+            color: var(--foreground);
+            margin-bottom: 12px;
         }
-
-        .register-header h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            color: #1C1C1E;
+        .auth-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--foreground);
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
         }
-
-        .register-header p {
-            color: #8E8E93;
+        .auth-header p {
+            color: var(--muted-foreground);
             font-size: 14px;
         }
-
-        /* User Type Selection */
         .user-type-selector {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            margin-bottom: 32px;
+            margin-bottom: 28px;
         }
-
         .type-option {
             padding: 16px;
-            border: 2px solid #E5E5EA;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             cursor: pointer;
             text-align: center;
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
+            background: var(--card);
         }
-
         .type-option:hover {
-            border-color: #007AFF;
-            background: rgba(0, 122, 255, 0.05);
+            border-color: var(--ring);
         }
-
         .type-option.active {
-            background: #007AFF;
-            color: white;
-            border-color: #007AFF;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-color: var(--primary);
         }
-
         .type-option i {
             font-size: 24px;
             display: block;
             margin-bottom: 8px;
         }
-
         .type-option p {
             font-size: 12px;
             font-weight: 500;
         }
-
-        /* Hidden sections */
         .form-section {
             display: none;
         }
-
         .form-section.active {
             display: block;
         }
-
-        .checkbox-group {
-            align-items: flex-start;
+        .progress-bar {
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-bottom: 28px;
+            overflow: hidden;
         }
-
-        .checkbox-group input[type="checkbox"] {
-            margin-top: 2px;
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-group input {
+            width: 100%;
+            padding-right: 40px;
+        }
+        .input-group .password-toggle {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
             cursor: pointer;
+            font-size: 16px;
+            color: var(--muted-foreground);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-
-        .checkbox-group label {
-            flex: 1;
+        .input-group .password-toggle:hover {
+            color: var(--foreground);
         }
-
-        .checkbox-group a {
-            color: #007AFF;
+        .auth-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
-
-        /* Buttons */
+        .auth-btn:hover {
+            opacity: 0.9;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .auth-btn.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        .back-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--muted);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .back-btn:hover {
+            background: var(--accent);
+        }
         .button-group {
             display: flex;
             gap: 12px;
             margin-top: 24px;
         }
-
-        button {
+        .button-group button {
             flex: 1;
-            padding: 12px;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 24px 0 16px;
+        }
+        .divider hr {
+            flex: 1;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            border-top: 1px solid var(--border);
         }
-
-        .register-btn {
-            width: 100%;
-            padding: 12px;
-            background: #007AFF;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .divider span {
+            color: var(--muted-foreground);
+            font-size: 13px;
+            white-space: nowrap;
         }
-
-        .register-btn:hover {
-            background: #0051D5;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+        .auth-footer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted-foreground);
+            margin-top: 24px;
         }
-
-        .register-btn.loading {
-            opacity: 0.6;
-            pointer-events: none;
+        .auth-footer a {
+            color: var(--foreground);
+            text-decoration: none;
+            font-weight: 500;
         }
-
-        .back-btn {
-            width: 100%;
-            padding: 12px;
-            background: #F2F2F7;
-            color: #1C1C1E;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
+        .auth-footer a:hover {
+            text-decoration: underline;
         }
-
-        .back-btn:hover {
-            background: #E5E5EA;
-        }
-
-        /* Success Message */
         .success-message {
-            background: #34C759;
-            color: white;
-            border-radius: 8px;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius);
             margin-bottom: 16px;
             font-size: 13px;
             min-height: 20px;
@@ -196,72 +224,24 @@ if (Auth::isLoggedIn()) {
             transition: all 0.3s ease;
             padding: 0;
         }
-
         .success-message.show {
             max-height: 100px;
             opacity: 1;
             padding: 12px;
         }
-
-        /* Progress Bar */
-        .progress-bar {
-            height: 4px;
-            background: #E5E5EA;
-            border-radius: 2px;
-            margin-bottom: 32px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #007AFF;
-            transition: width 0.3s ease;
-        }
-
-        /* Login Link */
-        .login-link {
-            text-align: center;
-            font-size: 13px;
-            color: #8E8E93;
-            margin-top: 24px;
-        }
-
-        .login-link a {
-            color: #007AFF;
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-
-        /* Responsive */
         @media (max-width: 480px) {
-            .register-container {
-                padding: 24px;
-            }
-
-            .register-header h1 {
-                font-size: 24px;
-            }
-
-            .user-type-selector {
-                grid-template-columns: 1fr;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
+            .auth-card { padding: 24px; }
+            .user-type-selector { grid-template-columns: 1fr; }
+            .button-group { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="register-header">
-            <i class="fas fa-plug"></i>
-            <h1>Join Us</h1>
-            <p>Create your EV Charging Station account</p>
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="brand-icon"><i class="fas fa-plug"></i></div>
+            <h1><?php echo htmlspecialchars($project_name); ?></h1>
+            <p>Create your account</p>
         </div>
 
         <!-- Progress Bar -->
@@ -275,20 +255,20 @@ if (Auth::isLoggedIn()) {
 
         <!-- User Type Selection (Step 1) -->
         <div class="form-section active" id="step-1">
-            <h3 style="margin-bottom: 16px; text-align: center;">Are you a...</h3>
-            
+            <h3 style="margin-bottom: 16px; text-align: center; font-size:15px; color:var(--foreground);">Are you a...</h3>
+
             <div class="user-type-selector">
                 <div class="type-option active" data-type="driver" onclick="selectUserType(this, 'driver')">
                     <i class="fas fa-car"></i>
                     <p>EV Driver</p>
                 </div>
                 <div class="type-option" data-type="owner" onclick="selectUserType(this, 'owner')">
-                    <i class="fas fa-building"></i>
+                    <i class="fas fa-store"></i>
                     <p>Station Owner</p>
                 </div>
             </div>
 
-            <button class="register-btn" onclick="goToStep(2)">Continue</button>
+            <button class="auth-btn" onclick="goToStep(2)">Continue</button>
         </div>
 
         <!-- Registration Form (Step 2) -->
@@ -297,6 +277,26 @@ if (Auth::isLoggedIn()) {
                 <input type="hidden" id="user-type" name="user_type" value="driver">
 
                 <!-- DRIVER FORM -->
+                <div id="driver-form">
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="driver-name" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Full Name</label>
+                        <input type="text" id="driver-name" name="name" placeholder="John Doe" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="driver-email" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Email Address</label>
+                        <input type="email" id="driver-email" name="email" placeholder="john@example.com" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="driver-phone" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Phone Number</label>
+                        <input type="tel" id="driver-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="car-model" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Car Model</label>
+                        <input type="text" id="car-model" name="car_model" placeholder="e.g., Tesla Model 3" list="ev-models" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                        <datalist id="ev-models">
                 <div id="driver-form">
                     <div class="form-group">
                         <label for="driver-name">Full Name</label>

@@ -2,6 +2,9 @@
     RewriteEngine On
     RewriteBase /EE/
     
+    # Prioritize index.php over index.html
+    DirectoryIndex index.php index.html
+    
     # Disable directory listing
     Options -Indexes
     

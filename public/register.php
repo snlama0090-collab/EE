@@ -504,18 +504,13 @@ $project_name = 'WattPulse';
 
             if (data.battery_capacity === 'other') {
                 const customVal = document.getElementById('battery-other-input').value;
-                if (!customVal) { showError('Please enter a custom battery capacity'); return; }
+                if (!customVal) { showToast('Please enter a custom battery capacity', 'error'); return; }
                 data.battery_capacity = customVal;
             }
 
-            const errorMsg = document.getElementById('error-message');
-            const successMsg = document.getElementById('success-message');
-            errorMsg.classList.remove('show');
-            successMsg.classList.remove('show');
-
-            if (data.password !== data.confirm_password) { showError('Passwords do not match'); return; }
-            if (data.password.length < 8) { showError('Password must be at least 8 characters'); return; }
-            if (!data.terms) { showError('Please accept terms & conditions'); return; }
+            if (data.password !== data.confirm_password) { showToast('Passwords do not match', 'error'); return; }
+            if (data.password.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+            if (!data.terms) { showToast('Please accept terms & conditions', 'error'); return; }
 
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.classList.add('loading');
@@ -531,16 +526,16 @@ $project_name = 'WattPulse';
                 if (!response.ok) { throw new Error('HTTP ' + response.status); }
                 const result = await response.json();
                 if (result.status === 'success') {
-                    showSuccess('Account created successfully! Redirecting to login...');
+                    showToast('Account created successfully! Redirecting to login...', 'success');
                     setTimeout(() => window.location.href = 'login.php?type=' + selectedUserType, 2000);
                 } else {
-                    showError(result.message || 'Registration failed');
+                    showToast(result.message || 'Registration failed', 'error');
                     submitBtn.classList.remove('loading');
                     submitBtn.textContent = 'Create Account';
                     submitBtn.disabled = false;
                 }
             } catch (error) {
-                showError('Network error. Please try again.');
+                showToast('Network error. Please try again.', 'error');
                 submitBtn.classList.remove('loading');
                 submitBtn.textContent = 'Create Account';
                 submitBtn.disabled = false;
@@ -607,11 +602,11 @@ $project_name = 'WattPulse';
                     window.location.href = data.redirect;
                 } else {
                     wrapper.innerHTML = originalHTML;
-                    alert(data.message || 'Google registration failed.');
+                    showToast(data.message || 'Google registration failed.', 'error');
                 }
             } catch (err) {
                 wrapper.innerHTML = originalHTML;
-                alert('Network error during Google Sign-Up.');
+                showToast('Network error during Google Sign-Up.', 'error');
             }
         }
     </script>

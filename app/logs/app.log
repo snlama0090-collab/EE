@@ -1102,3 +1102,5 @@ Stack trace:
 [2026-07-20 13:41:14] [WARNING] Failed login attempt for app@gmail.com (owner)
 [2026-07-20 19:06:11] [INFO] User 5 (driver) logged in
 [2026-07-20 19:06:11] [INFO] User 5 (driver) logged in
+[2026-07-20 19:20:28] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:20:42] [WARNING] Failed login attempt for ball@gmail.com (driver)

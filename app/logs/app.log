@@ -1130,3 +1130,12 @@ Stack trace:
 [2026-07-20 19:37:28] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 19:37:29] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 19:37:29] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:13] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:14] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:15] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:21] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:22] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:23] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:24] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:46:42] [INFO] User 3 (owner) logged in
+[2026-07-20 19:46:42] [INFO] User 3 (owner) logged in

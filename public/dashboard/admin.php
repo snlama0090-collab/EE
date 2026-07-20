@@ -80,20 +80,38 @@ $db = getDB();
             <button type="button" class="nav-btn<?php echo $page === 'overview' ? ' active' : ''; ?>" data-section="overview" onclick="loadSection('overview')">
                 <i class="fas fa-chart-pie"></i> <span>Overview</span>
             </button>
-            <button type="button" class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
-                <i class="fas fa-charging-station"></i> <span>Stations</span>
+            <button type="button" class="nav-btn<?php echo $page === 'analytics' ? ' active' : ''; ?>" data-section="analytics" onclick="loadSection('analytics')">
+                <i class="fas fa-chart-bar"></i> <span>Analytics</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'orders' ? ' active' : ''; ?>" data-section="orders" onclick="loadSection('orders')">
+                <i class="fas fa-shopping-cart"></i> <span>Orders</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'customers' ? ' active' : ''; ?>" data-section="customers" onclick="loadSection('customers')">
+                <i class="fas fa-user-friends"></i> <span>Customers</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'invoices' ? ' active' : ''; ?>" data-section="invoices" onclick="loadSection('invoices')">
+                <i class="fas fa-file-invoice-dollar"></i> <span>Invoices</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'users' ? ' active' : ''; ?>" data-section="users" onclick="loadSection('users')">
                 <i class="fas fa-users"></i> <span>Users</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'stations' ? ' active' : ''; ?>" data-section="stations" onclick="loadSection('stations')">
+                <i class="fas fa-charging-station"></i> <span>Stations</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'reviews' ? ' active' : ''; ?>" data-section="reviews" onclick="loadSection('reviews')">
                 <i class="fas fa-star"></i> <span>Reviews</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'reports' ? ' active' : ''; ?>" data-section="reports" onclick="loadSection('reports')">
-                <i class="fas fa-chart-bar"></i> <span>Reports</span>
+                <i class="fas fa-file-alt"></i> <span>Reports</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'notifications' ? ' active' : ''; ?>" data-section="notifications" onclick="loadSection('notifications')">
+                <i class="fas fa-bell"></i> <span>Notifications</span>
             </button>
             <button type="button" class="nav-btn<?php echo $page === 'settings' ? ' active' : ''; ?>" data-section="settings" onclick="loadSection('settings')">
                 <i class="fas fa-cog"></i> <span>Settings</span>
+            </button>
+            <button type="button" class="nav-btn<?php echo $page === 'support' ? ' active' : ''; ?>" data-section="support" onclick="loadSection('support')">
+                <i class="fas fa-question-circle"></i> <span>Support</span>
             </button>
         </div>
 

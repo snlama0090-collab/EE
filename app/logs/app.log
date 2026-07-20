@@ -1061,3 +1061,8 @@ Stack trace:
 [19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
 [19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
 [19-Jul-2026 18:35:30 Asia/Kathmandu] PHP Fatal error:  Maximum execution time of 120 seconds exceeded in D:\Xampp\htdocs\EE\app\helpers\Auth.php on line 165
+[20-Jul-2026 10:33:23 Asia/Kathmandu] DB connection failed: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2026-07-20 10:33:41] [ERROR] Login error: SQLSTATE[HY000]: General error: 2006 MySQL server has gone away
+[20-Jul-2026 10:33:48 Asia/Kathmandu] DB connection failed: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
+[2026-07-20 10:34:28] [INFO] User 3 (owner) logged in
+[2026-07-20 10:34:28] [INFO] User 3 (owner) logged in

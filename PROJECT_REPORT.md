@@ -606,3 +606,31 @@ The platform was audited and refactored to align with a standardized **9-page da
 #### Deliberate Omissions
 
 CRM, SaaS subscription management, and advanced charting dashboards were deliberately omitted to maintain a lean architecture focused on the core EV charging marketplace functionality.
+
+---
+
+### Entry Page Zenith UI Alignment (2026-07-20)
+
+#### Landing Page (`public/index.php`)
+- **Converted from `.html` to `.php`** with PHP session redirect at top — authenticated users bypass landing and go straight to their role dashboard
+- **Zenith CSS Integration:** Replaced `landing.css` with `assets/css/dashboard.css`. All styling uses CSS variables (`--background`, `--card`, `--primary`, `--foreground`, `--border`, `--radius`, `--muted-foreground`, `--header-height`)
+- **Option 2 Topbar:** Fixed header with `WattPulse` brand title + `EV Charging Network` subtitle; Login (`.btn-sm .btn-secondary`) and Register (`.btn-sm .btn-primary`) buttons
+- **3 Role Cards:** `.role-card` grid with Driver Hub, Station Owner Portal, and Admin Access — each with contextual CTA buttons
+- **Responsive:** 3-column role cards → 1-column on mobile; feature grid 3→2→1; footer 4→2→1
+
+#### Login Page (`public/login.php`)
+- **Zenith Card Wrapper:** `.auth-card` uses `var(--card)`, `var(--border)`, `var(--radius)` — matches dashboard component styling
+- **Dark Gradient Background:** `linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%)` consistent with dashboard theme
+- **Dynamic Role Badge:** Updates to "Admin" / "Station Owner" / "Driver" on tab switch
+- **Input-Group Password Toggle:** `.input-group` with `var(--muted-foreground)` icon — consistent with dashboard form styling
+
+#### Registration Page (`public/register.php`)
+- **Same `.auth-card` wrapper** for visual parity with login page
+- **Role Selection:** Segmented control grid using dashboard CSS variables
+- **Dual Password Toggles:** Both Password and Confirm Password fields use `.input-group` pattern
+- **Progress Bar:** `var(--primary)` fill, matches dark theme
+
+#### CSS Audit
+- `dashboard.css` pruned of orphaned `.sidebar-collapsed` block (40 lines of dead sidebar collapse CSS never wired in any template)
+- All utility classes, layout variables, and responsive breakpoints preserved
+- No visual regressions — only dead code removed

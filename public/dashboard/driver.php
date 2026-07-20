@@ -96,19 +96,25 @@ if (file_exists($profilePicAbsolute)) {
             <!-- Navigation — active class set server-side, no flicker -->
             <div class="sidebar-nav">
                 <button type="button" class="nav-btn<?php echo $page === 'dashboard' ? ' active' : ''; ?>" data-section="dashboard" onclick="loadSection('dashboard')">
-                    <i class="fas fa-home"></i> <span>Dashboard</span>
+                    <i class="fas fa-home"></i> <span>My Hub</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'find-stations' ? ' active' : ''; ?>" data-section="find-stations" onclick="loadSection('find-stations')">
                     <i class="fas fa-map"></i> <span>Find Stations</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
-                    <i class="fas fa-clock"></i> <span>My Bookings</span>
+                    <i class="fas fa-clock"></i> <span>Charging Sessions</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'receipts' ? ' active' : ''; ?>" data-section="receipts" onclick="loadSection('receipts')">
+                    <i class="fas fa-receipt"></i> <span>My Receipts</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'favorites' ? ' active' : ''; ?>" data-section="favorites" onclick="loadSection('favorites')">
                     <i class="fas fa-heart"></i> <span>Favorites</span>
                 </button>
                 <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
                     <i class="fas fa-user"></i> <span>Profile</span>
+                </button>
+                <button type="button" class="nav-btn<?php echo $page === 'support' ? ' active' : ''; ?>" data-section="support" onclick="loadSection('support')">
+                    <i class="fas fa-question-circle"></i> <span>Support</span>
                 </button>
             </div>
 

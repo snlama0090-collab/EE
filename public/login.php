@@ -180,8 +180,8 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
     <div class="auth-card">
         <div class="auth-header">
             <div class="brand-icon"><i class="fas fa-plug"></i></div>
-            <h1><?php echo htmlspecialchars($project_name); ?></h1>
-            <p>Sign in to your account</p>
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px;color:var(--foreground);">Sign In</h1>
+        <p style="color:var(--muted-foreground);font-size:14px;">Sign in to your account</p>
             <div class="role-badge" id="role-badge">Multi-Role Access</div>
         </div>
 

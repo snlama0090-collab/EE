@@ -8,6 +8,12 @@ Auth::requireUserType('admin');
 $allowed = ['overview', 'analytics', 'orders', 'customers', 'invoices', 'users', 'stations', 'reviews', 'reports', 'notifications', 'settings', 'support'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'overview';
 
+// ponytail: project branding
+$project_name = 'WattPulse';
+$role_subtitles = ['admin' => 'Admin Portal', 'owner' => 'Station Owner Portal', 'driver' => 'Driver Portal'];
+$user_role = Auth::getCurrentUserType();
+$role_subtitle = $role_subtitles[$user_role] ?? 'Portal';
+
 $db = getDB();
 ?>
 <!DOCTYPE html>
@@ -30,8 +36,8 @@ $db = getDB();
 <div class="top-header">
     <div class="header-left">
         <div class="header-brand">
-            <span class="brand-name">Zenith</span>
-            <span class="brand-sub">Dashboard</span>
+            <span class="brand-name"><?php echo htmlspecialchars($project_name); ?></span>
+            <span class="brand-sub"><?php echo htmlspecialchars($role_subtitle); ?></span>
         </div>
     </div>
     <div class="header-right">

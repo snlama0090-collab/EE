@@ -8,7 +8,7 @@ Auth::requireUserType('owner');
 $user_id = Auth::getCurrentUserId();
 
 // Server-side initial page — no flicker
-$allowed = ['overview', 'financials', 'stations', 'bookings', 'profile'];
+$allowed = ['overview', 'analytics', 'invoices', 'stations', 'bookings', 'team', 'notifications', 'settings', 'support', 'profile'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'overview';
 $db = getDB();
 

@@ -284,50 +284,6 @@ body {
     flex-direction: column;
 }
 
-/* Collapsed state */
-.sidebar-collapsed .sidebar {
-    width: var(--sidebar-collapsed-width);
-    min-width: var(--sidebar-collapsed-width);
-}
-
-.sidebar-collapsed .sidebar-profile {
-    padding: 16px 12px;
-    justify-content: center;
-}
-
-.sidebar-collapsed .profile-pic {
-    width: 36px;
-    height: 36px;
-}
-
-.sidebar-collapsed .profile-name {
-    display: none;
-}
-
-.sidebar-collapsed .nav-btn span,
-.sidebar-collapsed .logout-btn span {
-    display: none;
-}
-
-.sidebar-collapsed .nav-btn {
-    justify-content: center;
-    padding: 10px 0;
-}
-
-.sidebar-collapsed .nav-btn i {
-    margin: 0;
-    width: auto;
-}
-
-.sidebar-collapsed .logout-btn {
-    justify-content: center;
-    padding: 10px 0;
-}
-
-.sidebar-collapsed .logout-btn i {
-    margin: 0;
-}
-
 /* Sidebar collapse toggle button */
 .sidebar-toggle-btn {
     position: absolute;

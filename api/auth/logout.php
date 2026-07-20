@@ -5,7 +5,7 @@ require_once '../../app/helpers/Auth.php';
 Auth::logout();
 
 // Check if redirect parameter is provided, default to homepage
-$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '../index.html';
+$redirect = isset($_GET['redirect']) ? $_GET['redirect'] : '../index.php';
 
 header('Location: ' . $redirect);
 exit;

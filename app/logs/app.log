@@ -1066,3 +1066,5 @@ Stack trace:
 [20-Jul-2026 10:33:48 Asia/Kathmandu] DB connection failed: SQLSTATE[HY000] [2002] No connection could be made because the target machine actively refused it
 [2026-07-20 10:34:28] [INFO] User 3 (owner) logged in
 [2026-07-20 10:34:28] [INFO] User 3 (owner) logged in
+[2026-07-20 11:09:13] [INFO] User 4 (driver) logged in
+[2026-07-20 11:09:13] [INFO] User 4 (driver) logged in

@@ -80,7 +80,7 @@ $active_bookings = $stmt->fetchAll();
     <!-- ACTIVE RESERVATIONS -->
     <div class="dashboard-section-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3>⚡ Active Charging Reservations</h3>
+            <h3><i class="fas fa-bolt" style="margin-right:8px;color:var(--muted-foreground);"></i> Active Charging Reservations</h3>
             <button class="btn btn-secondary btn-sm" onclick="loadSection('bookings')">View All</button>
         </div>
 
@@ -113,7 +113,7 @@ $active_bookings = $stmt->fetchAll();
 
                     <?php if ($booking['status'] === 'booked'): ?>
                         <div style="font-size: 11px; margin-top: 8px; color: var(--danger); font-weight:600;">
-                            🕒 Arrive before: <?php echo date('H:i', strtotime($booking['arrival_deadline'])); ?>
+                            <i class="fas fa-clock" style="margin-right:4px;"></i> Arrive before: <?php echo date('H:i', strtotime($booking['arrival_deadline'])); ?>
                         </div>
                     <?php endif; ?>
                 </div>

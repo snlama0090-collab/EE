@@ -297,59 +297,13 @@ $project_name = 'WattPulse';
                         <label for="car-model" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Car Model</label>
                         <input type="text" id="car-model" name="car_model" placeholder="e.g., Tesla Model 3" list="ev-models" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                         <datalist id="ev-models">
-                <div id="driver-form">
-                    <div class="form-group">
-                        <label for="driver-name">Full Name</label>
-                        <input type="text" id="driver-name" name="name" placeholder="John Doe" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="driver-email">Email Address</label>
-                        <input type="email" id="driver-email" name="email" placeholder="john@example.com" autocomplete="off" value="" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="driver-phone">Phone Number</label>
-                        <input type="tel" id="driver-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="car-model">Car Model</label>
-                        <input type="text" id="car-model" name="car_model" placeholder="e.g., Tesla Model 3" list="ev-models" required>
-                        <datalist id="ev-models">
-                            <option value="Tata Nexon EV">
-                            <option value="MG ZS EV">
-                            <option value="Hyundai Kona Electric">
-                            <option value="BYD Atto 3">
-                            <option value="BYD Dolphin">
-                            <option value="BYD Seal">
-                            <option value="Tata Tigor EV">
-                            <option value="Tata Punch EV">
-                            <option value="Tata Curvv EV">
-                            <option value="Hyundai Ioniq 5">
-                            <option value="Hyundai Ioniq 6">
-                            <option value="Kia EV6">
-                            <option value="Kia EV9">
-                            <option value="Nissan Leaf">
-                            <option value="Tesla Model 3">
-                            <option value="Tesla Model Y">
-                            <option value="Tesla Model S">
-                            <option value="Mercedes-Benz EQS">
-                            <option value="Mercedes-Benz EQB">
-                            <option value="BMW iX">
-                            <option value="BMW i4">
-                            <option value="Volvo XC40 Recharge">
-                            <option value="Mahindra XUV400">
-                            <option value="MG Comet EV">
-                            <option value="Citroën ë-C3">
-                            <option value="Porsche Taycan">
-                            <option value="Audi e-tron GT">
+                            <option value="Tata Nexon EV"><option value="MG ZS EV"><option value="Hyundai Kona Electric"><option value="BYD Atto 3"><option value="BYD Dolphin"><option value="BYD Seal"><option value="Tata Tigor EV"><option value="Tata Punch EV"><option value="Tata Curvv EV"><option value="Hyundai Ioniq 5"><option value="Hyundai Ioniq 6"><option value="Kia EV6"><option value="Kia EV9"><option value="Nissan Leaf"><option value="Tesla Model 3"><option value="Tesla Model Y"><option value="Tesla Model S"><option value="Mercedes-Benz EQS"><option value="Mercedes-Benz EQB"><option value="BMW iX"><option value="BMW i4"><option value="Volvo XC40 Recharge"><option value="Mahindra XUV400"><option value="MG Comet EV"><option value="Citroën ë-C3"><option value="Porsche Taycan"><option value="Audi e-tron GT">
                         </datalist>
                     </div>
 
-                    <div class="form-group">
-                        <label for="battery-capacity">Battery Capacity (kWh)</label>
-                        <select id="battery-capacity" name="battery_capacity" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="battery-capacity" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Battery Capacity (kWh)</label>
+                        <select id="battery-capacity" name="battery_capacity" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                             <option value="">Select battery capacity</option>
                             <option value="17.3">17.3 kWh (MG Comet)</option>
                             <option value="20">20 kWh</option>
@@ -366,13 +320,13 @@ $project_name = 'WattPulse';
                             <option value="other">Other (custom)</option>
                         </select>
                         <div id="battery-other-wrapper" style="display:none; margin-top:8px;">
-                            <input type="number" id="battery-other-input" placeholder="Enter custom capacity (kWh)" step="0.1" min="0">
+                            <input type="number" id="battery-other-input" placeholder="Enter custom capacity (kWh)" step="0.1" min="0" style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="preferred-charger">Preferred Charger Type</label>
-                        <select id="preferred-charger" name="charger_preference">
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="preferred-charger" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Preferred Charger Type</label>
+                        <select id="preferred-charger" name="charger_preference" style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                             <option value="">Select charger type</option>
                             <option value="dc_fast">DC Fast</option>
                             <option value="ac_22kw">AC 22kW</option>
@@ -384,76 +338,74 @@ $project_name = 'WattPulse';
 
                 <!-- OWNER FORM -->
                 <div id="owner-form" style="display: none;">
-                    <div class="form-group">
-                        <label for="owner-name">Your Name</label>
-                        <input type="text" id="owner-name" name="name" placeholder="John Doe">
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="owner-name" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Your Name</label>
+                        <input type="text" id="owner-name" name="name" placeholder="John Doe" style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
-                    <div class="form-group">
-                        <label for="company-name">Company Name</label>
-                        <input type="text" id="company-name" name="company_name" placeholder="Green Energy Ltd" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="company-name" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Company Name</label>
+                        <input type="text" id="company-name" name="company_name" placeholder="Green Energy Ltd" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
-                    <div class="form-group">
-                        <label for="owner-email">Email Address</label>
-                        <input type="email" id="owner-email" name="email" placeholder="company@example.com" autocomplete="off" value="" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="owner-email" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Email Address</label>
+                        <input type="email" id="owner-email" name="email" placeholder="company@example.com" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
-                    <div class="form-group">
-                        <label for="owner-phone">Phone Number</label>
-                        <input type="tel" id="owner-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="owner-phone" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Phone Number</label>
+                        <input type="tel" id="owner-phone" name="phone" placeholder="+977 98XXXXXXXX" pattern="(?:\+977\s?)?9[78]\d{8}" title="Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX or 98XXXXXXXX)" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
-                    <div class="form-group">
-                        <label for="bank-account">Bank Account Number</label>
-                        <input type="text" id="bank-account" name="bank_account" placeholder="Your bank account" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="bank-account" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Bank Account Number</label>
+                        <input type="text" id="bank-account" name="bank_account" placeholder="Your bank account" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
-                    <div class="form-group">
-                        <label for="company-description">Company Description</label>
-                        <textarea id="company-description" name="description" placeholder="Tell us about your company..."></textarea>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="company-description" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Company Description</label>
+                        <textarea id="company-description" name="description" placeholder="Tell us about your company..." style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);min-height:80px;resize:vertical;"></textarea>
                     </div>
                 </div>
 
                 <!-- Password -->
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div style="position: relative; display: flex; align-items: center;">
-                        <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" value="" required style="width: 100%; padding-right: 40px;">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon-password')" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 16px; color: #007AFF; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label for="password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Password</label>
+                    <div class="input-group">
+                        <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon-password')">
                             <i class="fas fa-eye" id="eye-icon-password"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="confirm-password">Confirm Password</label>
-                    <div style="position: relative; display: flex; align-items: center;">
-                        <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" value="" required style="width: 100%; padding-right: 40px;">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirm-password', 'eye-icon-confirm')" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 16px; color: #007AFF; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label for="confirm-password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Confirm Password</label>
+                    <div class="input-group">
+                        <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirm-password', 'eye-icon-confirm')">
                             <i class="fas fa-eye" id="eye-icon-confirm"></i>
                         </button>
                     </div>
                 </div>
 
                 <!-- Terms & Conditions -->
-                <div class="checkbox-group">
-                    <input type="checkbox" id="terms" name="terms" required>
-                    <label for="terms">I agree to the <a href="#" target="_blank">Terms & Conditions</a> and <a href="#" target="_blank">Privacy Policy</a></label>
+                <div class="checkbox-group" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:20px;">
+                    <input type="checkbox" id="terms" name="terms" required style="width:auto;margin-top:2px;">
+                    <label for="terms" style="margin:0;font-size:13px;">I agree to the <a href="#" target="_blank" style="color:var(--foreground);">Terms & Conditions</a> and <a href="#" target="_blank" style="color:var(--foreground);">Privacy Policy</a></label>
                 </div>
 
                 <div class="button-group">
                     <button type="button" class="back-btn" onclick="goToStep(1)">Back</button>
-                    <button type="submit" class="register-btn" id="submit-btn">Create Account</button>
+                    <button type="submit" class="auth-btn" id="submit-btn">Create Account</button>
                 </div>
             </form>
         </div>
 
         <!-- Google Sign-In Divider -->
-        <div style="display: flex; align-items: center; gap: 12px; margin: 24px 0 16px;">
-            <div style="flex: 1; height: 1px; background: #E5E5EA;"></div>
-            <span style="color: #8E8E93; font-size: 13px; white-space: nowrap;">or register with</span>
-            <div style="flex: 1; height: 1px; background: #E5E5EA;"></div>
+        <div class="divider">
+            <hr><span>or register with</span><hr>
         </div>
 
         <!-- Google Sign-In Button -->
@@ -475,8 +427,8 @@ $project_name = 'WattPulse';
         </div>
 
         <!-- Login Link -->
-        <div class="login-link">
-            Already have an account? 
+        <div class="auth-footer">
+            Already have an account?
             <a href="login.php">Sign in here</a>
         </div>
     </div>
@@ -504,22 +456,13 @@ $project_name = 'WattPulse';
                 type = element;
                 element = document.querySelector(`.type-option[data-type="${type}"]`);
             }
-
             selectedUserType = type;
             document.getElementById('user-type').value = type;
-            
-            // Update UI
-            document.querySelectorAll('.type-option').forEach(opt => {
-                opt.classList.remove('active');
-            });
-            if (element) {
-                element.classList.add('active');
-            }
-            
-            // Show corresponding form
+            document.querySelectorAll('.type-option').forEach(opt => opt.classList.remove('active'));
+            if (element) element.classList.add('active');
+
             const driverForm = document.getElementById('driver-form');
             const ownerForm = document.getElementById('owner-form');
-            
             if (type === 'driver') {
                 driverForm.style.display = 'block';
                 ownerForm.style.display = 'none';
@@ -534,120 +477,73 @@ $project_name = 'WattPulse';
         }
 
         function setFormFieldsState(formElement, enabled) {
-            const fields = formElement.querySelectorAll('input, select, textarea');
-            fields.forEach(field => {
-                field.disabled = !enabled;
-            });
+            formElement.querySelectorAll('input, select, textarea').forEach(f => f.disabled = !enabled);
         }
 
         function goToStep(step) {
             const step1 = document.getElementById('step-1');
             const step2 = document.getElementById('step-2');
             const progress = document.getElementById('progress-fill');
-            
             if (step === 1) {
                 step1.classList.add('active');
                 step2.classList.remove('active');
                 progress.style.width = '50%';
-            } else if (step === 2) {
+            } else {
                 step1.classList.remove('active');
                 step2.classList.add('active');
                 progress.style.width = '100%';
-                
-                // Show correct form
                 selectUserType(selectedUserType);
             }
         }
 
         async function handleRegister(event) {
             event.preventDefault();
-            
             const form = event.target;
             const formData = new FormData(form);
             const data = Object.fromEntries(formData);
-            
-            // Battery capacity "Other" — swap in the custom value
+
             if (data.battery_capacity === 'other') {
                 const customVal = document.getElementById('battery-other-input').value;
-                if (!customVal) {
-                    showError('Please enter a custom battery capacity');
-                    return;
-                }
+                if (!customVal) { showError('Please enter a custom battery capacity'); return; }
                 data.battery_capacity = customVal;
             }
-            
+
             const errorMsg = document.getElementById('error-message');
             const successMsg = document.getElementById('success-message');
-            
-            // Clear messages
             errorMsg.classList.remove('show');
             successMsg.classList.remove('show');
-            
-            // Validation
-            if (data.password !== data.confirm_password) {
-                showError('Passwords do not match');
-                return;
-            }
-            
-            if (data.password.length < 8) {
-                showError('Password must be at least 8 characters');
-                return;
-            }
-            
-            if (!data.terms) {
-                showError('Please accept terms & conditions');
-                return;
-            }
-            
-            // Show loading state
+
+            if (data.password !== data.confirm_password) { showError('Passwords do not match'); return; }
+            if (data.password.length < 8) { showError('Password must be at least 8 characters'); return; }
+            if (!data.terms) { showError('Please accept terms & conditions'); return; }
+
             const submitBtn = document.getElementById('submit-btn');
             submitBtn.classList.add('loading');
             submitBtn.textContent = 'Creating account...';
             submitBtn.disabled = true;
-            
+
             try {
                 const response = await fetch('/EE/api/auth/register.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                if (!response.ok) {
-                    const responseText = await response.text();
-                    showError('Registration failed (HTTP ' + response.status + '): ' + responseText);
-                    setTimeout(() => {
-                        submitBtn.classList.remove('loading');
-                        submitBtn.textContent = 'Create Account';
-                        submitBtn.disabled = false;
-                    }, 500);
-                    return;
-                }
-                
+                if (!response.ok) { throw new Error('HTTP ' + response.status); }
                 const result = await response.json();
-                
                 if (result.status === 'success') {
                     showSuccess('Account created successfully! Redirecting to login...');
-                    setTimeout(() => {
-                        window.location.href = 'login.php?type=' + selectedUserType;
-                    }, 2000);
+                    setTimeout(() => window.location.href = 'login.php?type=' + selectedUserType, 2000);
                 } else {
                     showError(result.message || 'Registration failed');
-                    setTimeout(() => {
-                        submitBtn.classList.remove('loading');
-                        submitBtn.textContent = 'Create Account';
-                        submitBtn.disabled = false;
-                    }, 500);
-                }
-            } catch (error) {
-                console.error('Registration error:', error);
-                showError('Error: ' + error.message);
-                setTimeout(() => {
                     submitBtn.classList.remove('loading');
                     submitBtn.textContent = 'Create Account';
                     submitBtn.disabled = false;
-                }, 500);
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+                submitBtn.classList.remove('loading');
+                submitBtn.textContent = 'Create Account';
+                submitBtn.disabled = false;
             }
         }
 
@@ -663,19 +559,13 @@ $project_name = 'WattPulse';
             msg.classList.add('show');
         }
 
-        // Back-button cache bust: reset form when navigating back
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
                 const submitBtn = document.getElementById('submit-btn');
-                if (submitBtn) {
-                    submitBtn.classList.remove('loading');
-                    submitBtn.textContent = 'Create Account';
-                    submitBtn.disabled = false;
-                }
+                if (submitBtn) { submitBtn.classList.remove('loading'); submitBtn.textContent = 'Create Account'; submitBtn.disabled = false; }
             }
         });
 
-        // Clear form fields on page load (single clean listener)
         document.addEventListener('DOMContentLoaded', function() {
             ['driver-name','driver-email','driver-phone','car-model','battery-capacity','battery-other-input','preferred-charger',
              'owner-name','company-name','owner-email','owner-phone','bank-account','company-description',
@@ -688,7 +578,6 @@ $project_name = 'WattPulse';
         function togglePasswordVisibility(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
-            
             if (input.type === 'password') {
                 input.type = 'text';
                 icon.classList.remove('fa-eye');
@@ -700,14 +589,12 @@ $project_name = 'WattPulse';
             }
         }
 
-        // ===== GOOGLE REGISTER CALLBACK =====
+        // Google Register callback
         async function handleGoogleRegister(response) {
             const idToken = response.credential;
-
-            // Show loading on button area
             const wrapper = document.getElementById('google-btn-wrapper');
             const originalHTML = wrapper.innerHTML;
-            wrapper.innerHTML = '<div style="text-align:center; padding: 10px; color: #8E8E93; font-size:14px;"><span style="display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.1); border-top-color:#007AFF; border-radius:50%; animation:spin 0.8s linear infinite; vertical-align:middle;"></span>&nbsp;Creating your account...</div>';
+            wrapper.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted-foreground);font-size:14px;"><span class="spinner"></span> Creating your account...</div>';
 
             try {
                 const res = await fetch('/EE/api/auth/google.php', {
@@ -715,19 +602,16 @@ $project_name = 'WattPulse';
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: idToken, user_type: selectedUserType })
                 });
-
                 const data = await res.json();
-
                 if (data.status === 'success') {
                     window.location.href = data.redirect;
                 } else {
                     wrapper.innerHTML = originalHTML;
-                    alert(data.message || 'Google registration failed. Please try again.');
+                    alert(data.message || 'Google registration failed.');
                 }
             } catch (err) {
-                console.error('Google register error:', err);
                 wrapper.innerHTML = originalHTML;
-                alert('Network error during Google Sign-Up. Please try again.');
+                alert('Network error during Google Sign-Up.');
             }
         }
     </script>

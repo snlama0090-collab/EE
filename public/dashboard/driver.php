@@ -9,7 +9,7 @@ $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
 // Server-side initial page — no flicker
-$allowed = ['dashboard', 'find-stations', 'bookings', 'favorites', 'profile'];
+$allowed = ['dashboard', 'find-stations', 'bookings', 'receipts', 'favorites', 'profile', 'support'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'dashboard';
 
 // Get user details

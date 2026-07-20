@@ -4,13 +4,6 @@ require_once '../../app/helpers/Auth.php';
 
 Auth::requireUserType('admin');
 
-$role_titles = [
-    'admin'         => 'Admin Dashboard',
-    'station_owner' => 'Station Owner Dashboard',
-    'driver'        => 'Driver Dashboard',
-];
-$current_portal_title = $role_titles[$_SESSION['user_role'] ?? 'admin'] ?? 'Dashboard';
-
 // Server-side initial page — no flicker
 $allowed = ['overview', 'analytics', 'orders', 'customers', 'invoices', 'users', 'stations', 'reviews', 'reports', 'notifications', 'settings', 'support'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'overview';

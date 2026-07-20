@@ -1107,3 +1107,5 @@ Stack trace:
 [2026-07-20 19:23:36] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 19:24:07] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 19:24:35] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:31:31] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-20 19:32:14] [WARNING] Failed login attempt for admin@example.com (driver)

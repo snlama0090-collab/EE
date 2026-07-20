@@ -80,9 +80,25 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .tab-btn-landing { padding: 8px 20px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted-foreground); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
         .tab-btn-landing:hover { border-color: var(--ring); color: var(--foreground); }
         .tab-btn-landing.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
-        .map-container { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-top: 20px; }
+        .stations-preview { padding: 48px 24px; max-width: 1100px; margin: 0 auto; }
+        .stations-preview .location-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .stations-preview .location-controls #location-status { font-size: 12px; color: var(--muted-foreground); }
+        .stations-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .station-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.15s ease; }
+        .station-card.loading .skeleton { height: 16px; background: var(--muted); border-radius: 4px; margin-bottom: 8px; }
+        .station-card.loading .skeleton:last-child { width: 60%; }
+        .station-card .station-name { font-size: 14px; font-weight: 600; color: var(--foreground); margin-bottom: 4px; }
+        .station-card .station-distance { font-size: 12px; color: var(--muted-foreground); }
+        .stations-preview .map-container { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-top: 20px; }
+        .stations-preview .map-container #map { height: 250px; }
         @media (max-width: 768px) {
             .hero-section { flex-direction: column; padding: 40px 16px; text-align: center; }
+            .hero-content p { max-width: 100%; }
+            .hero-stats { justify-content: center; }
+            .role-cards { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr 1fr; }
+            .stations-grid { grid-template-columns: 1fr; }
+            .footer-inner { grid-template-columns: 1fr 1fr; }
             .hero-content p { max-width: 100%; }
             .hero-stats { justify-content: center; }
             .role-cards { grid-template-columns: 1fr; }
@@ -124,6 +140,38 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         </div>
         <div class="hero-visual">
             <i class="fas fa-map"></i>
+        </div>
+    </section>
+
+    <!-- STATIONS PREVIEW -->
+    <section class="stations-preview">
+        <h2 class="section-title">Nearby Charging Stations</h2>
+        <p class="section-desc">See available stations in your area (enable location to see real data)</p>
+
+        <div class="location-controls">
+            <button id="get-location-btn" class="btn btn-sm btn-secondary">
+                <i class="fas fa-location-dot"></i> Use My Location
+            </button>
+            <span id="location-status">Location not detected</span>
+        </div>
+
+        <div id="stations-list" class="stations-grid">
+            <div class="station-card loading">
+                <div class="skeleton"></div>
+                <div class="skeleton"></div>
+            </div>
+            <div class="station-card loading">
+                <div class="skeleton"></div>
+                <div class="skeleton"></div>
+            </div>
+            <div class="station-card loading">
+                <div class="skeleton"></div>
+                <div class="skeleton"></div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
         </div>
     </section>
 

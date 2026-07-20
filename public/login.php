@@ -142,6 +142,10 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             opacity: 0.9;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
+        .auth-btn.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
         .divider {
             display: flex;
             align-items: center;

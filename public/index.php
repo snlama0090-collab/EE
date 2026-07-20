@@ -99,11 +99,6 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
             .features-grid { grid-template-columns: 1fr 1fr; }
             .stations-grid { grid-template-columns: 1fr; }
             .footer-inner { grid-template-columns: 1fr 1fr; }
-            .hero-content p { max-width: 100%; }
-            .hero-stats { justify-content: center; }
-            .role-cards { grid-template-columns: 1fr; }
-            .features-grid { grid-template-columns: 1fr 1fr; }
-            .footer-inner { grid-template-columns: 1fr 1fr; }
         }
         @media (max-width: 480px) {
             .hero-content h1 { font-size: 28px; }

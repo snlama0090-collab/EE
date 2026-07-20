@@ -319,6 +319,21 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             if (txt) txt.textContent = 'Sign In';
         }
 
+        function smoothResetBtn() {
+            var btn = document.getElementById('login-btn');
+            var txt = document.getElementById('btn-text');
+            if (!btn || !txt) return;
+            // Smooth opacity fade out, swap text, fade back in
+            txt.style.opacity = '0';
+            setTimeout(function () {
+                txt.textContent = 'Sign In';
+                btn.classList.remove('loading');
+                btn.disabled = false;
+                btn.style.minWidth = '';
+                txt.style.opacity = '1';
+            }, 120);
+        }
+
         async function handleLogin(event) {
             event.preventDefault();
 
@@ -332,8 +347,14 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             if (!email || !password) { showToast('Please fill in all fields', 'error'); return; }
             if (password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
 
+            // Freeze button width to prevent layout reflow before swapping text
+            loginBtn.style.minWidth = loginBtn.offsetWidth + 'px';
             loginBtn.classList.add('loading');
-            btnText.innerHTML = '<span class="spinner"></span>Signing in...';
+            btnText.style.opacity = '0';
+            setTimeout(function () {
+                btnText.innerHTML = '<span class="spinner"></span>Signing in...';
+                btnText.style.opacity = '1';
+            }, 80);
             loginBtn.disabled = true;
 
             // 15-second fetch timeout
@@ -354,17 +375,19 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                 var data = await response.json();
 
                 if (data.status === 'success') {
+                    // Fade out body before navigating
                     var redirectUrl = { 'driver': 'dashboard/driver.php', 'owner': 'dashboard/owner.php', 'admin': 'dashboard/admin.php' }[userType];
-                    window.location.href = redirectUrl;
+                    document.body.classList.add('page-transitioning');
+                    setTimeout(function () { window.location.href = redirectUrl; }, 250);
                 } else {
                     showToast(data.message || 'Login failed. Please try again.', 'error');
-                    resetLoginBtn();
+                    smoothResetBtn();
                 }
             } catch (error) {
                 clearTimeout(timeout);
                 console.error('Login error:', error);
                 showToast('Network error. Please try again.', 'error');
-                resetLoginBtn();
+                smoothResetBtn();
             }
         }
 

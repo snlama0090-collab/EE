@@ -231,7 +231,7 @@ if (file_exists($profilePicAbsolute)) {
             if (!map) return;
             if (userMarker) map.removeLayer(userMarker);
             userMarker = L.circleMarker([lat, lon], { radius: 8, fillColor: '#FF6B6B', color: '#FF8E72', weight: 3, opacity: 1, fillOpacity: 0.8 })
-                .addTo(map).bindPopup('📍 ' + (placeName || 'Your Location')).openPopup();
+                .addTo(map).bindPopup('<i class="fas fa-map-marker-alt"></i> ' + (placeName || 'Your Location')).openPopup();
             map.setView([lat, lon], 12);
         }
 
@@ -351,7 +351,7 @@ if (file_exists($profilePicAbsolute)) {
 
                     box.innerHTML = `
                         <div style="margin-bottom:20px;">
-                            <h3 style="margin-bottom:4px;">🔌 ${station.name}</h3>
+                            <h3 style="margin-bottom:4px;"><i class="fas fa-plug"></i> ${station.name}</h3>
                             <p style="color:var(--gray); font-size:13px;">Select a charger and enter your current battery % to get a prepaid quote.</p>
                         </div>
                         <div style="margin-bottom:16px;">
@@ -509,7 +509,7 @@ if (file_exists($profilePicAbsolute)) {
                             const m = Math.floor(sec / 60);
                             const s = sec % 60;
                             el.style.borderLeftColor = '#FF9500';
-                            display.innerHTML = `<span style="color:#FF9500;font-weight:600;">🔌 Owner connecting... ${m}:${String(s).padStart(2,'0')} buffer remaining</span>`;
+                            display.innerHTML = `<span style="color:#FF9500;font-weight:600;"><i class="fas fa-plug"></i> Owner connecting... ${m}:${String(s).padStart(2,'0')} buffer remaining</span>`;
                         } else if (now < sessEnd) {
                             // Active charging — green countdown
                             const sec = Math.max(0, Math.floor((sessEnd - now) / 1000));

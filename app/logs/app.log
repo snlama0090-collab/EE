@@ -1071,3 +1071,5 @@ Stack trace:
 [2026-07-20 11:11:18] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 11:11:21] [INFO] User 1 (admin) logged in
 [2026-07-20 11:11:21] [INFO] User 1 (admin) logged in
+[2026-07-20 12:14:11] [INFO] User 1 (admin) logged in
+[2026-07-20 12:14:11] [INFO] User 1 (admin) logged in

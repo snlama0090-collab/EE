@@ -340,7 +340,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         }
 
         function showError(message) {
-            errorMessage.textContent = '❌ ' + message;
+            errorMessage.textContent = 'Error: ' + message;
             errorMessage.classList.add('show');
             errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }

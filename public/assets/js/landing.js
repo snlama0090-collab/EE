@@ -24,6 +24,8 @@ const DEFAULT_STATIONS = [
     { id: 6, name: 'Express Charging Network', type: 'AC 11kW', wattage: 11, chargers: 2, available: 2, lat: 27.6972, lng: 85.3490, distance: 5.8, rating: 4.6 }
 ];
 
+// ponytail: all listeners guarded — landing.js must never throw on dashboard pages
+
 // ===== HAMBURGER MENU (guarded: index.php may not use this element) =====
 if (hamburger && navMenu) {
     hamburger.addEventListener('click', () => {
@@ -136,7 +138,7 @@ function getPlaceNameFromCoordinates(lat, lng) {
 
 // ===== UPDATE MAP MARKER POPUP =====
 function updateMapMarkerPopup(placeName) {
-    if (map && map._layers) {
+    if (!map || !map._layers) return;
         Object.values(map._layers).forEach(layer => {
             if (layer instanceof L.CircleMarker && layer._latlng.lat === userLocation.lat) {
                 layer.setPopupContent(`📍 ${placeName}`);

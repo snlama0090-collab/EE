@@ -91,6 +91,16 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .station-card .station-distance { font-size: 12px; color: var(--muted-foreground); }
         .stations-preview .map-container { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; margin-top: 20px; }
         .stations-preview .map-container #map { height: 250px; }
+        .station-card-inner { display:flex; flex-direction:column; gap:10px; }
+        .station-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .station-card-header .station-name { font-size:14px; font-weight:600; color:var(--foreground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0; }
+        .distance-badge { font-size:11px; font-weight:600; color:var(--muted-foreground); background:var(--muted); padding:3px 8px; border-radius:999px; border:1px solid var(--border); white-space:nowrap; flex-shrink:0; }
+        .station-card-specs { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+        .station-card-specs .charger-badge { display:inline-flex; align-items:center; font-size:11px; font-weight:500; color:var(--muted-foreground); background:var(--card); border:1px solid var(--border); padding:3px 8px; border-radius:calc(var(--radius) - 2px); white-space:nowrap; }
+        .station-card-specs .badge { font-size:11px; padding:3px 8px; }
+        .station-card-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
+        .station-rating { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+        .station-book-btn { white-space:nowrap; flex-shrink:0; }
         @media (max-width: 768px) {
             .hero-section { flex-direction: column; padding: 40px 16px; text-align: center; }
             .hero-content p { max-width: 100%; }

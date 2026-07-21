@@ -308,36 +308,33 @@ function createStationCard(station) {
     const card = document.createElement('div');
     card.className = 'station-card';
     
-    const statusClass = station.available > 0 ? 'available' : 'unavailable';
     const statusText = station.available > 0 ? `${station.available} Available` : 'Full';
-    const statusColor = station.available > 0 ? '#34C759' : '#FF3B30';
+    const statusClass = station.available > 0 ? 'badge-success' : 'badge-danger';
     
     card.innerHTML = `
-        <h3>${station.name}</h3>
-        <div class="distance">
-            <i class="fas fa-map-pin"></i> ${station.distance} km
-        </div>
-        <div class="charger-info">
-            <span class="charger-badge">⚡ ${station.type}</span>
-            <span class="charger-badge">${station.wattage}kW</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-            <div style="font-size: 12px; color: #666;">
-                <strong>${station.chargers}</strong> Chargers
+        <div class="station-card-inner">
+            <div class="station-card-header">
+                <div class="station-name"><i class="fas fa-map-pin" style="margin-right:4px;color:var(--muted-foreground);"></i> ${station.name}</div>
+                <span class="distance-badge">${station.distance} km</span>
             </div>
-            <div style="font-size: 12px; color: ${statusColor};">
-                <strong>${statusText}</strong>
+            <div class="station-card-specs">
+                <span class="charger-badge"><i class="fas fa-bolt" style="margin-right:3px;"></i> ${station.type}</span>
+                <span class="charger-badge">${station.wattage} kW</span>
+                <span class="charger-badge" style="background:var(--muted);">${station.chargers} chargers</span>
+                <span class="badge ${statusClass}">${statusText}</span>
+            </div>
+            <div class="station-card-footer">
+                <div class="station-rating">
+                    ${Array(5).fill().map((_, i) =>
+                        `<i class="fas fa-star" style="color:${i < Math.floor(station.rating) ? '#FFD700' : '#DDD'};font-size:12px;"></i>`
+                    ).join('')}
+                    <span style="font-size:12px;color:var(--muted-foreground);margin-left:4px;">${station.rating}</span>
+                </div>
+                <button class="btn btn-primary btn-sm station-book-btn" onclick="bookStation(${station.id}, '${station.name}')">
+                    <i class="fas fa-plug"></i> Book Now
+                </button>
             </div>
         </div>
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            ${Array(5).fill().map((_, i) => `
-                <i class="fas fa-star" style="color: ${i < Math.floor(station.rating) ? '#FFD700' : '#DDD'}; font-size: 12px;"></i>
-            `).join('')}
-            <span style="font-size: 12px; color: #666;">${station.rating}</span>
-        </div>
-        <button class="btn btn-primary" onclick="bookStation(${station.id}, '${station.name}')">
-            Book Now
-        </button>
     `;
     
     return card;

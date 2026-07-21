@@ -354,6 +354,7 @@ $db = getDB();
     </div>
 </div>
 
+<script>window.userRole='<?php echo $user_role; ?>';</script>
 <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>

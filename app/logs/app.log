@@ -1210,3 +1210,6 @@ Stack trace:
 [2026-07-21 21:20:36] [INFO] User 4 (driver) logged in
 [2026-07-21 21:20:46] [INFO] User 3 (owner) logged in
 [2026-07-21 21:20:46] [INFO] User 3 (owner) logged in
+[2026-07-21 21:22:58] [WARNING] Failed login attempt for app@gmail.com (driver)
+[2026-07-21 21:23:06] [INFO] User 4 (driver) logged in
+[2026-07-21 21:23:06] [INFO] User 4 (driver) logged in

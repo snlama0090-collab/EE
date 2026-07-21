@@ -139,13 +139,12 @@ function getPlaceNameFromCoordinates(lat, lng) {
 // ===== UPDATE MAP MARKER POPUP =====
 function updateMapMarkerPopup(placeName) {
     if (!map || !map._layers) return;
-        Object.values(map._layers).forEach(layer => {
-            if (layer instanceof L.CircleMarker && layer._latlng.lat === userLocation.lat) {
-                layer.setPopupContent(`📍 ${placeName}`);
-                layer.openPopup();
-            }
-        });
-    }
+    Object.values(map._layers).forEach(layer => {
+        if (layer instanceof L.CircleMarker && layer._latlng.lat === userLocation.lat) {
+            layer.setPopupContent(`📍 ${placeName}`);
+            layer.openPopup();
+        }
+    });
 }
 
 // ===== INITIALIZE MAP =====

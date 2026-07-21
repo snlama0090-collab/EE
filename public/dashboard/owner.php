@@ -133,7 +133,7 @@ if (file_exists($profilePicAbsolute)) {
         }
     </style>
 </head>
-<body>
+<body class="role-owner">
 <!-- FIXED TOP HEADER (full width) -->
 <div class="top-header">
     <div class="header-left">

@@ -308,6 +308,9 @@ function bookStation(stationId, stationName) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Landing page loaded');
 
+    // Prevent dark mode bleed from dashboard — landing always starts light
+    document.documentElement.removeAttribute('data-theme');
+
     // ── Step 1: Render default cards and map instantly (no geolocation wait) ──
     userLocation = { ...DEFAULT_LOCATION, placeName: 'Kathmandu' };
     displayStations(DEFAULT_STATIONS);

@@ -31,7 +31,7 @@ $db = getDB();
     <script src="../assets/js/modal.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
-<body>
+<body class="role-admin">
 <!-- FIXED TOP HEADER (full width) -->
 <div class="top-header">
     <div class="header-left">

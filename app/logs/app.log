@@ -1139,3 +1139,28 @@ Stack trace:
 [2026-07-20 19:46:24] [WARNING] Failed login attempt for admin@example.com (driver)
 [2026-07-20 19:46:42] [INFO] User 3 (owner) logged in
 [2026-07-20 19:46:42] [INFO] User 3 (owner) logged in
+[2026-07-21 20:42:14] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:15] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:16] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:17] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:18] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:18] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:42:19] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:29] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:31] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:33] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:40] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:42] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:55] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:57] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:58] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:58] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:44:59] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:45:00] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:45:00] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:45:01] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:45:02] [WARNING] Failed login attempt for admin@example.com (driver)
+[2026-07-21 20:45:05] [INFO] User 1 (admin) logged in
+[2026-07-21 20:45:05] [INFO] User 1 (admin) logged in
+[2026-07-21 20:45:47] [INFO] User 3 (owner) logged in
+[2026-07-21 20:45:47] [INFO] User 3 (owner) logged in

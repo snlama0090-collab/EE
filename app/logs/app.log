@@ -1176,3 +1176,7 @@ Stack trace:
 [2026-07-21 20:50:50] [INFO] User 4 (driver) logged in
 [2026-07-21 20:51:06] [INFO] User 1 (admin) logged in
 [2026-07-21 20:51:06] [INFO] User 1 (admin) logged in
+[2026-07-21 20:53:16] [INFO] User 1 (admin) logged in
+[2026-07-21 20:53:16] [INFO] User 1 (admin) logged in
+[2026-07-21 20:53:26] [INFO] User 3 (owner) logged in
+[2026-07-21 20:53:26] [INFO] User 3 (owner) logged in

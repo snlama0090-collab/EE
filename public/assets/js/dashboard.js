@@ -9,9 +9,10 @@
   /* ── Sidebar Collapse Toggle ── */
   const sidebarToggle = document.getElementById('sidebar-toggle');
   const dashboardContainer = document.querySelector('.dashboard-container');
+  var role = window.userRole || 'unknown';
 
   function getSidebarState() {
-    return localStorage.getItem('sidebar-collapsed') === 'true';
+    return localStorage.getItem('sidebar-collapsed-' + role) === 'true';
   }
 
   function applySidebarState(collapsed) {
@@ -27,7 +28,7 @@
         sidebarToggle.querySelector('i').className = 'fas fa-chevron-left';
       }
     }
-    localStorage.setItem('sidebar-collapsed', collapsed);
+    localStorage.setItem('sidebar-collapsed-' + role, collapsed);
   }
 
   // Init sidebar state on load
@@ -45,7 +46,7 @@
   const htmlEl = document.documentElement;
 
   function getStoredTheme() {
-    return localStorage.getItem('dashboard-theme') || 'light';
+    return localStorage.getItem('dashboard-theme-' + role) || 'light';
   }
 
   function applyTheme(theme) {
@@ -60,7 +61,7 @@
         icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
       }
     }
-    localStorage.setItem('dashboard-theme', theme);
+    localStorage.setItem('dashboard-theme-' + role, theme);
   }
 
   // Init theme on load

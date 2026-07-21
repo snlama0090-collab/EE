@@ -415,6 +415,37 @@ body {
     width: 20px;
 }
 
+/* ===== SIDEBAR COLLAPSED STATE ===== */
+.sidebar-collapsed .sidebar {
+    width: var(--sidebar-collapsed-width);
+    min-width: var(--sidebar-collapsed-width);
+}
+
+.sidebar-collapsed .sidebar .nav-btn span,
+.sidebar-collapsed .sidebar .logout-btn span,
+.sidebar-collapsed .sidebar .profile-name {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar .nav-btn {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.sidebar-collapsed .sidebar .logout-btn {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.sidebar-collapsed .sidebar .sidebar-profile {
+    justify-content: center;
+    padding: 24px 0 20px;
+}
+
+.sidebar-collapsed .sidebar .sidebar-toggle-btn i {
+    transform: rotate(180deg);
+}
+
 /* ===== MAIN CONTENT ===== */
 .main-content {
     flex: 1;

@@ -726,5 +726,6 @@ $project_name = 'WattPulse';
             }
         }
     </script>
-</body>
-</html>
+
+    <!-- OTP Verification Modal -->
+    <div class="otp-overlay" id="otpModal">

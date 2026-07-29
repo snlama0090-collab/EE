@@ -119,3 +119,4 @@ if ($action === 'verify_otp') {
 }
 
 // ── unknown action ──
+echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);

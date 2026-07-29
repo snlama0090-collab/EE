@@ -377,7 +377,20 @@ CREATE TABLE activity_logs (
     INDEX idx_created_at (created_at)
 );
 
--- ===== 14. REMEMBER TOKENS TABLE =====
+-- ===== 14. REGISTRATION OTP TABLE (for email verification) =====
+CREATE TABLE registration_otps (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    otp_hash VARCHAR(255) NOT NULL,
+    attempts INT DEFAULT 0,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_email (email),
+    INDEX idx_expires_at (expires_at)
+);
+
+-- ===== 15. REMEMBER TOKENS TABLE =====
 CREATE TABLE remember_tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,

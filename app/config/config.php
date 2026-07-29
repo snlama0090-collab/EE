@@ -80,6 +80,12 @@ define('NAME_MAX_LENGTH', 100);
 // ===== FEATURE FLAGS =====
 define('GOOGLE_CLIENT_ID', '34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com');
 
+// ===== EMAIL (OTP via Gmail SMTP) =====
+define('GMAIL_USER', 'your-email@gmail.com');       // ponytail: replace with real Gmail address
+define('GMAIL_APP_PASSWORD', 'your-app-password');   // ponytail: replace with real Gmail App Password
+define('OTP_EXPIRY_MINUTES', 10);
+define('OTP_MAX_ATTEMPTS', 5);
+
 // ===== TIMEZONE =====
 date_default_timezone_set('Asia/Kathmandu');
 

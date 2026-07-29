@@ -38,6 +38,9 @@
         otpModal.style.display = 'none';
     }
 
+    // ── Gmail-only regex ──
+    var GMAIL_RE = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+
     // ── send OTP ──
     function sendOtp(email) {
         return fetch('/EE/api/auth/otp.php', {
@@ -96,6 +99,12 @@
             }
             if (!data.terms) {
                 if (typeof showToast === 'function') showToast('Please accept terms & conditions', 'error');
+                return;
+            }
+
+            // Gmail-only validation
+            if (!GMAIL_RE.test(data.email)) {
+                if (typeof showToast === 'function') showToast('Only @gmail.com addresses are allowed.', 'error');
                 return;
             }
 

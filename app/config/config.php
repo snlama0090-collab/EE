@@ -10,6 +10,16 @@
 define('ENV', 'development'); // development, production
 define('DEBUG', true);
 
+// ===== LOAD .ENV CREDENTIALS =====
+$envDir = dirname(__DIR__, 2); // EE project root
+if (file_exists($envDir . '/.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable($envDir);
+    $dotenv->load();
+}
+
+define('GMAIL_USER', $_ENV['GMAIL_USER'] ?? '');
+define('GMAIL_APP_PASSWORD', $_ENV['GMAIL_APP_PASSWORD'] ?? '');
+
 // ===== DATABASE CONFIGURATION =====
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
@@ -81,8 +91,6 @@ define('NAME_MAX_LENGTH', 100);
 define('GOOGLE_CLIENT_ID', '34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com');
 
 // ===== EMAIL (OTP via Gmail SMTP) =====
-define('GMAIL_USER', 'niisan0090@gmail.com');
-define('GMAIL_APP_PASSWORD', 'rzwhzovfhgtaoeez');
 define('OTP_EXPIRY_MINUTES', 10);
 define('OTP_MAX_ATTEMPTS', 5);
 
@@ -203,6 +211,13 @@ function sanitize($input) {
  */
 function validate_email($email) {
     return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+/**
+ * Validate Gmail address only
+ */
+function validate_gmail($email) {
+    return preg_match('/@gmail\.com$/i', trim($email)) === 1;
 }
 
 /**

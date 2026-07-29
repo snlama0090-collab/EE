@@ -22,8 +22,8 @@ $action = $input['action'] ?? '';
 $email  = trim($input['email'] ?? '');
 
 // ── validate email ──
-if (!validate_email($email)) {
-    echo json_encode(['status' => 'error', 'message' => 'A valid email address is required.']);
+if (!validate_email($email) || !validate_gmail($email)) {
+    echo json_encode(['status' => 'error', 'message' => 'Only @gmail.com addresses are allowed.']);
     exit;
 }
 

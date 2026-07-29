@@ -22,6 +22,11 @@ if (!validate_email($email)) {
     exit;
 }
 
+if (!validate_gmail($email)) {
+    echo json_encode(['status' => 'error', 'message' => 'Only @gmail.com addresses are allowed.']);
+    exit;
+}
+
 if (strlen($password) < PASSWORD_MIN_LENGTH) {
     echo json_encode(['status' => 'error', 'message' => 'Password too short']);
     exit;

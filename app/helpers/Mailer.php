@@ -2,11 +2,11 @@
 /**
  * Mailer Helper — sends OTP emails via Gmail SMTP using PHPMailer.
  * 
- * Requires: PHPMailer installed via Composer, GMAIL_USER / GMAIL_APP_PASSWORD in config.
+ * Requires: PHPMailer installed via Composer, GMAIL_USER / GMAIL_APP_PASSWORD in .env.
  */
 
-require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../config/config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;

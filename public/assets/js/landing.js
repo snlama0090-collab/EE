@@ -40,17 +40,21 @@ if (hamburger && navMenu) {
 }
 
 // ===== TAB SWITCHING =====
-tabButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const tabName = button.getAttribute('data-tab');
-        tabButtons.forEach(btn => btn.classList.remove('active'));
-        tabContents.forEach(content => content.classList.remove('active'));
-        button.classList.add('active');
-        document.getElementById(`${tabName}-tab`).classList.add('active');
+if (tabButtons.length > 0) {
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.getAttribute('data-tab');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            button.classList.add('active');
+            const tab = document.getElementById(`${tabName}-tab`);
+            if (tab) tab.classList.add('active');
+        });
     });
-});
+}
 
 // ===== LOCATION DETECTION =====
+if (getLocationBtn) {
 getLocationBtn.addEventListener('click', () => {
     getLocationBtn.disabled = true;
     getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';

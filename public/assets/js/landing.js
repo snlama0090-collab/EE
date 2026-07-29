@@ -95,6 +95,7 @@ getLocationBtn.addEventListener('click', () => {
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 });
+}
 
 // ===== UPDATE MAP AND CARDS FOR A GIVEN LOCATION =====
 function updateMapAndCardsForLocation(lat, lng) {
@@ -116,6 +117,7 @@ function updateMapAndCardsForLocation(lat, lng) {
 
 // ===== SHOW LOCATION ERROR =====
 function showLocationError(message) {
+    if (!locationStatus) return;
     locationStatus.innerHTML = `<i class="fas fa-exclamation-circle" style="color:#FF3B30;"></i> ${message}`;
     locationStatus.style.color = '#FF3B30';
     // Preserve existing cards, just update status text
@@ -123,8 +125,10 @@ function showLocationError(message) {
 
 // ===== GET PLACE NAME FROM COORDINATES =====
 function getPlaceNameFromCoordinates(lat, lng) {
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-        .then(response => response.json())
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, { signal: controller.signal })
+        .then(response => { clearTimeout(timeout); return response.json(); })
         .then(data => {
             const placeName = data.address?.city || data.address?.town || data.address?.village || data.address?.county || 'Unknown Location';
             userLocation.placeName = placeName;
@@ -133,9 +137,12 @@ function getPlaceNameFromCoordinates(lat, lng) {
             updateMapMarkerPopup(placeName);
         })
         .catch(() => {
+            clearTimeout(timeout);
             userLocation.placeName = 'Unknown Location';
-            locationStatus.textContent = '✅ Unknown Location';
-            locationStatus.style.color = '#34C759';
+            if (locationStatus) {
+                locationStatus.textContent = '✅ Unknown Location';
+                locationStatus.style.color = '#34C759';
+            }
             updateMapMarkerPopup('Unknown Location');
         });
 }
@@ -207,6 +214,7 @@ function generateMockStations(center) {
 // ===== DISPLAY STATIONS IN LIST =====
 function displayStations(stations) {
     currentStations = stations;
+    if (!stationsList) return;
     stationsList.innerHTML = '';
 
     if (stations.length === 0) {
@@ -379,5 +387,8 @@ window.addEventListener('resize', () => {
 });
 
 // ===== EXPORT FUNCTIONS FOR TESTING =====
+window.landing = window.landing || {};
+window.landing.bookStation = bookStation;
+window.landing.fetchNearbyStations = fetchNearbyStations;
+// Legacy alias — kept for backward compat with onclick=bookStation() in cards
 window.bookStation = bookStation;
-window.fetchNearbyStations = fetchNearbyStations;

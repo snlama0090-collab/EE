@@ -22,6 +22,7 @@ $project_name = 'WattPulse';
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="assets/js/auth.js" defer></script>
     <style>
         body {
             background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);

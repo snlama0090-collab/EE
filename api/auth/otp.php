@@ -114,4 +114,8 @@ if ($action === 'verify_otp') {
     // Success — delete the OTP record so it can't be reused
     $db->prepare('DELETE FROM registration_otps WHERE id = ?')->execute([$record['id']]);
 
+    echo json_encode(['status' => 'success', 'message' => 'OTP verified successfully.']);
+    exit;
+}
 
+// ── unknown action ──

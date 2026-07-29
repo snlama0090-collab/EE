@@ -528,6 +528,22 @@ $project_name = 'WattPulse';
         </div>
     </div>
 
+    <!-- OTP Verification Modal -->
+    <div class="otp-overlay" id="otpModal">
+        <div class="otp-modal">
+            <h2>Verify Your Email</h2>
+            <p>Enter the 6-digit code sent to<br><span class="otp-email" id="otp-email-display"></span></p>
+            <div class="otp-input-wrap">
+                <input type="text" id="otp-input" maxlength="6" inputmode="numeric" pattern="\d{6}" autocomplete="one-time-code" placeholder="000000">
+            </div>
+            <div class="otp-error" id="otp-error"></div>
+            <div class="otp-actions">
+                <button type="button" class="btn-primary" id="otp-submit-btn">Complete Registration</button>
+                <button type="button" class="btn-ghost" id="otp-resend-btn">Resend OTP</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // showToast defined inline for early availability (fallback if dashboard.js hasn't loaded yet)
         function showToast(message, type, duration) {

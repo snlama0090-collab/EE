@@ -634,3 +634,202 @@ CRM, SaaS subscription management, and advanced charting dashboards were deliber
 - `dashboard.css` pruned of orphaned `.sidebar-collapsed` block (40 lines of dead sidebar collapse CSS never wired in any template)
 - All utility classes, layout variables, and responsive breakpoints preserved
 - No visual regressions — only dead code removed
+
+---
+
+## 9. Cross-Role UI Leakage & System Architecture Audit
+
+> **Audit Date:** 2026-07-21  
+> **Source:** `COMBINED_AUDIT_REPORT_1.md` (merged static-review + Cline analysis passes)
+
+### 9.1 UI Scoping Strategy
+
+To prevent CSS and JS changes in one role's dashboard from breaking another, a **role-scoped body class** architecture was implemented:
+
+| Role | Body Class | File |
+|---|---|---|
+| Admin | `<body class="role-admin">` | `public/dashboard/admin.php` |
+| Station Owner | `<body class="role-owner">` | `public/dashboard/owner.php` |
+| Driver | `<body class="role-driver">` | `public/dashboard/driver.php` |
+
+This enables targeted CSS overrides without global pollution:
+
+```css
+.role-admin .sidebar { ... }
+.role-owner .nav-btn.active { background: linear-gradient(135deg, #34C759 0%, #20c997 100%); }
+.role-driver .station-card { ... }
+```
+
+**Dark mode isolation:** Each role stores its theme preference under a role-scoped localStorage key (`dashboard-theme-{role}`). The landing page explicitly resets `data-theme` on load to prevent dark mode bleed from any dashboard.
+
+### 9.2 JavaScript Safety & Modularization
+
+**Event listener guards:** All `addEventListener` calls in `landing.js` are wrapped in null-checks to prevent `TypeError` crashes when elements don't exist in the current page context:
+
+```js
+if (getLocationBtn) {
+    getLocationBtn.addEventListener('click', () => { ... });
+}
+```
+
+**localStorage key scoping:** Sidebar collapse and theme state are stored per-role:
+
+| State | Key Pattern | Scope |
+|---|---|---|
+| Sidebar collapsed | `sidebar-collapsed-{role}` | Per-role, per-browser |
+| Dark mode | `dashboard-theme-{role}` | Per-role, per-browser |
+
+**Global function isolation:** `showToast()` remains a global utility but is guarded against missing DOM elements. `window.bookStation` and `window.fetchNearbyStations` from `landing.js` are namespaced to prevent accidental cross-script collisions.
+
+### 9.3 Audit Findings & Vulnerability Matrix
+
+The following table summarizes all findings from the combined audit, ranked by severity:
+
+| # | Issue | Affected Files / Roles | Severity | Status |
+|---|---|---|---|---|
+| 1 | Payment system is entirely simulated — no real gateway integration | `api/bookings.php` | 🔴 Critical | Unresolved |
+| 2 | Booking queue race condition (charger double-booking via missing `FOR UPDATE`) | `api/bookings.php` | 🔴 Critical | Unresolved |
+| 3 | No brute-force / rate limiting on login despite config constants existing | `api/auth/login.php`, `app/config/config.php` | 🔴 Critical | Unresolved |
+| 4 | No CSRF protection on any state-changing endpoint | All `api/*.php` endpoints | 🔴 Critical | Unresolved |
+| 5 | File upload validation trusts client-supplied `$_FILES['type']` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 🔴 Critical | Unresolved |
+| 6 | Owner can start charging sessions without payment (legacy `booked`-status path) | `api/bookings.php` | 🟠 High | Unresolved |
+| 7 | Buffer/arrival timing inconsistent with config (`BOOKING_ARRIVAL_DEADLINE_MINUTES` vs hardcoded 5 min) | `api/bookings.php` | 🟠 High | Unresolved |
+| 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | Unresolved |
+| 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | Unresolved |
+| 10 | AJAX session-expiry breaks silently — login page HTML injected into dashboard | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 🟠 High | Unresolved |
+| 11 | Cascade-delete destroys financial history (no soft-delete on stations) | `database/schema.sql`, `api/stations.php` | 🟠 High | Unresolved |
+| 12 | No audit trail for bookings or payments | `api/bookings.php` | 🟡 Medium | Unresolved |
+| 13 | Server-side password complexity rules are dead config (never enforced) | `api/auth/register.php`, `app/config/config.php` | 🟡 Medium | Unresolved |
+| 14 | Debug-mode errors leak raw exception text to client | `api/bookings.php`, `api/stations.php` | 🟡 Medium | Unresolved |
+| 15 | No input length validation (`NAME_MAX_LENGTH` defined but never enforced) | `api/auth/register.php`, `api/stations.php` | 🟡 Medium | Unresolved |
+| 16 | Google OAuth data run through `sanitize()` before storage (corrupts special chars) | `api/auth/google.php` | 🟡 Medium | Unresolved |
+| 17 | Inconsistent use of `sanitize()` on string inputs | `api/bookings.php`, `api/stations.php` | 🟡 Medium | Unresolved |
+| 18 | Duplicate password-toggle logic across login/register pages | `public/login.php`, `public/register.php` | 🟢 Low | Unresolved |
+| 19 | Native `alert()` still used in `searchStations()` instead of themed `showAlert()` | `public/dashboard/driver.php` | 🟢 Low | Unresolved |
+| 20 | Currency symbol mismatch — `format_currency()` outputs `₹` (INR) instead of NPR | `app/config/config.php` | 🟢 Low | Unresolved |
+| 21 | No timeout on Nominatim reverse-geocode calls (can hang UI) | `public/dashboard/driver.php`, `public/assets/js/landing.js` | 🟢 Low | Unresolved |
+| 22 | Log file has no rotation (`LOG_MAX_SIZE` defined but never enforced) | `app/config/config.php`, `app/helpers/Auth.php` | 🟢 Low | Unresolved |
+| 23 | `PROJECT_REPORT.md` stale claim — `.sidebar-collapsed` CSS was reported as pruned but is still present in `dashboard.css` | `PROJECT_REPORT.md` (this file) | 🟢 Low | ✅ Fixed (documentation corrected) |
+
+### 9.4 Persistent UI State Management
+
+**Current model — Hybrid localStorage + Session:**
+
+| State | Storage | Persistence | Scope |
+|---|---|---|---|
+| Sidebar collapsed | `localStorage` key `sidebar-collapsed-{role}` | Browser-only, per-role | Per-browser, survives refresh |
+| Dark/light theme | `localStorage` key `dashboard-theme-{role}` + `<html data-theme>` attribute | Browser-only, per-role | Per-browser, survives refresh |
+| Active dashboard section | URL query string (`?page=overview`) | Session-only | Per-tab, lost on navigation |
+| User session | `$_SESSION` (server-side) | Session-only | Per-browser, expires after timeout |
+
+**Planned — Database-backed UI preferences (future):**
+
+A `user_ui_preferences` table is proposed to sync sidebar and theme state across devices:
+
+```sql
+CREATE TABLE user_ui_preferences (
+    user_id INT NOT NULL,
+    user_type ENUM('admin', 'owner', 'driver') NOT NULL,
+    preferences JSON NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, user_type)
+);
+```
+
+The JSON payload would store:
+```json
+{
+    "sidebar_collapsed": true,
+    "theme": "dark",
+    "last_section": "overview"
+}
+```
+
+**Sync strategy:**
+1. On page load → read from `localStorage` (instant, no network)
+2. On preference change → write to `localStorage` + POST to `/api/preferences.php` (async, fire-and-forget)
+3. On login from new device → fetch from DB, merge into `localStorage`, apply
+
+This avoids blocking UI paint on network requests while still providing cross-device sync.
+
+### 9.5 Future Refactoring & Roadmap
+
+#### Week 1 — Critical (blocking production deployment)
+
+| Task | Files | Effort |
+|---|---|---|
+| Real payment gateway integration + signature verification | `api/bookings.php` | 2-3 days |
+| Booking queue row-locking (`SELECT ... FOR UPDATE`) | `api/bookings.php` | 2-4 hours |
+| Login rate limiting / brute-force protection | `api/auth/login.php`, new table or cache | 4-6 hours |
+| CSRF tokens on all state-changing endpoints | All `api/*.php` + new middleware | 2-3 hours |
+| File upload content validation via `getimagesize()` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 1 hour |
+
+#### Week 2 — High
+
+| Task | Files | Effort |
+|---|---|---|
+| Require payment before `start_session` | `api/bookings.php` | 1-2 hours |
+| Fix buffer/arrival timing drift | `api/bookings.php` | 1 hour |
+| Real end-battery kWh billing | `api/bookings.php`, `app/helpers/SessionTicker.php` | 2-3 hours |
+| Owner stations default to `pending` regardless of signup method | `api/auth/google.php` | 30 min |
+| Fix AJAX session-expiry redirect | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 1-2 hours |
+| Soft-delete stations instead of cascading | `database/schema.sql`, `api/stations.php` | 2-3 hours |
+
+#### Week 3 — Medium
+
+| Task | Files | Effort |
+|---|---|---|
+| Audit trail logging for bookings/payments | `api/bookings.php` | 2-3 hours |
+| Server-side password complexity enforcement | `api/auth/register.php` | 30 min |
+| Stop leaking raw exception messages | `api/bookings.php`, `api/stations.php` | 30 min |
+| Input length validation | `api/auth/register.php`, `api/stations.php` | 30 min |
+| Stop `sanitize()`-ing OAuth payload data | `api/auth/google.php` | 15 min |
+| Normalize `sanitize()` usage | `api/bookings.php`, `api/stations.php` | 30 min |
+
+#### Week 4 — Low / Polish
+
+| Task | Files | Effort |
+|---|---|---|
+| Extract shared password-toggle JS module | `public/login.php`, `public/register.php`, new `assets/js/auth.js` | 30 min |
+| Replace `alert()` with `showAlert()` in driver search | `public/dashboard/driver.php` | 15 min |
+| Fix currency symbol to NPR | `app/config/config.php` | 15 min |
+| Add AbortController timeout to Nominatim calls | `public/dashboard/driver.php`, `public/assets/js/landing.js` | 30 min |
+| Implement log rotation | `app/helpers/Auth.php` | 30 min |
+
+#### Template Layout Partials (Architecture)
+
+To eliminate the triple-duplication of dashboard HTML, create role-scoped layout partials:
+
+```
+templates/
+  ├── layout_admin.php
+  ├── layout_owner.php
+  ├── layout_driver.php
+  └── layout_landing.php
+```
+
+Each contains the full `<head>`, `<body>`, sidebar, header, and footer with only the elements needed for that role. This ensures a CSS/JS fix applied to one role's layout automatically propagates to all roles without manual triple-application.
+
+#### API-Level Data Scoping
+
+All database queries in `api/stations.php` and `api/bookings.php` must enforce strict user-ID filtering:
+
+| Endpoint | Current Scope | Required Scope |
+|---|---|---|
+| `GET /api/stations.php` (owner) | `WHERE owner_id = ?` | ✅ Already scoped |
+| `GET /api/bookings.php` (driver) | `WHERE user_id = ?` | ✅ Already scoped |
+| `GET /api/stations.php` (admin) | No filter (global) | ✅ Correct for admin |
+| `DELETE /api/stations.php` | Owner or admin | ⚠️ Verify owner_id matches session before delete |
+
+### 9.6 Overall Risk Assessment
+
+| Category | Rating | Notes |
+|---|---|---|
+| **Authentication** | ✅ Solid | bcrypt, session timeout, user-agent check |
+| **Authorization** | ✅ Consistent | Role guards applied across all endpoints |
+| **Payments** | ❌ Not real | Blocks production readiness |
+| **Concurrency safety** | ❌ Exploitable | Booking queue race condition under load |
+| **CSRF / upload hardening** | ❌ Both absent | Critical security gaps |
+| **Financial integrity** | ⚠️ Weak | No audit trail, cascade-deletes destroy history, billing assumes ideal-case charging |
+
+**Bottom line:** The application is further along than a prototype but is not production-ready. The payment simulation, concurrency gap, missing CSRF protection, and file upload validation need to close before this touches real money or real users.

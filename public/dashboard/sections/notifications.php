@@ -1,6 +1,6 @@
 <?php
-require_once dirname(__DIR__, 2) . '/app/config/config.php';
-require_once dirname(__DIR__, 2) . '/app/helpers/Auth.php';
+require_once '../../app/config/config.php';
+require_once '../../app/helpers/Auth.php';
 
 Auth::requireUserType('driver');
 $db = getDB();

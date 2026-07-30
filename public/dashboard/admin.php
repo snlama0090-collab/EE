@@ -15,6 +15,12 @@ $user_role = Auth::getCurrentUserType();
 $role_subtitle = $role_subtitles[$user_role] ?? 'Portal';
 
 $db = getDB();
+
+// Get admin details
+$admin_id = Auth::getCurrentUserId();
+$stmt = $db->prepare("SELECT * FROM admins WHERE id = ?");
+$stmt->execute([$admin_id]);
+$admin = $stmt->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,8 +69,8 @@ $db = getDB();
         <!-- Profile Dropdown -->
         <div class="dropdown profile-dropdown" id="profile-dropdown">
             <div class="dropdown-user">
-                <div class="user-name">Admin</div>
-                <div class="user-email">admin@evcharge.com</div>
+                <div class="user-name"><?php echo htmlspecialchars($admin['name']); ?></div>
+                <div class="user-email"><?php echo htmlspecialchars($admin['email']); ?></div>
             </div>
             <div class="dropdown-body">
                 <div class="dropdown-item" onclick="loadSection('settings')"><i class="fas fa-cog" style="width:16px;"></i> Settings</div>

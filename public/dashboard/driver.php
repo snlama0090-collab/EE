@@ -117,6 +117,9 @@ if (file_exists($profilePicAbsolute)) {
                 <button type="button" class="nav-btn<?php echo $page === 'favorites' ? ' active' : ''; ?>" data-section="favorites" onclick="loadSection('favorites')">
                     <i class="fas fa-heart"></i> <span>Favorites</span>
                 </button>
+                <button type="button" class="nav-btn<?php echo $page === 'notifications' ? ' active' : ''; ?>" data-section="notifications" onclick="loadSection('notifications')">
+                    <i class="fas fa-bell"></i> <span>Notifications</span>
+                </button>
                 <button type="button" class="nav-btn<?php echo $page === 'profile' ? ' active' : ''; ?>" data-section="profile" onclick="loadSection('profile')">
                     <i class="fas fa-user"></i> <span>Profile</span>
                 </button>

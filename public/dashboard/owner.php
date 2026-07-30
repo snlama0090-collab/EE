@@ -157,7 +157,7 @@ if (file_exists($profilePicAbsolute)) {
             <div class="dropdown-body">
                 <div class="dropdown-item">No new notifications</div>
             </div>
-            <div class="dropdown-footer">View all notifications</div>
+            <div class="dropdown-footer" onclick="loadSection('notifications')">View all notifications</div>
         </div>
         <!-- Profile -->
         <div class="header-profile-pic" id="profile-btn" style="display:flex; align-items:center; justify-content:center; background:var(--muted); color:var(--foreground); font-size:14px; cursor:pointer;">
@@ -166,7 +166,7 @@ if (file_exists($profilePicAbsolute)) {
         <div class="dropdown profile-dropdown" id="profile-dropdown">
             <div class="dropdown-user">
                 <div class="user-name"><?php echo htmlspecialchars($owner['company_name']); ?></div>
-                <div class="user-email">owner@evcharge.com</div>
+                <div class="user-email"><?php echo htmlspecialchars($owner['email']); ?></div>
             </div>
             <div class="dropdown-body">
                 <div class="dropdown-item" onclick="loadSection('profile')"><i class="fas fa-store" style="width:16px;"></i> Company Profile</div>

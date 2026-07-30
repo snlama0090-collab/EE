@@ -5,7 +5,8 @@ require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
 Auth::requireUserType('admin');
 $db = getDB();
 
-$stmt = $db->query("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 50");
+$stmt = $db->prepare("SELECT * FROM activity_logs ORDER BY created_at DESC LIMIT 50");
+$stmt->execute();
 $notifications = $stmt->fetchAll();
 ?>
 <div class="listing-header">

@@ -499,29 +499,6 @@ $project_name = 'WattPulse';
             </form>
         </div>
 
-        <!-- Google Sign-In Divider -->
-        <div class="divider">
-            <hr><span>or register with</span><hr>
-        </div>
-
-        <!-- Google Sign-In Button -->
-        <div id="google-btn-wrapper" style="display: flex; justify-content: center; margin-bottom: 20px;">
-            <div id="g_id_onload"
-                 data-client_id="34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com"
-                 data-callback="handleGoogleRegister"
-                 data-auto_prompt="false">
-            </div>
-            <div class="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline"
-                 data-text="signup_with"
-                 data-shape="rectangular"
-                 data-logo_alignment="left"
-                 data-width="340">
-            </div>
-        </div>
-
         <!-- Login Link -->
         <div class="auth-footer">
             Already have an account?

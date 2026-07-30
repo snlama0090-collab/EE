@@ -11,6 +11,7 @@ define('ENV', 'development'); // development, production
 define('DEBUG', true);
 
 // ===== LOAD .ENV CREDENTIALS =====
+require_once __DIR__ . '/../../vendor/autoload.php';
 $envDir = dirname(__DIR__, 2); // EE project root
 if (file_exists($envDir . '/.env')) {
     $dotenv = Dotenv\Dotenv::createImmutable($envDir);

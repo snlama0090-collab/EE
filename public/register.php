@@ -381,7 +381,7 @@ $project_name = 'WattPulse';
 
                     <div class="form-group" style="margin-bottom:14px;">
                         <label for="driver-email" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Email Address</label>
-                        <input type="email" id="driver-email" name="email" placeholder="yourname@gmail.com" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$" title="Only @gmail.com addresses are allowed" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+<input type="email" id="driver-email" name="email" placeholder="yourname@gmail.com" pattern="[a-zA-Z0-9._%+\-]+@gmail\.com$" title="Only @gmail.com addresses are allowed" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
                     <div class="form-group" style="margin-bottom:14px;">
@@ -446,7 +446,7 @@ $project_name = 'WattPulse';
 
                     <div class="form-group" style="margin-bottom:14px;">
                         <label for="owner-email" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Email Address</label>
-                        <input type="email" id="owner-email" name="email" placeholder="yourname@gmail.com" pattern="[a-zA-Z0-9._%+-]+@gmail\.com$" title="Only @gmail.com addresses are allowed" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+<input type="email" id="owner-email" name="email" placeholder="yourname@gmail.com" pattern="[a-zA-Z0-9._%+\-]+@gmail\.com$" title="Only @gmail.com addresses are allowed" autocomplete="off" value="" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                     </div>
 
                     <div class="form-group" style="margin-bottom:14px;">

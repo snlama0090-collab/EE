@@ -6,7 +6,7 @@ Auth::requireUserType('driver');
 $db = getDB();
 $user_id = Auth::getCurrentUserId();
 
-$stmt = $db->prepare("SELECT * FROM activity_logs WHERE resource_type = 'booking' AND resource_id IN (SELECT id FROM bookings WHERE user_id = ?) ORDER BY created_at DESC LIMIT 50");
+$stmt = $db->prepare("SELECT al.* FROM activity_logs al JOIN bookings b ON al.resource_id = b.id WHERE b.user_id = ? AND al.resource_type = 'booking' ORDER BY al.created_at DESC LIMIT 50");
 $stmt->execute([$user_id]);
 $notifications = $stmt->fetchAll();
 ?>
@@ -39,7 +39,7 @@ $notifications = $stmt->fetchAll();
                 <tr>
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td style="font-size:12px;color:var(--muted-foreground);max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                        <?php echo htmlspecialchars(is_string($n['details']) ? substr($n['details'], 0, 80) : ''); ?>
+                        <?php echo htmlspecialchars(substr($n['details'] ?? '', 0, 80)); ?>
                     </td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($n['created_at'])); ?></td>
                 </tr>

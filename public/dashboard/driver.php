@@ -16,7 +16,7 @@ $role_subtitle = $role_subtitles[$user_role] ?? 'Portal';
 $db = getDB();
 
 // Server-side initial page — no flicker
-$allowed = ['dashboard', 'find-stations', 'bookings', 'receipts', 'favorites', 'profile', 'support'];
+$allowed = ['dashboard', 'find-stations', 'bookings', 'receipts', 'favorites', 'notifications', 'profile', 'support'];
 $page = in_array($_GET['page'] ?? '', $allowed) ? $_GET['page'] : 'dashboard';
 
 // Get user details

@@ -369,7 +369,7 @@ $project_name = 'WattPulse';
 
         <!-- Registration Form (Step 2) -->
         <div class="form-section" id="step-2">
-            <form id="register-form" onsubmit="handleRegister(event)" autocomplete="off">
+            <form id="register-form" autocomplete="off">
                 <input type="hidden" id="user-type" name="user_type" value="driver">
 
                 <!-- DRIVER FORM -->
@@ -626,52 +626,6 @@ $project_name = 'WattPulse';
                 step2.classList.add('active');
                 progress.style.width = '100%';
                 selectUserType(selectedUserType);
-            }
-        }
-
-        async function handleRegister(event) {
-            event.preventDefault();
-            const form = event.target;
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-
-            if (data.battery_capacity === 'other') {
-                const customVal = document.getElementById('battery-other-input').value;
-                if (!customVal) { showToast('Please enter a custom battery capacity', 'error'); return; }
-                data.battery_capacity = customVal;
-            }
-
-            if (data.password !== data.confirm_password) { showToast('Passwords do not match', 'error'); return; }
-            if (data.password.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
-            if (!data.terms) { showToast('Please accept terms & conditions', 'error'); return; }
-
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.classList.add('loading');
-            submitBtn.textContent = 'Creating account...';
-            submitBtn.disabled = true;
-
-            try {
-                const response = await fetch('/EE/api/auth/register.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (!response.ok) { throw new Error('HTTP ' + response.status); }
-                const result = await response.json();
-                if (result.status === 'success') {
-                    showToast('Account created successfully! Redirecting to login...', 'success');
-                    setTimeout(() => window.location.href = 'login.php?type=' + selectedUserType, 2000);
-                } else {
-                    showToast(result.message || 'Registration failed', 'error');
-                    submitBtn.classList.remove('loading');
-                    submitBtn.textContent = 'Create Account';
-                    submitBtn.disabled = false;
-                }
-            } catch (error) {
-                showToast('Network error. Please try again.', 'error');
-                submitBtn.classList.remove('loading');
-                submitBtn.textContent = 'Create Account';
-                submitBtn.disabled = false;
             }
         }
 

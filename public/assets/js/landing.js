@@ -10,6 +10,7 @@ const tabContents = document.querySelectorAll('.tab-content');
 // ===== GLOBAL VARIABLES =====
 let userLocation = null;
 let map = null;
+let userMarker = null;
 let markers = [];
 let currentStations = [];
 const DEFAULT_LOCATION = { lat: 27.7172, lng: 85.3240, accuracy: 5000 };
@@ -164,6 +165,11 @@ function initMap() {
 
     if (map) {
         map.setView([loc.lat, loc.lng], 12);
+        if (userMarker) {
+            userMarker.setLatLng([loc.lat, loc.lng]);
+            userMarker.setPopupContent(`📍 ${loc.placeName || 'Your Location'}`);
+            userMarker.openPopup();
+        }
         return;
     }
 
@@ -174,7 +180,7 @@ function initMap() {
         maxZoom: 19,
     }).addTo(map);
 
-    L.circleMarker([loc.lat, loc.lng], {
+    userMarker = L.circleMarker([loc.lat, loc.lng], {
         radius: 8,
         fillColor: '#007AFF',
         color: '#0051D5',

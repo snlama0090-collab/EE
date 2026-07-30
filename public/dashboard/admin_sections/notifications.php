@@ -39,7 +39,7 @@ $notifications = $stmt->fetchAll();
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td><?php echo htmlspecialchars($n['resource_type'] ?? '-'); ?> #<?php echo $n['resource_id'] ?? ''; ?></td>
                     <td style="font-size:12px;color:var(--muted-foreground);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                        <?php echo htmlspecialchars(is_string($n['details']) ? substr($n['details'], 0, 80) : ''); ?>
+                        <?php echo htmlspecialchars(substr($n['details'] ?? '', 0, 80)); ?>
                     </td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($n['created_at'])); ?></td>
                 </tr>
@@ -53,4 +53,3 @@ $notifications = $stmt->fetchAll();
         <div class="rows-select">Showing <?php echo count($notifications); ?> results</div>
     </div>
 </div>
-</write_to_file>

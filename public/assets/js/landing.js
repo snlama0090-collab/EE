@@ -340,6 +340,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     showStationsOnMap(DEFAULT_STATIONS);
 
+    // ── Step 1b: Populate live stats (stations / drivers / owners) ──
+    fetch('/EE/api/stats.php')
+        .then(r => r.json())
+        .then(res => {
+            if (res.status !== 'success') return;
+            const d = res.data || {};
+            const fmt = n => Number(n || 0).toLocaleString();
+            const stationsEl = document.getElementById('stat-stations');
+            const driversEl = document.getElementById('stat-drivers');
+            const ownersEl = document.getElementById('stat-owners');
+            if (stationsEl) stationsEl.textContent = fmt(d.stations);
+            if (driversEl) driversEl.textContent = fmt(d.drivers);
+            if (ownersEl) ownersEl.textContent = fmt(d.owners);
+        })
+        .catch(() => { /* leave 0s on failure — stats are non-critical */ });
+
     // ── Step 2: Background geolocation with strict timeout ──
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(

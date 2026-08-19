@@ -1,0 +1,103 @@
+diff --git a/api/auth/register.php b/api/auth/register.php
+index ad71ce1..2501de9 100644
+--- a/api/auth/register.php
++++ b/api/auth/register.php
+@@ -41,84 +41,43 @@ if (!validate_phone($phone)) {
+ try {
+     $db = getDB();
+     $hashed_password = hash_password($password);
+-
+-    // ── OTP gate: registration is only allowed for a verified OTP row ──
+-    $stmt = $db->prepare(
+-        'SELECT id FROM registration_otps
+-         WHERE email = ? AND verified = TRUE AND expires_at > NOW()
+-         ORDER BY id DESC LIMIT 1'
+-    );
+-    $stmt->execute([$email]);
+-    $otp_record = $stmt->fetch();
+-
+-    if (!$otp_record) {
+-        echo json_encode(['status' => 'error', 'message' => 'Email not verified. Please complete OTP verification first.']);
+-        exit;
+-    }
+-
+-    // ── Duplicate email guard before starting the transaction ──
+-    $dup = $db->prepare('SELECT 1 FROM users WHERE email = ? LIMIT 1');
+-    $dup->execute([$email]);
+-    if ($dup->fetch()) {
+-        echo json_encode(['status' => 'error', 'message' => 'This email is already registered. Try signing in instead.']);
+-        exit;
+-    }
+-    $dup = $db->prepare('SELECT 1 FROM owners WHERE email = ? LIMIT 1');
+-    $dup->execute([$email]);
+-    if ($dup->fetch()) {
+-        echo json_encode(['status' => 'error', 'message' => 'This email is already registered. Try signing in instead.']);
+-        exit;
+-    }
+-
+-    $db->beginTransaction();
+-
++    
+     if ($user_type === 'driver') {
+         $car_model = sanitize($input['car_model'] ?? '');
+         $battery = floatval($input['battery_capacity'] ?? 0);
+-
++        
+         $stmt = $db->prepare("
+             INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh)
+             VALUES (?, ?, ?, ?, ?, ?)
+         ");
+-
++        
+         $stmt->execute([$email, $hashed_password, $name, $phone, $car_model, $battery]);
+-
++        
+     } elseif ($user_type === 'owner') {
+         $company = sanitize($input['company_name'] ?? '');
+         $bank = sanitize($input['bank_account'] ?? '');
+-
++        
+         $stmt = $db->prepare("
+             INSERT INTO owners (email, password, name, company_name, phone, bank_account_number)
+             VALUES (?, ?, ?, ?, ?, ?)
+         ");
+-
++        
+         $stmt->execute([$email, $hashed_password, $name, $company, $phone, $bank]);
+-    } else {
+-        $db->rollBack();
+-        echo json_encode(['status' => 'error', 'message' => 'Invalid user type']);
+-        exit;
+     }
+-
+-    // INSERT succeeded — only now consume the verified OTP row.
+-    $db->prepare('DELETE FROM registration_otps WHERE email = ?')->execute([$email]);
+-
+-    $db->commit();
+-
++    
+     echo json_encode([
+         'status' => 'success',
+         'message' => 'Registration successful'
+     ]);
+-
++    
+     log_message('INFO', "New $user_type registered: $email");
+-
++    
+ } catch (PDOException $e) {
+-    if ($db && $db->inTransaction()) {
+-        $db->rollBack();
+-    }
+     if (strpos($e->getMessage(), 'Duplicate') !== false) {
+-        echo json_encode(['status' => 'error', 'message' => 'Email already registered. Try signing in instead.']);
++        echo json_encode(['status' => 'error', 'message' => 'Email already registered']);
+     } else {
+         log_message('ERROR', "Registration error: " . $e->getMessage());
+         echo json_encode(['status' => 'error', 'message' => 'Server error']);
+     }
+-}
+\ No newline at end of file
++}
++?>
+\ No newline at end of file

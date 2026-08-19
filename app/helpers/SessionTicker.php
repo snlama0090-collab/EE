@@ -8,6 +8,18 @@
  */
 
 function tickChargingSessions($db) {
+    // Reconcile orphaned chargers: stuck in 'charging' with no active booking
+    // for over 6 hours (grace period covers owner walk-up manual overrides).
+    $stmt = $db->prepare("
+        UPDATE chargers c
+        LEFT JOIN bookings b ON b.charger_id = c.id AND b.status IN ('booked', 'charging')
+        SET c.status = 'available'
+        WHERE c.status = 'charging'
+          AND b.id IS NULL
+          AND c.updated_at <= DATE_SUB(NOW(), INTERVAL 6 HOUR)
+    ");
+    $stmt->execute();
+
     // Find any charging sessions that have exceeded their session_ends_at
     $stmt = $db->prepare("
         SELECT b.id as booking_id, b.charger_id, c.station_id,

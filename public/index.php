@@ -268,27 +268,6 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         </div>
     </footer>
 
-    <script>
-    // Real-time counting animation for hero stats
-    document.addEventListener('DOMContentLoaded', function() {
-        function animateCount(el, target) {
-            const duration = 1200;
-            const start = performance.now();
-            const step = (now) => {
-                const progress = Math.min((now - start) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
-                el.textContent = target < 1000 ? Math.floor(ease * target) + '+' : Math.floor(ease * target);
-                if (progress < 1) requestAnimationFrame(step);
-                else el.textContent = target + '+';
-            };
-            requestAnimationFrame(step);
-        }
-        animateCount(document.getElementById('stat-stations'), 324);
-        animateCount(document.getElementById('stat-drivers'), 1234);
-        animateCount(document.getElementById('stat-owners'), 87);
-    });
-    </script>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="assets/js/landing.js"></script>
 </body>

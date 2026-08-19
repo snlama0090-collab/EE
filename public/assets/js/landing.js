@@ -11,6 +11,7 @@ const tabContents = document.querySelectorAll('.tab-content');
 let userLocation = null;
 let map = null;
 let markers = [];
+let userMarker = null;
 let currentStations = [];
 const DEFAULT_LOCATION = { lat: 27.7172, lng: 85.3240, accuracy: 5000 };
 
@@ -149,13 +150,10 @@ function getPlaceNameFromCoordinates(lat, lng) {
 
 // ===== UPDATE MAP MARKER POPUP =====
 function updateMapMarkerPopup(placeName) {
-    if (!map || !map._layers) return;
-    Object.values(map._layers).forEach(layer => {
-        if (layer instanceof L.CircleMarker && layer._latlng.lat === userLocation.lat) {
-            layer.setPopupContent(`📍 ${placeName}`);
-            layer.openPopup();
-        }
-    });
+    if (userMarker) {
+        userMarker.setPopupContent(`📍 ${placeName || 'Your Location'}`);
+        userMarker.openPopup();
+    }
 }
 
 // ===== INITIALIZE MAP =====
@@ -164,6 +162,7 @@ function initMap() {
 
     if (map) {
         map.setView([loc.lat, loc.lng], 12);
+        updateUserMarker(loc);
         return;
     }
 
@@ -174,7 +173,17 @@ function initMap() {
         maxZoom: 19,
     }).addTo(map);
 
-    L.circleMarker([loc.lat, loc.lng], {
+    updateUserMarker(loc);
+}
+
+// ===== UPDATE USER LOCATION MARKER (moves with geolocation) =====
+function updateUserMarker(loc) {
+    if (!map) return;
+    if (userMarker) {
+        map.removeLayer(userMarker);
+        userMarker = null;
+    }
+    userMarker = L.circleMarker([loc.lat, loc.lng], {
         radius: 8,
         fillColor: '#007AFF',
         color: '#0051D5',
@@ -294,7 +303,9 @@ function showStationsOnMap(stations) {
     });
 
     if (markers.length > 0) {
-        const group = new L.featureGroup(markers);
+        // Include the user's marker so fitBounds keeps their real location in view
+        const groupMarkers = userMarker ? [userMarker, ...markers] : markers;
+        const group = new L.featureGroup(groupMarkers);
         map.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
 }

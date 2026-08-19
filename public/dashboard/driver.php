@@ -238,6 +238,15 @@ if (file_exists($profilePicAbsolute)) {
             map.setView([lat, lon], 12);
         }
 
+        // Escape any text read from the DOM before re-inserting into popup HTML.
+        // Entities are built at runtime so editors cannot decode them.
+        function escapeHtml(str) {
+            var map = { 34: '#34;', 38: 'amp;', 39: '#39;', 60: 'lt;', 62: 'gt;' };
+            return String(str).replace(/[&<>"']/g, function (c) {
+                return '&' + map[c.charCodeAt(0)];
+            });
+        }
+
         function addStationsToMap() {
             if (!map) return;
             stationMarkers.forEach(m => { if (map.hasLayer(m)) map.removeLayer(m); });
@@ -245,7 +254,50 @@ if (file_exists($profilePicAbsolute)) {
             document.querySelectorAll('.station-card').forEach(card => {
                 var lat = parseFloat(card.dataset.latitude), lon = parseFloat(card.dataset.longitude);
                 if (isNaN(lat) || isNaN(lon)) return;
-                stationMarkers.push(L.marker([lat, lon]).addTo(map));
+
+                var name = card.querySelector('.station-name')?.textContent || 'Charging Station';
+                var city = card.querySelector('.station-city')?.textContent || '';
+                var available = card.dataset.available || '0';
+                var chargerCount = card.dataset.chargerCount || '0';
+                var chargerTypes = card.dataset.chargerType ? card.dataset.chargerType.split(',') : [];
+
+                // Availability color
+                var availableNum = parseInt(available, 10);
+                var markerColor = availableNum > 0 ? '#34C759' : '#FF3B30';
+                var markerText = availableNum > 0 ? '✅ ' + available + ' Available' : '❌ Currently Full';
+                var multi = L.icon({
+                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+
+                var marker = L.marker([lat, lon], { icon: multi }).addTo(map);
+
+                var safeName = escapeHtml(name);
+                marker.bindTooltip(safeName, { permanent: false, direction: 'top', opacity: 0.9 });
+
+                var popupHtml = `
+                    <div style="font-size:12px; line-height:1.5; min-width:160px;">
+                        <strong style="font-size:13px;">${safeName}</strong>
+                        ${city ? `<div style="color:#8E8E93;">${escapeHtml(city)}</div>` : ''}
+                        <div style="margin-top:4px;">
+                            <i class="fas fa-plug"></i> ${chargerCount} Chargers
+                            (${available} available)
+                        </div>
+                        <div style="color:#8E8E93;">
+                            ${chargerTypes.slice(0, 3).map(t => escapeHtml(t.trim())).filter(Boolean).join(', ') || 'Standard'}
+                        </div>
+                        <div style="margin-top:6px; font-weight:600; color:${markerColor};">
+                            ${markerText}
+                        </div>
+                    </div>
+                `;
+                marker.bindPopup(popupHtml);
+                stationMarkers.push(marker);
             });
             if (userMarker && stationMarkers.length > 0) {
                 var g = L.featureGroup([userMarker, ...stationMarkers]);

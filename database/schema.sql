@@ -383,6 +383,7 @@ CREATE TABLE registration_otps (
     email VARCHAR(255) NOT NULL,
     otp_hash VARCHAR(255) NOT NULL,
     attempts INT DEFAULT 0,
+    verified BOOLEAN DEFAULT FALSE,
     expires_at DATETIME NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     

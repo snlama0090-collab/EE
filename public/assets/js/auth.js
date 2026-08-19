@@ -41,13 +41,25 @@
     // ── Gmail-only regex ──
     var GMAIL_RE = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
 
+    // ── safe JSON parse: never throw on non-JSON (e.g. raw PHP fatal) ──
+    function parseJson(r) {
+        return r.text().then(function (text) {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                // Surface the real HTTP status instead of a generic "network error"
+                return { status: 'error', message: 'Server returned an invalid response (HTTP ' + r.status + ').' };
+            }
+        });
+    }
+
     // ── send OTP ──
     function sendOtp(email) {
         return fetch('/EE/api/auth/otp.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'send_otp', email: email })
-        }).then(function (r) { return r.json(); });
+        }).then(parseJson);
     }
 
     // ── verify OTP ──
@@ -56,7 +68,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'verify_otp', email: email, otp: otp })
-        }).then(function (r) { return r.json(); });
+        }).then(parseJson);
     }
 
     // ── final registration call ──
@@ -65,7 +77,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
-        }).then(function (r) { return r.json(); });
+        }).then(parseJson);
     }
 
     // ── intercept registration form ──
@@ -159,18 +171,23 @@
                                 window.location.href = 'login.php?type=' + pendingUserType;
                             }, 2000);
                         } else {
+                            // Registration failed (e.g. duplicate email). The OTP is still
+                            // valid on the server, so do NOT clear the input — the user can
+                            // fix the form and retry. Show the backend's real message.
                             if (otpError) otpError.textContent = regResult.message || 'Registration failed.';
                             otpSubmitBtn.disabled = false;
                             otpSubmitBtn.textContent = 'Complete Registration';
                         }
                     });
                 } else {
+                    // Actual OTP problem (invalid/expired) — clear input and let them retry.
                     if (otpError) otpError.textContent = result.message || 'Invalid OTP.';
                     otpSubmitBtn.disabled = false;
                     otpSubmitBtn.textContent = 'Complete Registration';
                     if (otpInput) { otpInput.value = ''; otpInput.focus(); }
                 }
             }).catch(function () {
+                // Genuine network failure — keep the OTP value so a retry is one click.
                 if (otpError) otpError.textContent = 'Network error. Please try again.';
                 otpSubmitBtn.disabled = false;
                 otpSubmitBtn.textContent = 'Complete Registration';

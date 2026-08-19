@@ -233,7 +233,15 @@ try {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $charger_id = intval($input['charger_id'] ?? 0);
                 $status = sanitize($input['status'] ?? '');
-                
+
+                // Whitelist: owners may only set available/maintenance/offline.
+                // 'charging' is reserved for active booking sessions.
+                $allowed_statuses = ['available', 'maintenance', 'offline'];
+                if (!in_array($status, $allowed_statuses, true)) {
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid charger status']);
+                    exit;
+                }
+
                 // Verify charger belongs to a station owned by this owner
                 $stmt = $db->prepare("
                     SELECT c.id FROM chargers c 

@@ -327,6 +327,58 @@ function bookStation(stationId, stationName) {
     window.location.href = loginUrl;
 }
 
+// ===== MAP API STATION → CARD/MARKER SHAPE =====
+function mapApiStation(s) {
+    // charger_details example: "DC Fast (50kW), AC 22kW (22kW)"
+    const first = (s.charger_details || '').split(',')[0].trim();
+    const type = first ? first.replace(/\s*\(\d+(?:\.\d+)?kW\)$/, '').trim() : 'AC';
+    const wattMatch = first ? first.match(/(\d+(?:\.\d+)?)kW/) : null;
+    return {
+        id: Number(s.id),
+        name: s.name,
+        type: type || 'AC',
+        wattage: wattMatch ? parseFloat(wattMatch[1]) : 0,
+        chargers: Number(s.num_chargers || s.charger_count || 0),
+        available: Number(s.available_chargers || 0),
+        distance: Number(s.distance || 0),
+        rating: Number(s.average_rating || 0),
+        lat: parseFloat(s.latitude),
+        lng: parseFloat(s.longitude)
+    };
+}
+
+// ===== LOAD REAL STATIONS INTO LIST + MAP =====
+function loadStations(coords) {
+    const base = '/EE/api/nearby-stations.php';
+    const url = coords
+        ? `${base}?latitude=${coords.lat}&longitude=${coords.lng}&radius=15`
+        : base;
+
+    fetch(url)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(res => {
+            if (res.status !== 'success') throw new Error(res.message);
+            const stations = (res.data || []).map(mapApiStation);
+            if (stations.length === 0 && locationStatus) {
+                locationStatus.textContent = 'No stations found in this area';
+                locationStatus.style.color = '#FF3B30';
+            }
+            displayStations(stations);
+            initMap();
+            showStationsOnMap(stations);
+        })
+        .catch(() => {
+            // API down — fall back to mock data so the page still works
+            displayStations(DEFAULT_STATIONS);
+            initMap();
+            showStationsOnMap(DEFAULT_STATIONS);
+            if (locationStatus) {
+                locationStatus.textContent = 'Could not load live stations — showing demo data';
+                locationStatus.style.color = '#FF9500';
+            }
+        });
+}
+
 // ===== INITIALIZE ON PAGE LOAD =====
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Landing page loaded');
@@ -334,13 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Prevent dark mode bleed from dashboard — landing always starts light
     document.documentElement.removeAttribute('data-theme');
 
-    // ── Step 1: Render default cards and map instantly (no geolocation wait) ──
-    userLocation = { ...DEFAULT_LOCATION, placeName: 'Kathmandu' };
-    displayStations(DEFAULT_STATIONS);
-    initMap();
-    showStationsOnMap(DEFAULT_STATIONS);
-
-    // ── Step 1b: Populate live stats (stations / drivers / owners) ──
+    // ── Step 1: Populate live stats (stations / drivers / owners) ──
     fetch('/EE/api/stats.php')
         .then(r => r.json())
         .then(res => {
@@ -356,41 +402,35 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(() => { /* leave 0s on failure — stats are non-critical */ });
 
-    // ── Step 2: Background geolocation with strict timeout ──
+    // ── Step 2: Geolocation (2s) → fetch nearby; denied/timed out → fetch all ──
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                userLocation = { lat, lng, accuracy: position.coords.accuracy };
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
 
                 locationStatus.textContent = 'Using your location';
                 locationStatus.style.color = '#34C759';
 
-                // Update distances and re-sort existing cards
-                currentStations.forEach(s => {
-                    s.distance = calculateDistance(lat, lng, s.lat, s.lng);
-                });
-                currentStations.sort((a, b) => a.distance - b.distance);
-                displayStations(currentStations);
-
-                // Update map
-                initMap();
-                showStationsOnMap(currentStations);
-
-                // Get place name
-                getPlaceNameFromCoordinates(lat, lng);
+                loadStations(userLocation);
+                getPlaceNameFromCoordinates(userLocation.lat, userLocation.lng);
             },
             () => {
-                // Geolocation failed/timed out — leave default cards, update status
-                locationStatus.textContent = 'Location not detected — showing Kathmandu region';
+                userLocation = { ...DEFAULT_LOCATION, placeName: 'Kathmandu' };
+                locationStatus.textContent = 'Location not detected — showing all stations';
                 locationStatus.style.color = '#FF9500';
+                loadStations(null);
             },
             { timeout: 2000, maximumAge: 60000, enableHighAccuracy: false }
         );
     } else {
-        locationStatus.textContent = 'Geolocation not supported — showing Kathmandu region';
+        userLocation = { ...DEFAULT_LOCATION, placeName: 'Kathmandu' };
+        locationStatus.textContent = 'Geolocation not supported — showing all stations';
         locationStatus.style.color = '#FF9500';
+        loadStations(null);
     }
 });
 

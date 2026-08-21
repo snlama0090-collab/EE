@@ -108,8 +108,21 @@ $bookings = $stmt->fetchAll();
                 <td><span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($status); ?></span></td>
                 <td>
                     <?php if ($status === 'booked'): ?>
+                        <div style="font-size:11px;color:var(--warning);margin-bottom:4px;">
+                            ⏱ Arrive in <span class="countdown" data-countdown-to="<?php echo $booking['arrival_deadline']; ?>" data-booking-id="<?php echo $booking['id']; ?>">--:--</span>
+                        </div>
                         <button class="btn btn-danger btn-sm" onclick="cancelBooking(<?php echo $booking['id']; ?>)">
                             Cancel
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="startCharging(<?php echo $booking['id']; ?>)" style="margin-top:4px;">
+                            <i class="fas fa-plug"></i> Start Charging
+                        </button>
+                    <?php elseif ($status === 'charging'): ?>
+                        <div style="font-size:11px;color:var(--success);margin-bottom:4px;">
+                            ⚡ Ends in <span class="countdown" data-countdown-to="<?php echo $booking['session_ends_at']; ?>" data-booking-id="<?php echo $booking['id']; ?>">--:--</span>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="stopCharging(<?php echo $booking['id']; ?>)">
+                            <i class="fas fa-stop"></i> Stop Charging
                         </button>
                     <?php else: ?>
                         <span style="font-size:12px;color:var(--muted-foreground);">-</span>

@@ -20,7 +20,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 | **Authentication** | All roles | email + password → `api/auth/login.php` → session start via `Auth::startSession()` → dashboard redirect (role-based) |
 | **Google OAuth** | All roles | Google One Tap → `api/auth/google.php` → verify token → find-or-create user → session start → dashboard redirect |
 | **Find & Book** | Driver | Landing page → leaflet map → station cards with distance/battery details → modal with charger selection + battery % → `initiate_payment` → `confirm_payment` → session begins |
-| **Charging Lifecycle** | Owner + Driver | `booked` → `pending_payment` (driver pays) → `charging` (owner starts session) → `completed` (auto-tick via `SessionTicker` or owner completes) → release charger |
+| **Charging Lifecycle** | Owner + Driver | `booked` → `pending_payment` (driver pays reservation fee) → `booked` (awaiting arrival) → `charging` (driver confirms charging payment) → `stopped`/`completed` (driver stops early or auto-completes via `SessionTicker`) → release charger |
 | **Station Management** | Owner | Register station with location picker → add charger rows → submit for approval → admin approves → manage charger status (available/maintenance/offline) |
 | **Admin Moderation** | Admin | Review pending stations → approve/reject with reason → manage users, reviews, and view reports |
 | **Session Auto-Completion** | System | `SessionTicker` piggybacks on each booking API call → detects overdue sessions → calculates kWh/cost → marks as completed → releases charger |
@@ -256,19 +256,22 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 ### 5.6 `api/bookings.php`
 
-**Purpose:** Full booking CRUD with prepaid payment flow and owner session management.
+**Purpose:** Full booking CRUD with prepaid payment flow and driver-initiated session management.
 
 **Key Endpoints:**
 | Method + Action | Line | Description |
 |---|---|---|
 | `GET` | 19-48 | Fetch bookings (user-specific or owner-specific) |
-| `POST / initiate_payment` | 61-153 | Driver submits charger ID + battery % → calculates cost/time → inserts `pending_payment` booking |
-| `POST / confirm_payment` | 156-228 | Driver confirms payment → status to `charging`, creates `charging_sessions`, inserts `payment_transactions`, sets `buffer_ends_at` and `session_ends_at` timers |
+| `POST / initiate_payment` | 61-153 | Driver submits charger ID → flat reservation fee → inserts `pending_payment` booking with `arrival_deadline` |
+| `POST / confirm_payment` | 156-228 | Driver confirms reservation payment → status to `booked`, inserts first `payment_transactions` record (reservation fee) |
+| `POST / confirm_charging_payment` | 204-295 | Driver arrives, confirms charging payment → transitions `booked` → `charging`, calculates fee from battery % + capacity + wattage, inserts second `payment_transactions` record (charging fee), creates `charging_sessions`, sets `session_ends_at` timer, logs `session_started` |
+| `POST / initiate_charging_payment` | 297-346 | Driver requests cost quote for charging → returns `charging_cost`, `charge_time_minutes`, `kwh_needed` without mutating state |
+| `POST / stop_session` | 348-396 | Driver stops active charging early → transitions `charging` → `stopped`, sets `payment_status = 'completed'` and `payment_amount = estimated_total_cost`, releases charger, logs `session_stopped` (no refund) |
 | `PUT / start_session` | 322-372 | Owner starts session for legacy (no-payment) bookings; sets buffer + session timers |
 | `PUT / complete_session` | 374-427 | Owner completes session → calculates kWh, cost, updates station stats, releases charger |
 | `DELETE` | 442-448 | Cancel booking (status → `cancelled`) |
 
-**Queue Management:** Lines 90-109 — maximum 2 bookings per charger; if 1 existing booking is `booked`/`pending_payment`, new booking is rejected.
+**Queue Management:** Lines 80-109 — maximum 2 active bookings per charger; if 1 existing booking is `booked`/`pending_payment`/`charging`, new booking is rejected.
 
 **Lazy Tick:** Line 17 calls `tickChargingSessions($db)` on every request.
 
@@ -332,12 +335,26 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 - `initMap()` — initializes Leaflet map, enables scroll-wheel zoom on click
 - `detectLocation()` — uses Navigator Geolocation API, reverse geocodes via Nominatim
 - `searchStations()` / `filterStations()` / `sortStations()` — station card filtering by distance, charger type
-- `bookStation(stationId)` — creates modal with charger selector + battery % input, calls `initiate_payment`
+- `bookStation(stationId)` — creates modal with charger selector, calls `initiate_payment` (flat reservation fee)
+- `startCharging(bookingId)` — opens battery % input modal, calls `initiate_charging_payment` for quote, then `confirm_charging_payment` to start session
 - `confirmPayment(bookingId)` — POST to `confirm_payment`, starts polling
-- `startPollingIfNeeded()` / `pollTick()` — polls every 12s for active bookings, updates countdown timers (buffer phase warning → charging phase green → expiry reload)
+- `startPollingIfNeeded()` / `pollTick()` — polls every 12s for active bookings, updates live countdown timers
+- `initCountdowns()` — wires `startCountdown()` to elements with `.countdown[data-countdown-to]`
+- `startCountdown(targetIso, element, onExpire)` — live ticking countdown helper (M:SS format)
+- `stopCharging(bookingId)` / `doStopCharging(bookingId)` — POST to `stop_session`, no refund
 - `cancelBooking(id)` / `doCancelBooking(id)` — DELETE to `api/bookings.php`
 
-### 5.12 `public/dashboard/owner.php`
+### 5.12 `public/dashboard/sections/bookings.php`
+
+**Purpose:** Driver bookings list with live countdown timers and session actions.
+
+**Key UI Elements:**
+- For `booked` status: shows **"Arrive in M:SS"** countdown from `arrival_deadline`, with Cancel and Start Charging buttons
+- For `charging` status: shows **"Ends in M:SS"** countdown from `session_ends_at`, with Stop Charging button
+- Countdowns use `.countdown[data-countdown-to]` attributes wired by `initCountdowns()` in `driver.php`
+- Completed bookings show actual charge time and kWh consumed
+
+### 5.13 `public/dashboard/owner.php`
 
 **Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking session start/stop, financial charts.
 
@@ -350,7 +367,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 - `switchFinancialView(period)` — Chart.js bar/line chart switching between days/months/years
 - `deleteStation(id)` — confirmation + DELETE to `api/stations.php`
 
-### 5.13 `public/dashboard/admin.php`
+### 5.14 `public/dashboard/admin.php`
 
 **Purpose:** Admin dashboard — station review/moderation with detail modal (Leaflet map, charger table), approve/reject flow.
 
@@ -364,7 +381,61 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 ## 6. Critical Workflows (Step-by-Step)
 
-### 6.1 Authentication Flow
+### 6.1 Driver Charging Lifecycle
+
+```
+1. DRIVER RESERVES CHARGER
+   File: public/dashboard/driver.php → bookStation(stationId)
+   - Modal with charger selector → POST /api/bookings.php { action: 'initiate_payment', charger_id }
+   - Server inserts booking with status='pending_payment', base_fee = BOOKING_BASE_FEE, arrival_deadline = now + BOOKING_ARRIVAL_DEADLINE_MINUTES
+
+2. DRIVER CONFIRMS RESERVATION PAYMENT
+   File: public/dashboard/driver.php → confirmPayment(bookingId)
+   - POST /api/bookings.php { action: 'confirm_payment', booking_id }
+   - Server sets status='booked', payment_status='completed', inserts first payment_transactions row (reservation fee)
+   - Driver can now cancel or start charging before arrival_deadline expires
+
+3. DRIVER ARRIVES AND STARTS CHARGING
+   File: public/dashboard/driver.php → startCharging(bookingId)
+   - Step A: Modal asks for current battery % → POST { action: 'initiate_charging_payment' } to get quote
+   - Step B: showConfirm with cost breakdown → POST { action: 'confirm_charging_payment', battery_percent }
+   - Server transitions status='charging':
+       * Calculates kWh_needed = (100 - battery_percent) / 100 * car_full_capacity_kwh
+       * Calculates charge_time_minutes = ceil(kWh_needed / wattage_kw * 60)
+       * Calculates charging_cost = kWh_needed * ELECTRICITY_RATE_PER_KWH
+       * Sets session_ends_at = NOW() + 5 min buffer + charge_time_minutes
+       * Updates car_current_battery_percent, calculated_charge_time_minutes
+       * Sets charger status='charging'
+       * Inserts charging_sessions record
+       * Inserts second payment_transactions row (charging fee) with '-CHG' suffix
+       * Logs activity_logs 'session_started' with plain-text details
+
+4. LIVE COUNTDOWN TIMERS
+   File: public/dashboard/driver.php → pollTick() + initCountdowns()
+   - pollTick() runs every 12s while active bookings exist
+   - For each booking card with [data-booking-id]:
+       * Before buffer_ends_at: shows orange "Owner connecting..." countdown
+       * Between buffer_ends_at and session_ends_at: shows green "⚡ Charging — M:SS remaining"
+       * After session_ends_at: stops polling, reloads section (SessionTicker may auto-complete)
+   - initCountdowns() wires startCountdown() to .countdown elements in bookings.php template
+
+5. DRIVER STOPS CHARGING EARLY
+   File: public/dashboard/driver.php → stopCharging(bookingId)
+   - Confirmation dialog warns "NO REFUND"
+   - POST { action: 'stop_session' }
+   - Server sets status='stopped', payment_amount=estimated_total_cost, payment_status='completed'
+   - Ends charging_sessions, releases charger to 'available'
+   - Logs activity_logs 'session_stopped' with plain-text details
+
+6. SESSION AUTO-COMPLETION (FALLBACK)
+   File: app/helpers/SessionTicker.php → tickChargingSessions()
+   - Triggered lazily on every api/bookings.php request
+   - Finds bookings where status='charging' AND session_ends_at <= NOW()
+   - Calculates kWh from car_full_capacity_kwh and battery_start_percent (assumes 100% end)
+   - Updates charging_sessions and bookings to 'completed', releases charger, updates station stats
+```
+
+### 6.2 Authentication Flow
 
 ```
 1. USER VISITS LOGIN PAGE
@@ -410,7 +481,7 @@ SUBSEQUENT REQUESTS:
    - All API endpoints require Auth::requireLogin() / Auth::requireUserType()
 ```
 
-### 6.2 Registration Flow
+### 6.3 Registration Flow
 
 ```
 1. USER VISITS REGISTRATION PAGE
@@ -466,7 +537,61 @@ SUBSEQUENT REQUESTS:
 
 ---
 
-## 7. Architectural Observations & Recommendations
+## 7. Schema & Data Model Notes
+
+### 7.1 activity_logs.details Column
+
+The `activity_logs.details` column is defined as `TEXT` in `database/schema.sql` (line 368). It stores plain-text notification messages across all roles:
+- Driver notifications: `"Charging session started. Total cost: NPR X.XX (NPR 50.00 reservation + NPR Y.YY charging)."`
+- Driver notifications: `"Charging stopped early. Payment already made is NOT refunded."`
+- This supports notification rendering in `driver.php`, `owner_sections/notifications.php`, and `admin_sections/notifications.php` without JSON parsing.
+
+### 7.2 bookings.status ENUM
+
+The `bookings.status` column includes six states (schema.sql line 184):
+```sql
+ENUM('booked', 'pending_payment', 'charging', 'completed', 'cancelled', 'stopped') DEFAULT 'booked'
+```
+
+- `stopped` is used exclusively for driver-initiated early session termination (`stop_session` action).
+- `cancelled` is used for driver-initiated reservation cancellation before payment confirmation.
+- `completed` is used for sessions that run to full estimated duration (via `complete_session` or `SessionTicker`).
+
+### 7.3 buffer_ends_at Deprecation
+
+The `buffer_ends_at` column (schema.sql line 180) is deprecated in the current implementation:
+- It remains in the schema for backward compatibility but is never set by the current API.
+- Timers and countdowns rely exclusively on `arrival_deadline` (reservation expiry) and `session_ends_at` (charging session expiry).
+- The polling logic in `driver.php` checks `buffer_ends_at` but will skip display if NULL, falling back to `session_ends_at` behavior.
+
+## 8. Financial Logic & Reporting
+
+### 8.1 Payment Flow & Transactions
+
+A single booking generates up to two `payment_transactions` records:
+1. **Reservation fee** — inserted during `confirm_payment` (amount = `BOOKING_BASE_FEE`, transaction_id = `TXN{time}{booking_id}`)
+2. **Charging fee** — inserted during `confirm_charging_payment` (amount = `kwh_needed * ELECTRICITY_RATE_PER_KWH`, transaction_id = `TXN{time}{booking_id}-CHG`)
+
+Both rows have `status='completed'` and `currency='NPR'`.
+
+### 8.2 Revenue Filtering Rule
+
+All driver receipts, owner invoices, and admin financial reports must filter strictly on `payment_status = 'completed'` (not booking `status`). This ensures:
+- `stopped` sessions (driver early termination) are counted in revenue because `booking.payment_status` is set to `'completed'`
+- `cancelled` sessions are excluded because they never reach payment confirmation
+- Only fully paid sessions contribute to financial totals
+
+### 8.3 Cost Calculation
+
+| Component | Source | Formula |
+|---|---|---|
+| Reservation fee | `BOOKING_BASE_FEE` config constant | Flat fee (NPR 50) |
+| Charging cost | `ELECTRICITY_RATE_PER_KWH` × kWh needed | `(100 - battery_percent) / 100 * car_full_capacity_kwh * rate` |
+| Total session cost | `base_fee + charging_cost` | Stored in `estimated_total_cost` after `confirm_charging_payment` |
+
+**Known limitation:** kWh billing assumes every session charges to 100% (no end-battery-% capture). See audit item #8.
+
+## 9. Architectural Observations & Recommendations
 
 ### 1. 🔴 Duplicate Password Toggle Logic
 

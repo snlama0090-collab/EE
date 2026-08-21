@@ -100,11 +100,9 @@ $bookings = $stmt->fetchAll();
                         </td>
                         <td>
                             <?php if ($status === 'booked'): ?>
-                                <button class="btn btn-primary btn-sm" onclick="updateSession(<?php echo $booking['id']; ?>, 'start_session')">
-                                    <i class="fas fa-play"></i> Start
-                                </button>
+                                <span style="font-size:12px;color:var(--muted-foreground);">Waiting for driver</span>
                             <?php elseif ($status === 'charging'): ?>
-                                <button class="btn btn-sm" style="background:linear-gradient(135deg, #FF9500 0%, #E68500 100%); color: #fff; border: none;" onclick="updateSession(<?php echo $booking['id']; ?>, 'complete_session')">
+                                <button class="btn btn-sm" style="background:linear-gradient(135deg, #FF9500 0%, #E68500 100%); color: #fff; border: none;" onclick="completeSession(<?php echo $booking['id']; ?>)">
                                     <i class="fas fa-stop"></i> Bill
                                 </button>
                             <?php else: ?>

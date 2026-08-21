@@ -7,7 +7,60 @@
  * ponytail: no cron on XAMPP — tick piggybacks on API traffic.
  */
 
+/**
+ * Auto-cancel abandoned bookings past their arrival deadline.
+ * For each cancelled booking, log a notification for the driver.
+ */
+function cancelExpiredBookings($db) {
+    // Select bookings that have expired their arrival deadline
+    $stmt = $db->prepare("
+        SELECT id, user_id, charger_id
+        FROM bookings
+        WHERE status IN ('pending_payment', 'booked')
+          AND arrival_deadline IS NOT NULL
+          AND arrival_deadline < NOW()
+        LIMIT 50
+    ");
+    $stmt->execute();
+    $expired = $stmt->fetchAll();
+
+    foreach ($expired as $booking) {
+        $db->beginTransaction();
+        try {
+            // Cancel the booking (guarded so concurrent ticks can't double-cancel)
+            $stmt = $db->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND status IN ('pending_payment', 'booked')");
+            $stmt->execute([$booking['id']]);
+
+            // If another tick already cancelled it, skip
+            if ($stmt->rowCount() === 0) {
+                $db->rollBack();
+                continue;
+            }
+
+            // Notify the driver (plain-text details — notifications.php renders it raw)
+            $stmt = $db->prepare("
+                INSERT INTO activity_logs (user_id, action, resource_type, resource_id, details)
+                VALUES (?, 'booking_expired', 'booking', ?, ?)
+            ");
+            $stmt->execute([
+                $booking['user_id'],
+                $booking['id'],
+                'Your reservation expired because you did not arrive by the deadline.'
+            ]);
+
+            $db->commit();
+            log_message('INFO', "Auto-cancelled expired booking #{$booking['id']}");
+        } catch (Exception $e) {
+            $db->rollBack();
+            log_message('ERROR', "Auto-cancel failed for booking #{$booking['id']}: " . $e->getMessage());
+        }
+    }
+}
+
 function tickChargingSessions($db) {
+    // Auto-cancel abandoned bookings past their arrival deadline
+    cancelExpiredBookings($db);
+
     // Reconcile orphaned chargers: stuck in 'charging' with no active booking
     // for over 6 hours (grace period covers owner walk-up manual overrides).
     $stmt = $db->prepare("

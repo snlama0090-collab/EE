@@ -58,15 +58,9 @@ try {
         $input = json_decode(file_get_contents('php://input'), true);
         $action = sanitize($input['action'] ?? '');
         
-        // Action: initiate_payment — driver submits battery %, backend calculates price
+        // Action: initiate_payment — flat reservation fee, no battery input
         if ($action === 'initiate_payment') {
             $charger_id = intval($input['charger_id'] ?? 0);
-            $battery_percent = intval($input['current_percentage'] ?? 0);
-            
-            if ($battery_percent < 1 || $battery_percent > 100) {
-                echo json_encode(['status' => 'error', 'message' => 'Current battery percentage must be between 1 and 100.']);
-                exit;
-            }
             
             // Get charger details
             $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ?");
@@ -78,7 +72,7 @@ try {
                 exit;
             }
             
-            // Get user details
+            // Get user's car capacity for later (at session start)
             $stmt = $db->prepare("SELECT car_full_capacity_kwh FROM users WHERE id = ?");
             $stmt->execute([$user_id]);
             $user = $stmt->fetch();
@@ -114,25 +108,22 @@ try {
                 exit;
             }
             
-            // Calculate charge time and cost based on battery %
+            // Flat reservation fee — battery % and charging cost calculated at session start
             $capacity = floatval($user['car_full_capacity_kwh']);
-            $wattage = floatval($charger['wattage_kw']);
-            $charge_time_minutes = ceil((100 - $battery_percent) / 100 * $capacity / $wattage * 60);
-            $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
-            $total_cost = BOOKING_BASE_FEE + ($kwh_needed * ELECTRICITY_RATE_PER_KWH);
+            $total_cost = BOOKING_BASE_FEE;
             
             $arrival_deadline = date('Y-m-d H:i:s', time() + (BOOKING_ARRIVAL_DEADLINE_MINUTES * 60));
             
             $stmt = $db->prepare("
                 INSERT INTO bookings 
-                (user_id, charger_id, car_current_battery_percent, car_full_capacity_kwh,
-                 calculated_charge_time_minutes, arrival_deadline, estimated_total_cost, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending_payment')
+                (user_id, charger_id, car_full_capacity_kwh,
+                 arrival_deadline, estimated_total_cost, base_fee, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending_payment')
             ");
             
             $stmt->execute([
-                $user_id, $charger_id, $battery_percent, $capacity,
-                $charge_time_minutes, $arrival_deadline, $total_cost
+                $user_id, $charger_id, $capacity,
+                $arrival_deadline, $total_cost, $total_cost
             ]);
             
             $booking_id = $db->lastInsertId();
@@ -144,8 +135,6 @@ try {
                 'data' => [
                     'booking_id' => $booking_id,
                     'estimated_cost' => $total_cost,
-                    'charge_time_minutes' => $charge_time_minutes,
-                    'kwh_needed' => round($kwh_needed, 2),
                     'currency' => 'NPR'
                 ]
             ]);
@@ -179,122 +168,232 @@ try {
             
             $db->beginTransaction();
             
-            // Set buffer and session timers
-            $calculated_minutes = intval($booking['calculated_charge_time_minutes']);
-            if ($calculated_minutes <= 0) $calculated_minutes = 30; // fallback
-            
+            // Booking is confirmed but NOT charging yet — the driver will start
+            // the session (confirm_charging_payment) when they arrive/plug in.
             $stmt = $db->prepare("
                 UPDATE bookings SET 
-                    status = 'charging',
-                    payment_status = 'completed',
-                    buffer_ends_at = DATE_ADD(NOW(), INTERVAL 5 MINUTE),
-                    session_ends_at = DATE_ADD(DATE_ADD(NOW(), INTERVAL 5 MINUTE), INTERVAL ? MINUTE)
+                    status = 'booked',
+                    payment_status = 'completed'
                 WHERE id = ? AND user_id = ?
             ");
-            $stmt->execute([$calculated_minutes, $booking_id, $user_id]);
+            $stmt->execute([$booking_id, $user_id]);
             
-            // Update charger status
-            $stmt = $db->prepare("UPDATE chargers SET status = 'charging' WHERE id = ?");
-            $stmt->execute([$booking['charger_id']]);
-            
-            // Create charging session
-            $stmt = $db->prepare("
-                INSERT INTO charging_sessions (booking_id, start_time, battery_start_percent, per_kwh_rate, payment_status)
-                VALUES (?, NOW(), ?, ?, 'completed')
-            ");
-            $stmt->execute([$booking_id, $booking['car_current_battery_percent'], ELECTRICITY_RATE_PER_KWH]);
-            
-            // Log payment transaction
+            // Log payment transaction (charging_session_id is linked later at confirm_charging_payment)
             $transaction_id = 'TXN' . time() . str_pad($booking_id, 6, '0', STR_PAD_LEFT);
             $stmt = $db->prepare("
                 INSERT INTO payment_transactions (booking_id, charging_session_id, transaction_id, payment_method, amount, currency, status)
-                VALUES (?, LAST_INSERT_ID(), ?, 'wallet', ?, 'NPR', 'completed')
+                VALUES (?, NULL, ?, 'wallet', ?, 'NPR', 'completed')
             ");
             $stmt->execute([$booking_id, $transaction_id, $booking['estimated_total_cost']]);
             
             $db->commit();
             
-            // Re-fetch to return the updated timestamps
-            $stmt = $db->prepare("SELECT id, status, buffer_ends_at, session_ends_at, estimated_total_cost FROM bookings WHERE id = ?");
+            // Re-fetch to return the updated status
+            $stmt = $db->prepare("SELECT id, status, estimated_total_cost FROM bookings WHERE id = ?");
             $stmt->execute([$booking_id]);
             $updated = $stmt->fetch();
             
             echo json_encode([
                 'status' => 'success',
-                'message' => 'Payment confirmed. Charging session started.',
+                'message' => 'Payment confirmed. Booking reserved — the station will start your session when you arrive.',
                 'data' => $updated
             ]);
             exit;
         }
-        
-        // Fallback: legacy booking creation (flat fee, kept for backward compat)
-        $charger_id = intval($input['charger_id'] ?? 0);
-        
-        $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ?");
-        $stmt->execute([$charger_id]);
-        $charger = $stmt->fetch();
-        
-        if (!$charger) {
-            echo json_encode(['status' => 'error', 'message' => 'Charger not found']);
-            exit;
-        }
-        
-        $stmt = $db->prepare("SELECT car_full_capacity_kwh FROM users WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $user = $stmt->fetch();
-        
-        $db->beginTransaction();
-        
-        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'pending_payment', 'charging')");
-        $stmt->execute([$charger_id]);
-        $active_count = intval($stmt->fetch()['cnt']);
-        
-        if ($active_count >= 2) {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'This charger\'s queue is full.']);
-            exit;
-        }
-        
-        if ($active_count == 1) {
-            $stmt = $db->prepare("SELECT status FROM bookings WHERE charger_id = ? AND status IN ('booked', 'pending_payment', 'charging') ORDER BY created_at ASC LIMIT 1");
-            $stmt->execute([$charger_id]);
-            $first = $stmt->fetch();
-            if ($first && in_array($first['status'], ['booked', 'pending_payment'])) {
-                $db->rollBack();
-                echo json_encode(['status' => 'error', 'message' => 'This charger is already reserved.']);
+
+        // Action: confirm_charging_payment — driver confirms payment, session starts
+        if ($action === 'confirm_charging_payment') {
+            $booking_id = intval($input['booking_id'] ?? 0);
+            $battery_percent = intval($input['battery_percent'] ?? 0);
+
+            if ($battery_percent < 1 || $battery_percent > 100) {
+                echo json_encode(['status' => 'error', 'message' => 'Battery percentage must be between 1 and 100.']);
                 exit;
             }
-        }
-        
-        if ($charger['status'] === 'maintenance' || $charger['status'] === 'offline') {
-            $db->rollBack();
-            echo json_encode(['status' => 'error', 'message' => 'This charger is currently unavailable.']);
+
+            // Verify booking
+            $stmt = $db->prepare("
+                SELECT b.*, c.wattage_kw, c.station_id, c.id as charger_id
+                FROM bookings b
+                JOIN chargers c ON b.charger_id = c.id
+                WHERE b.id = ? AND b.user_id = ? AND b.status = 'booked'
+            ");
+            $stmt->execute([$booking_id, $user_id]);
+            $booking = $stmt->fetch();
+
+            if (!$booking) {
+                echo json_encode(['status' => 'error', 'message' => 'Booking not found or no longer eligible.']);
+                exit;
+            }
+
+            if ($booking['arrival_deadline'] && strtotime($booking['arrival_deadline']) < time()) {
+                echo json_encode(['status' => 'error', 'message' => 'Your reservation has expired.']);
+                exit;
+            }
+
+            $capacity = floatval($booking['car_full_capacity_kwh']);
+            $wattage = floatval($booking['wattage_kw']);
+            // TODO: Known limitation — billing assumes session charges to 100% (no end-battery-% capture). See audit #8.
+            $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
+            $charge_time_minutes = ceil($kwh_needed / $wattage * 60);
+            $charging_cost = $kwh_needed * ELECTRICITY_RATE_PER_KWH;
+            $total_cost = BOOKING_BASE_FEE + $charging_cost;
+
+            $db->beginTransaction();
+
+            // Update booking to charging
+            $stmt = $db->prepare("
+                UPDATE bookings SET
+                    car_current_battery_percent = ?,
+                    calculated_charge_time_minutes = ?,
+                    estimated_total_cost = ?,
+                    base_fee = ?,
+                    session_ends_at = DATE_ADD(DATE_ADD(NOW(), INTERVAL 5 MINUTE), INTERVAL ? MINUTE),
+                    status = 'charging'
+                WHERE id = ?
+            ");
+            $stmt->execute([$battery_percent, $charge_time_minutes, $total_cost, BOOKING_BASE_FEE, $charge_time_minutes, $booking_id]);
+
+            // Update charger status
+            $stmt = $db->prepare("UPDATE chargers SET status = 'charging' WHERE id = ?");
+            $stmt->execute([$booking['charger_id']]);
+
+            // Create charging session
+            $stmt = $db->prepare("
+                INSERT INTO charging_sessions (booking_id, start_time, battery_start_percent, per_kwh_rate, payment_status)
+                VALUES (?, NOW(), ?, ?, 'completed')
+            ");
+            $stmt->execute([$booking_id, $battery_percent, ELECTRICITY_RATE_PER_KWH]);
+
+            // Insert second payment_transactions row for the charging fee.
+            // ponytail: suffix distinguishes it from the reservation fee transaction
+            // (both would otherwise collide on 'TXN{time}{booking_id}' within the same second).
+            // The reservation fee (BOOKING_BASE_FEE) was already recorded as its own
+            // transaction in confirm_payment — do NOT include it here again.
+            $transaction_id = 'TXN' . time() . str_pad($booking_id, 6, '0', STR_PAD_LEFT) . '-CHG';
+            $stmt = $db->prepare("
+                INSERT INTO payment_transactions (booking_id, transaction_id, payment_method, amount, currency, status)
+                VALUES (?, ?, 'wallet', ?, 'NPR', 'completed')
+            ");
+            $stmt->execute([$booking_id, $transaction_id, $charging_cost]);
+
+            // Notify driver
+            $stmt = $db->prepare("
+                INSERT INTO activity_logs (user_id, action, resource_type, resource_id, details)
+                VALUES (?, 'session_started', 'booking', ?, ?)
+            ");
+            $stmt->execute([
+                $user_id,
+                $booking_id,
+                "Charging session started. Total cost: NPR " . number_format($total_cost, 2) . " (NPR " . number_format(BOOKING_BASE_FEE, 2) . " reservation + NPR " . number_format($charging_cost, 2) . " charging)."
+            ]);
+
+            $db->commit();
+
+            echo json_encode(['status' => 'success', 'message' => 'Charging session started successfully']);
             exit;
         }
-        
-        $cost = BOOKING_BASE_FEE;
-        $arrival_deadline = date('Y-m-d H:i:s', time() + (BOOKING_ARRIVAL_DEADLINE_MINUTES * 60));
-        
-        $stmt = $db->prepare("
-            INSERT INTO bookings 
-            (user_id, charger_id, car_current_battery_percent, car_full_capacity_kwh,
-             calculated_charge_time_minutes, arrival_deadline, estimated_total_cost)
-            VALUES (?, ?, NULL, ?, NULL, ?, ?)
-        ");
-        
-        $stmt->execute([
-            $user_id, $charger_id, $user['car_full_capacity_kwh'],
-            $arrival_deadline, $cost
-        ]);
-        
-        $booking_id = $db->lastInsertId();
-        $db->commit();
-        
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'Booking created',
-            'data' => ['booking_id' => $booking_id, 'cost' => $cost]
-        ]);
+
+        // Action: initiate_charging_payment — driver arrives, wants to start charging
+        if ($action === 'initiate_charging_payment') {
+            $booking_id = intval($input['booking_id'] ?? 0);
+            $battery_percent = intval($input['battery_percent'] ?? 0);
+
+            if ($battery_percent < 1 || $battery_percent > 100) {
+                echo json_encode(['status' => 'error', 'message' => 'Battery percentage must be between 1 and 100.']);
+                exit;
+            }
+
+            // Verify booking belongs to this driver and is in 'booked' state
+            $stmt = $db->prepare("
+                SELECT b.*, c.wattage_kw, c.station_id
+                FROM bookings b
+                JOIN chargers c ON b.charger_id = c.id
+                WHERE b.id = ? AND b.user_id = ? AND b.status = 'booked'
+            ");
+            $stmt->execute([$booking_id, $user_id]);
+            $booking = $stmt->fetch();
+
+            if (!$booking) {
+                echo json_encode(['status' => 'error', 'message' => 'Booking not found or not eligible to start charging.']);
+                exit;
+            }
+
+            // Check arrival deadline
+            if ($booking['arrival_deadline'] && strtotime($booking['arrival_deadline']) < time()) {
+                echo json_encode(['status' => 'error', 'message' => 'Your reservation has expired. Please book again.']);
+                exit;
+            }
+
+            $capacity = floatval($booking['car_full_capacity_kwh']);
+            $wattage = floatval($booking['wattage_kw']);
+            $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
+            $charge_time_minutes = ceil($kwh_needed / $wattage * 60);
+            $charging_cost = $kwh_needed * ELECTRICITY_RATE_PER_KWH;
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Charging cost calculated',
+                'data' => [
+                    'booking_id' => $booking_id,
+                    'charging_cost' => round($charging_cost, 2),
+                    'charge_time_minutes' => $charge_time_minutes,
+                    'kwh_needed' => round($kwh_needed, 2),
+                    'currency' => 'NPR'
+                ]
+            ]);
+            exit;
+        }
+
+        // Action: stop_session — driver stops their own active charging session early
+        if ($action === 'stop_session') {
+            $booking_id = intval($input['booking_id'] ?? 0);
+
+            // Ownership + state check: driver's own booking, must be charging
+            $stmt = $db->prepare("
+                SELECT b.*, c.station_id, c.id as charger_id
+                FROM bookings b
+                JOIN chargers c ON b.charger_id = c.id
+                WHERE b.id = ? AND b.user_id = ? AND b.status = 'charging'
+            ");
+            $stmt->execute([$booking_id, $user_id]);
+            $booking = $stmt->fetch();
+
+            if (!$booking) {
+                echo json_encode(['status' => 'error', 'message' => 'No active charging session found for this booking.']);
+                exit;
+            }
+
+            $db->beginTransaction();
+
+            // Mark booking as 'stopped' (distinct from 'completed' for reporting).
+            // payment_status = 'completed' so it still appears in receipts/invoices.
+            $stmt = $db->prepare("UPDATE bookings SET status = 'stopped', payment_amount = estimated_total_cost, payment_status = 'completed' WHERE id = ?");
+            $stmt->execute([$booking_id]);
+
+            // End the charging session now
+            $stmt = $db->prepare("UPDATE charging_sessions SET end_time = NOW(), payment_status = 'completed' WHERE booking_id = ?");
+            $stmt->execute([$booking_id]);
+
+            // Release the charger
+            $stmt = $db->prepare("UPDATE chargers SET status = 'available' WHERE id = ?");
+            $stmt->execute([$booking['charger_id']]);
+
+            // Notify driver (no refund)
+            $stmt = $db->prepare("
+                INSERT INTO activity_logs (user_id, action, resource_type, resource_id, details)
+                VALUES (?, 'session_stopped', 'booking', ?, ?)
+            ");
+            $stmt->execute([
+                $user_id,
+                $booking_id,
+                "Charging stopped early. Payment already made is NOT refunded."
+            ]);
+
+            $db->commit();
+            echo json_encode(['status' => 'success', 'message' => 'Charging stopped. No refund issued.']);
+            exit;
+        }
         
     } elseif ($method === 'PUT') {
         $id = intval($_GET['id'] ?? 0);
@@ -319,59 +418,7 @@ try {
                 exit;
             }
             
-            if ($action === 'start_session') {
-                if ($booking['status'] !== 'booked' && $booking['status'] !== 'pending_payment') {
-                    echo json_encode(['status' => 'error', 'message' => 'Session cannot be started from state: ' . $booking['status']]);
-                    exit;
-                }
-                
-                // ponytail: owner plugs in and starts — timer already set if payment confirmed
-                if ($booking['status'] === 'booked') {
-                    // No payment — set tickers now (legacy path)
-                    $battery_percent = intval($input['battery_percent'] ?? 0);
-                    if ($battery_percent < 1 || $battery_percent > 100) {
-                        echo json_encode(['status' => 'error', 'message' => 'Please provide the current battery percentage (1–100).']);
-                        exit;
-                    }
-                    
-                    $db->beginTransaction();
-                    
-                    $stmt2 = $db->prepare("SELECT wattage_kw FROM chargers WHERE id = ?");
-                    $stmt2->execute([$booking['charger_id']]);
-                    $charger_data = $stmt2->fetch();
-                    $capacity = floatval($booking['car_full_capacity_kwh']);
-                    $wattage = floatval($charger_data['wattage_kw']);
-                    
-                    $charge_time = ceil((100 - $battery_percent) / 100 * $capacity / $wattage * 60);
-                    $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
-                    $estimated_cost = BOOKING_BASE_FEE + ($kwh_needed * ELECTRICITY_RATE_PER_KWH);
-                    
-                    $stmt = $db->prepare("UPDATE bookings SET car_current_battery_percent = ?, calculated_charge_time_minutes = ?, estimated_total_cost = ?, buffer_ends_at = DATE_ADD(NOW(), INTERVAL 5 MINUTE), session_ends_at = DATE_ADD(DATE_ADD(NOW(), INTERVAL 5 MINUTE), INTERVAL ? MINUTE), status = 'charging' WHERE id = ?");
-                    $stmt->execute([$battery_percent, $charge_time, $estimated_cost, $charge_time, $id]);
-                    
-                    $stmt = $db->prepare("UPDATE chargers SET status = 'charging' WHERE id = ?");
-                    $stmt->execute([$booking['charger_id']]);
-                    
-                    $stmt = $db->prepare("INSERT INTO charging_sessions (booking_id, start_time, battery_start_percent, per_kwh_rate, payment_status) VALUES (?, NOW(), ?, ?, 'pending')");
-                    $stmt->execute([$id, $battery_percent, ELECTRICITY_RATE_PER_KWH]);
-                    
-                    $db->commit();
-                    echo json_encode(['status' => 'success', 'message' => 'Charging session started successfully']);
-                    exit;
-                }
-                
-                // pending_payment path — owner just confirms plug-in; buffers already set
-                $db->beginTransaction();
-                $stmt = $db->prepare("UPDATE bookings SET status = 'charging' WHERE id = ?");
-                $stmt->execute([$id]);
-                $stmt = $db->prepare("UPDATE chargers SET status = 'charging' WHERE id = ?");
-                $stmt->execute([$booking['charger_id']]);
-                $db->commit();
-                
-                echo json_encode(['status' => 'success', 'message' => 'Charging session started successfully']);
-                exit;
-                
-            } elseif ($action === 'complete_session') {
+            if ($action === 'complete_session') {
                 if ($booking['status'] !== 'charging') {
                     echo json_encode(['status' => 'error', 'message' => 'Charging session is not active']);
                     exit;

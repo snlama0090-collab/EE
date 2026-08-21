@@ -181,7 +181,7 @@ CREATE TABLE bookings (
     session_ends_at TIMESTAMP NULL,
     
     -- Status
-    status ENUM('booked', 'pending_payment', 'charging', 'completed', 'cancelled') DEFAULT 'booked',
+    status ENUM('booked', 'pending_payment', 'charging', 'completed', 'cancelled', 'stopped') DEFAULT 'booked',
     
     -- Payments
     base_fee DECIMAL(8, 2) DEFAULT 20,
@@ -365,7 +365,7 @@ CREATE TABLE activity_logs (
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(50), -- station, booking, user, etc
     resource_id INT,
-    details JSON,
+    details TEXT, -- plain-text messages for notifications; JSON-encoded strings also allowed
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     

@@ -55,7 +55,7 @@ define('BOOKING_ARRIVAL_DEADLINE_MINUTES', 20); // Minutes to reach station
 
 // ===== CHARGING CONFIGURATION =====
 define('ELECTRICITY_RATE_PER_KWH', 10); // In NPR
-define('BOOKING_BASE_FEE', 20); // In NPR
+define('BOOKING_BASE_FEE', 50); // In NPR
 
 // ===== LOCATION CONFIGURATION =====
 define('DEFAULT_LATITUDE', 27.7172); // Kathmandu

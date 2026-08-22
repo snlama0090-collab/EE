@@ -245,7 +245,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         <!-- Google Sign-In Button -->
         <div id="google-btn-wrapper" style="display: flex; justify-content: center; margin-bottom: 20px;">
             <div id="g_id_onload"
-                 data-client_id="34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com"
+                 data-client_id="34761081203-1gjrigkese1k489kc5gnap2kvvfro0he.apps.googleusercontent.com"
                  data-callback="handleGoogleSignIn"
                  data-auto_prompt="false">
             </div>

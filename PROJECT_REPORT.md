@@ -374,7 +374,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 ### 5.13 `public/dashboard/owner.php`
 
-**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking completion oversight, financial charts.
+**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking session start/stop, financial charts.
 
 **Key Functions:**
 - `initLocationPickerMap()` — draggable marker on Leaflet map, reverse geocodes on drag/click

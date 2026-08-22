@@ -692,7 +692,7 @@ The config file defines `ELECTRICITY_RATE_PER_KWH = 10` and `BOOKING_BASE_FEE = 
 
 ---
 
-## 8. Development Progress & Milestones
+## 10. Development Progress & Milestones
 
 ### Dashboard Standardization (2026-07-20)
 
@@ -782,7 +782,7 @@ CRM, SaaS subscription management, and advanced charting dashboards were deliber
 
 ---
 
-## 9. Cross-Role UI Leakage & System Architecture Audit
+## 11. Cross-Role UI Leakage & System Architecture Audit
 
 > **Audit Date:** 2026-07-21  
 > **Source:** `COMBINED_AUDIT_REPORT_1.md` (merged static-review + Cline analysis passes)
@@ -836,8 +836,8 @@ The following table summarizes all findings from the combined audit, ranked by s
 | 2 | Booking queue race condition (charger double-booking via missing `FOR UPDATE`) | `api/bookings.php` | 🔴 Critical | Unresolved |
 | 3 | No brute-force / rate limiting on login despite config constants existing | `api/auth/login.php`, `app/config/config.php` | 🔴 Critical | Unresolved |
 | 4 | No CSRF protection on any state-changing endpoint | All `api/*.php` endpoints | 🔴 Critical | Unresolved |
-| 5 | File upload validation trusts client-supplied `$_FILES['type']` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 🔴 Critical | Unresolved |
-| 6 | Owner can start charging sessions without payment (legacy `booked`-status path) | `api/bookings.php` | 🟠 High | Unresolved |
+| 5 | File upload validation trusts client-supplied `$_FILES['type']` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 🔴 Critical | ✅ Resolved 2026-08-22 (`getimagesize()` validation + move failure checks implemented) |
+| 6 | Owner can start charging sessions without payment (legacy `booked`-status path) | `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-22 (`start_session` removed entirely; charging exclusively driver-initiated and payment-gated) |
 | 7 | Buffer/arrival timing inconsistent with config (`BOOKING_ARRIVAL_DEADLINE_MINUTES` vs hardcoded 5 min) | `api/bookings.php` | 🟠 High | Unresolved |
 | 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | Unresolved |
 | 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | Unresolved |

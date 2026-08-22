@@ -1,2 +1,5 @@
 # Uploaded user photos/logos — never commit
 public/assets/uploads/
+
+# Runtime logs — never commit
+/logs/

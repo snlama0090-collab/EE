@@ -92,7 +92,7 @@ define('NAME_MIN_LENGTH', 2);
 define('NAME_MAX_LENGTH', 100);
 
 // ===== FEATURE FLAGS =====
-define('GOOGLE_CLIENT_ID', '34761081203-1t4na3klvstmlgevj3rq3o9bdagsm2rs.apps.googleusercontent.com');
+define('GOOGLE_CLIENT_ID', '34761081203-1gjrigkese1k489kc5gnap2kvvfro0he.apps.googleusercontent.com');
 
 // ===== EMAIL (OTP via Gmail SMTP) =====
 define('OTP_EXPIRY_MINUTES', 10);

@@ -126,24 +126,38 @@ d:/Xampp/htdocs/EE/
 │       │
 │       ├── sections/          # Driver dashboard content loaded via AJAX
 │       │   ├── dashboard.php
+│       │   ├── find-stations.php
 │       │   ├── bookings.php
 │       │   ├── favorites.php
-│       │   └── profile.php
+│       │   ├── notifications.php
+│       │   ├── profile.php
+│       │   └── support.php
 │       │
 │       ├── owner_sections/    # Owner sub-pages loaded via AJAX
 │       │   ├── overview.php
-│       │   ├── financials.php
+│       │   ├── analytics.php
+│       │   ├── invoices.php
 │       │   ├── stations.php
 │       │   ├── bookings.php
+│       │   ├── team.php
+│       │   ├── notifications.php
+│       │   ├── settings.php
+│       │   ├── support.php
 │       │   └── profile.php
 │       │
 │       └── admin_sections/    # Admin sub-pages loaded via AJAX
 │           ├── overview.php
+│           ├── analytics.php
+│           ├── orders.php
+│           ├── customers.php
+│           ├── invoices.php
 │           ├── stations.php
 │           ├── users.php
 │           ├── reviews.php
 │           ├── reports.php
-│           └── settings.php
+│           ├── notifications.php
+│           ├── settings.php
+│           └── support.php
 │
 └── app/
     └── config/           (listed above for clarity)
@@ -360,7 +374,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 ### 5.13 `public/dashboard/owner.php`
 
-**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking session start/stop, financial charts.
+**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking completion oversight, financial charts.
 
 **Key Functions:**
 - `initLocationPickerMap()` — draggable marker on Leaflet map, reverse geocodes on drag/click

@@ -105,7 +105,7 @@ d:/Xampp/htdocs/EE/
 │   └── schema.sql            # Full DDL for all 14 tables + sample data
 │
 ├── public/
-│   ├── index.html            # Landing page (hero, features, pricing, CTA)
+│   ├── index.php             # Landing page (role cards, map)
 │   ├── login.php             # Login page (user type tabs, email/password, Google One Tap)
 │   ├── register.php          # 2-step registration (type selection → full form)
 │   ├── logout.php            # Logout + redirect proxy
@@ -161,7 +161,7 @@ d:/Xampp/htdocs/EE/
 | **Owner** | `owners` | `Auth::requireUserType('owner')` | `dashboard/owner.php` |
 | **Admin** | `admins` | `Auth::requireUserType('admin')` | `dashboard/admin.php` |
 
-Additionally, a **Guest** (unauthenticated) role exists, which can only access `index.html`, `login.php`, and `register.php`. All other pages and API endpoints enforce authentication.
+Additionally, a **Guest** (unauthenticated) role exists, which can only access `index.php`, `login.php`, and `register.php`. All other pages and API endpoints enforce authentication.
 
 ### Role Enforcement Points
 
@@ -172,7 +172,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
    - `owner.php` line 6: `Auth::requireUserType('owner')`
    - `admin.php` line 5: `Auth::requireUserType('admin')`
 
-3. **API endpoints** — `stations.php` and `bookings.php` call `Auth::requireLogin()` and then switch logic based on `Auth::getCurrentUserType()`. Each action validates the user type before execution (e.g., only owners can `start_session`, only admins can `approve` stations).
+3. **API endpoints** — `stations.php` and `bookings.php` call `Auth::requireLogin()` and then switch logic based on `Auth::getCurrentUserType()`. Each action validates the user type before execution (e.g., only drivers can `confirm_charging_payment`/`stop_session`, only owners can `complete_session`, only admins can `approve` stations).
 
 4. **Admin sub-roles** — The `admins` table has a `role` column (`super_admin` / `moderator`) with granular permission flags (`can_approve_stations`, `can_manage_users`, `can_moderate_reviews`), though these are not yet enforced in the code — only basic `admin` user-type checks are in place.
 
@@ -269,11 +269,10 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 | `GET` | 19-48 | Fetch bookings (user-specific or owner-specific) |
 | `POST / initiate_payment` | 61-153 | Driver submits charger ID → flat reservation fee → inserts `pending_payment` booking with `arrival_deadline` |
 | `POST / confirm_payment` | 156-228 | Driver confirms reservation payment → status to `booked`, inserts first `payment_transactions` record (reservation fee) |
-| `POST / confirm_charging_payment` | 204-295 | Driver arrives, confirms charging payment → transitions `booked` → `charging`, calculates fee from battery % + capacity + wattage, inserts second `payment_transactions` record (charging fee), creates `charging_sessions`, sets `session_ends_at` timer, logs `session_started` |
-| `POST / initiate_charging_payment` | 297-346 | Driver requests cost quote for charging → returns `charging_cost`, `charge_time_minutes`, `kwh_needed` without mutating state |
-| `POST / stop_session` | 348-396 | Driver stops active charging early → transitions `charging` → `stopped`, sets `payment_status = 'completed'` and `payment_amount = estimated_total_cost`, releases charger, logs `session_stopped` (no refund) |
-| `PUT / start_session` | 322-372 | Owner starts session for legacy (no-payment) bookings; sets buffer + session timers |
-| `PUT / complete_session` | 374-427 | Owner completes session → calculates kWh, cost, updates station stats, releases charger |
+| `POST / confirm_charging_payment` | 205-296 | Driver arrives, confirms charging payment → transitions `booked` → `charging`, calculates fee from battery % + capacity + wattage, inserts second `payment_transactions` record (charging fee), creates `charging_sessions`, sets `session_ends_at` timer, logs `session_started` |
+| `POST / initiate_charging_payment` | 298-347 | Driver requests cost quote for charging → returns `charging_cost`, `charge_time_minutes`, `kwh_needed` without mutating state |
+| `POST / stop_session` | 349-396 | Driver stops active charging early → transitions `charging` → `stopped`, sets `payment_status = 'completed'` and `payment_amount = estimated_total_cost`, releases charger, logs `session_stopped` (no refund) |
+| `PUT / complete_session` | 421+ | Owner completes session → calculates kWh, cost, updates station stats, releases charger (sessions are started exclusively by drivers; owners only complete) |
 | `DELETE` | 442-448 | Cancel booking (status → `cancelled`) |
 
 **Queue Management:** Lines 80-109 — maximum 2 active bookings per charger; if 1 existing booking is `booked`/`pending_payment`/`charging`, new booking is rejected.

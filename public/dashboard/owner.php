@@ -683,6 +683,8 @@ if (file_exists($profilePicAbsolute)) {
                 if (result.status === 'success') {
                     showAlert(result.message, 'success');
                     setTimeout(function() { location.reload(); }, 500);
+                } else if (result.error_code === 'upload_failed') {
+                    showAlert('Failed to upload your company logo — your profile was NOT saved. Please try a JPG/PNG under 5MB.', 'error');
                 } else {
                     showAlert(result.message || 'Failed to update profile.', 'error');
                 }

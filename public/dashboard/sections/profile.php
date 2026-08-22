@@ -35,17 +35,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['avatar'];
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            
-            if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif']) && in_array($file['type'], ['image/jpeg', 'image/png', 'image/gif'])) {
-                if ($file['size'] <= 5 * 1024 * 1024) {
-                    $pfpDir = PUBLIC_PATH . "/assets/uploads/pfp";
-                    if (!is_dir($pfpDir)) {
-                        mkdir($pfpDir, 0755, true);
-                    }
-                    $targetPath = $pfpDir . "/{$user_id}.jpg";
-                    
-                    move_uploaded_file($file['tmp_name'], $targetPath);
-                }
+
+            // Real image validation — rejects non-images even if extension/declared MIME lied
+            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif']) || getimagesize($file['tmp_name']) === false) {
+                $db->rollBack();
+                echo json_encode(['status' => 'error', 'error_code' => 'invalid_image', 'message' => 'Invalid image type. Only JPG, PNG or GIF images are allowed.']);
+                exit;
+            }
+            if ($file['size'] > MAX_UPLOAD_SIZE) {
+                $db->rollBack();
+                echo json_encode(['status' => 'error', 'error_code' => 'file_too_large', 'message' => 'Image must be 5MB or smaller.']);
+                exit;
+            }
+
+            $pfpDir = PUBLIC_PATH . "/assets/uploads/pfp";
+            if (!is_dir($pfpDir) && !mkdir($pfpDir, 0755, true)) {
+                $db->rollBack();
+                log_message('ERROR', "Avatar: could not create upload dir $pfpDir");
+                echo json_encode(['status' => 'error', 'error_code' => 'upload_failed', 'message' => 'Profile update failed: image could not be saved on the server.']);
+                exit;
+            }
+            $targetPath = $pfpDir . "/{$user_id}.jpg";
+
+            if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $db->rollBack();
+                log_message('ERROR', "Avatar: move_uploaded_file failed for user {$user_id} -> $targetPath");
+                echo json_encode(['status' => 'error', 'error_code' => 'upload_failed', 'message' => 'Profile update failed: image could not be saved on the server.']);
+                exit;
             }
         }
         
@@ -148,4 +164,3 @@ if (file_exists($profilePicAbsolute)) {
         </form>
     </div>
 </div>
-

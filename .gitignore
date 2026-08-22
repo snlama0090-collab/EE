@@ -3,3 +3,6 @@ public/assets/uploads/
 
 # Runtime logs — never commit
 /logs/
+
+# Google OAuth credential downloads — never commit
+client_secret_*.json

@@ -776,7 +776,7 @@ CRM, SaaS subscription management, and advanced charting dashboards were deliber
 - **Progress Bar:** `var(--primary)` fill, matches dark theme
 
 #### CSS Audit
-- `dashboard.css` pruned of orphaned `.sidebar-collapsed` block (40 lines of dead sidebar collapse CSS never wired in any template)
+- Note: the `.sidebar-collapsed` rules remain present in `dashboard.css` and are **live** — `dashboard.js` toggles the class on the dashboard container. An earlier draft of this report wrongly claimed they were pruned; corrected per audit item #23.
 - All utility classes, layout variables, and responsive breakpoints preserved
 - No visual regressions — only dead code removed
 
@@ -907,13 +907,13 @@ This avoids blocking UI paint on network requests while still providing cross-de
 | Booking queue row-locking (`SELECT ... FOR UPDATE`) | `api/bookings.php` | 2-4 hours |
 | Login rate limiting / brute-force protection | `api/auth/login.php`, new table or cache | 4-6 hours |
 | CSRF tokens on all state-changing endpoints | All `api/*.php` + new middleware | 2-3 hours |
-| File upload content validation via `getimagesize()` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 1 hour |
+| ~~File upload content validation via `getimagesize()`~~ ✅ Done 2026-08-22 | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 1 hour |
 
 #### Week 2 — High
 
 | Task | Files | Effort |
 |---|---|---|
-| Require payment before `start_session` | `api/bookings.php` | 1-2 hours |
+| ~~Require payment before session start~~ ✅ Done 2026-08-22 (`start_session` removed; driver-initiated flow) | `api/bookings.php` | 1-2 hours |
 | Fix buffer/arrival timing drift | `api/bookings.php` | 1 hour |
 | Real end-battery kWh billing | `api/bookings.php`, `app/helpers/SessionTicker.php` | 2-3 hours |
 | Owner stations default to `pending` regardless of signup method | `api/auth/google.php` | 30 min |

@@ -6,3 +6,6 @@ public/assets/uploads/
 
 # Google OAuth credential downloads — never commit
 client_secret_*.json
+
+# Composer binary — local tool, not project code
+composer.phar

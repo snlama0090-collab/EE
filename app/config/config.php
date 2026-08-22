@@ -30,7 +30,10 @@ define('DB_PORT', 3306);
 define('DB_CHARSET', 'utf8mb4');
 
 // ===== APPLICATION PATHS =====
-define('APP_ROOT', dirname(dirname(__FILE__)));
+// ponytail: __FILE__ arrives with mixed separators from require chains, so double-dirname
+// resolved to EE/app instead of EE root — uploads/logs silently landed inside app/. __DIR__
+// is natively normalized, making this robust on Windows and Linux.
+define('APP_ROOT', dirname(__DIR__, 2));
 define('APP_PATH', APP_ROOT . '/app');
 define('PUBLIC_PATH', APP_ROOT . '/public');
 define('UPLOADS_PATH', PUBLIC_PATH . '/assets/uploads');

@@ -1,6 +1,7 @@
 # EV Charging Station Finder — Project Architecture Report
 
 > **Generated:** 2026-07-15  
+> **Last updated:** 2026-08-22  
 > **Project Root:** `d:/Xampp/htdocs/EE`  
 > **Mode:** Read-only analysis
 
@@ -19,7 +20,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 | **Registration** | Driver / Owner | Multi-step form → user type selection → account details → password → terms → POST to `api/auth/register.php` → redirect to login |
 | **Authentication** | All roles | email + password → `api/auth/login.php` → session start via `Auth::startSession()` → dashboard redirect (role-based) |
 | **Google OAuth** | All roles | Google One Tap → `api/auth/google.php` → verify token → find-or-create user → session start → dashboard redirect |
-| **Find & Book** | Driver | Landing page → leaflet map → station cards with distance/battery details → modal with charger selection + battery % → `initiate_payment` → `confirm_payment` → session begins |
+| **Find & Book** | Driver | Landing page → leaflet map → station cards with distance/battery details → modal with charger selection → `initiate_payment` → `confirm_payment` → booking held as `booked` (reservation fee paid); charging starts separately, driver-initiated, via `initiate_charging_payment` / `confirm_charging_payment` |
 | **Charging Lifecycle** | Owner + Driver | `booked` → `pending_payment` (driver pays reservation fee) → `booked` (awaiting arrival) → `charging` (driver confirms charging payment) → `stopped`/`completed` (driver stops early or auto-completes via `SessionTicker`) → release charger |
 | **Station Management** | Owner | Register station with location picker → add charger rows → submit for approval → admin approves → manage charger status (available/maintenance/offline) |
 | **Admin Moderation** | Admin | Review pending stations → approve/reject with reason → manage users, reviews, and view reports |
@@ -84,6 +85,7 @@ d:/Xampp/htdocs/EE/
 │   ├── helpers/
 │   │   ├── Auth.php          # Session management, login/logout, access control
 │   │   ├── Location.php      # Haversine distance calculation
+│   │   ├── Mailer.php        # OTP email sending (PHPMailer via Gmail SMTP)
 │   │   └── SessionTicker.php # Auto-complete overdue charging sessions
 │   └── logs/                 # Application log output
 │
@@ -92,9 +94,12 @@ d:/Xampp/htdocs/EE/
 │   │   ├── login.php         # POST: email + password authentication
 │   │   ├── register.php      # POST: driver/owner account creation
 │   │   ├── logout.php        # GET: session destroy + redirect
-│   │   └── google.php        # POST: Google OAuth token verification + auto-register
+│   │   ├── google.php        # POST: Google OAuth token verification + auto-register
+│   │   └── otp.php           # POST: 6-digit OTP generation + verification (Gmail SMTP)
 │   ├── bookings.php          # GET/POST/PUT/DELETE: full booking lifecycle
-│   └── stations.php          # GET/POST/PUT/DELETE: stations, chargers, admin actions
+│   ├── stations.php          # GET/POST/PUT/DELETE: stations, chargers, admin actions
+│   ├── nearby-stations.php   # GET: public no-auth station discovery (bounding box + Haversine)
+│   └── stats.php             # GET: platform-wide statistics
 │
 ├── database/
 │   └── schema.sql            # Full DDL for all 14 tables + sample data

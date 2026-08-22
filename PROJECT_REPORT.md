@@ -374,14 +374,14 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 ### 5.13 `public/dashboard/owner.php`
 
-**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking session start/stop, financial charts.
+**Purpose:** Owner dashboard — station registration with Leaflet location picker (draggable marker), charger management, booking completion oversight, financial charts.
 
 **Key Functions:**
 - `initLocationPickerMap()` — draggable marker on Leaflet map, reverse geocodes on drag/click
 - `submitStation(event)` — collects form data + charger rows, POST to `api/stations.php`
 - `manageStationChargers(stationId, stationName)` — AJAX load charger list with status dropdowns
 - `updateChargerStatus(chargerId, newStatus, stationId, stationName)` — POST to `update_charger_status`
-- `updateSession(bookingId, action)` — modal for battery % input before starting session, then `doUpdateSession()`
+- `completeSession(bookingId)` / `doCompleteSession(bookingId)` — confirmation dialog → PUT `complete_session` (session start is driver-initiated; owner only completes)
 - `switchFinancialView(period)` — Chart.js bar/line chart switching between days/months/years
 - `deleteStation(id)` — confirmation + DELETE to `api/stations.php`
 
@@ -432,8 +432,8 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
    File: public/dashboard/driver.php → pollTick() + initCountdowns()
    - pollTick() runs every 12s while active bookings exist
    - For each booking card with [data-booking-id]:
-       * Before buffer_ends_at: shows orange "Owner connecting..." countdown
-       * Between buffer_ends_at and session_ends_at: shows green "⚡ Charging — M:SS remaining"
+       * Shows green "⚡ Charging — M:SS remaining" from session start
+         (the orange "Owner connecting..." buffer phase is dead UI — `buffer_ends_at` is never set by any API path; see §7.3)
        * After session_ends_at: stops polling, reloads section (SessionTicker may auto-complete)
    - initCountdowns() wires startCountdown() to .countdown elements in bookings.php template
 
@@ -564,6 +564,8 @@ The `activity_logs.details` column is defined as `TEXT` in `database/schema.sql`
 - Driver notifications: `"Charging stopped early. Payment already made is NOT refunded."`
 - This supports notification rendering in `driver.php`, `owner_sections/notifications.php`, and `admin_sections/notifications.php` without JSON parsing.
 
+Three notification actions are actively written for driver-facing alerts: `session_started` (`api/bookings.php:283`), `session_stopped` (`api/bookings.php:385`), and `booking_expired` (`app/helpers/SessionTicker.php:43`). Each inserts into `activity_logs` scoped to the affected `user_id`, rendered by `sections/notifications.php`.
+
 ### 7.2 bookings.status ENUM
 
 The `bookings.status` column includes six states (schema.sql line 184):
@@ -670,7 +672,7 @@ Leave role-specific code (owner charger management, driver polling, admin modera
 **Location:** `app/helpers/Auth.php` line 53 — INR symbol `₹` in `format_currency()`.  
 `public/index.html` lines 227, 233, 239 — pricing section shows `₹20`, `₹8-12`, `₹50`.
 
-The config file defines `ELECTRICITY_RATE_PER_KWH = 10` and `BOOKING_BASE_FEE = 20` (in NPR). But the `format_currency()` function outputs `₹` (Indian Rupee) rather than `₨` or `Rs.` (Nepali Rupee). The landing page HTML also uses `₹`. This is inconsistent with the location context (Kathmandu, Nepali phone validation).
+The config file defines `ELECTRICITY_RATE_PER_KWH = 10` and `BOOKING_BASE_FEE = 50` (in NPR). But the `format_currency()` function outputs `₹` (Indian Rupee) rather than `₨` or `Rs.` (Nepali Rupee). The landing page HTML also uses `₹`. This is inconsistent with the location context (Kathmandu, Nepali phone validation).
 
 **Recommendation:** Add a `define('CURRENCY_SYMBOL', '₨')` or `'NPR'` to config.php, update `format_currency()` to use it, and dynamically render pricing in the landing page from config values rather than hardcoded HTML.
 

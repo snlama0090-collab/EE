@@ -132,4 +132,20 @@ rep('25. cross-role isolation', (int)$drv[0]['c']===0 && (int)$own[0]['c']===$ow
 // 26: clear is mark-as-read, never delete
 $total = q($db, "SELECT COUNT(*) AS c FROM activity_logs");
 rep('26. non-destructive', (int)$total[0]['c'] > 0, 'total_rows='.$total[0]['c']);
+// 27-27b: auth regression guard — APP_URL once pointed at a nonexistent legacy dir
+// ('ev-charging-station'), bouncing unauthenticated/expired users to a 404 instead of
+// the login page. Fixed 2026-08-23 (config.php APP_URL -> http://localhost/EE).
+$ch = curl_init("$BASE/public/dashboard/driver.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true]); // no cookie jar: truly anonymous
+curl_exec($ch);
+$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$loc  = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
+curl_close($ch);
+rep('27. unauth redirect hits real login', $code === 302 && $loc === "$BASE/login.php", 'code='.$code.' loc='.var_export($loc, true));
+$ch = curl_init("$BASE/login.php?session=expired");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true]);
+$body = (string) curl_exec($ch);
+$http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+rep('27b. expired-variant login lands 200', $http === 200 && strpos($body, 'login-form') !== false, 'status='.$http);
 echo "DONE\n";

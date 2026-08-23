@@ -40,7 +40,7 @@ define('UPLOADS_PATH', PUBLIC_PATH . '/assets/uploads');
 define('LOGS_PATH', APP_ROOT . '/logs');
 
 // ===== APPLICATION URLs =====
-define('APP_URL', 'http://localhost/ev-charging-station');
+define('APP_URL', 'http://localhost/EE');
 define('API_URL', APP_URL . '/api');
 
 // ===== SESSION CONFIGURATION =====

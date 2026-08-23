@@ -12,3 +12,10 @@ composer.phar
 
 # Environment secrets — never commit
 .env
+
+# App runtime logs (app/logs was historically committed — never again)
+app/logs/
+
+# Key material — nothing in this project should ever track these
+*.pem
+*.key

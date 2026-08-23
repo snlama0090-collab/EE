@@ -9,3 +9,6 @@ client_secret_*.json
 
 # Composer binary — local tool, not project code
 composer.phar
+
+# Environment secrets — never commit
+.env

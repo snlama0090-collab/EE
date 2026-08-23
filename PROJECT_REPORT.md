@@ -986,6 +986,8 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 > **TODO:** ~15 inline `fetch('../api/…')` calls across `public/dashboard/{driver,owner,admin}.php` only resolve correctly under rewritten short URLs; under canonical `/EE/public/dashboard/*.php` paths they break exactly like the notification-bell bug fixed today (`dashboard.js` bell fetches now use root-absolute `/EE/api/…`, matching `auth.js`/`landing.js`). If the URL structure ever changes, migrate all client-side fetches to the root-absolute pattern.
 >
 > **Related fix (2026-08-23, server-side):** `APP_URL` in `app/config/config.php` still pointed at the nonexistent legacy directory `ev-charging-station`, sending expired-session redirects (via `app/helpers/Auth.php`) to a 404 — same URL-structure fragility, redirect layer instead of fetch layer. Now `http://localhost/EE`.
+>
+> **Known cosmetic issue (2026-08-23, Firefox only):** Google Sign-In shows minor intra-button visual churn specifically in Firefox — caused by Firefox's lack of full FedCM support forcing GIS into its legacy account-detection flow inside Google's own iframe. Confirmed non-functional (inert injected marker class on `<body>`, zero matching CSS rules anywhere) and confined to the button's reserved space (no page layout shift). Investigated and accepted as-is — outside our code's control, Google-owned rendering.
 
 ---
 

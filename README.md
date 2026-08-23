@@ -1,16 +1,16 @@
-﻿# WattPulse âš¡ â€” EV Charging Station Finder
+# WattPulse ⚡ — EV Charging Station Finder
 
-A full-stack web application for finding, booking, and managing EV charging stations â€” a three-sided marketplace connecting drivers, station owners, and platform admins.
+A full-stack web application for finding, booking, and managing EV charging stations — a three-sided marketplace connecting drivers, station owners, and platform admins.
 
 ## Overview
 
-Drivers search an interactive map for nearby chargers, reserve one with a flat fee, and pay a battery-%-based charging fee when they arrive. Station owners register stations and manage charger availability; admins moderate stations, users, and reviews. Built as a classic server-rendered PHP app with AJAX-loaded dashboard sections â€” no SPA framework.
+Drivers search an interactive map for nearby chargers, reserve one with a flat fee, and pay a battery-%-based charging fee when they arrive. Station owners register stations and manage charger availability; admins moderate stations, users, and reviews. Built as a classic server-rendered PHP app with AJAX-loaded dashboard sections — no SPA framework.
 
-> ðŸ“„ Full architecture report, workflows, schema notes, and audit findings: see [PROJECT_REPORT.md](PROJECT_REPORT.md)
+> 📄 Full architecture report, workflows, schema notes, and audit findings: see [PROJECT_REPORT.md](PROJECT_REPORT.md)
 
 ## Tech Stack
 
-- **Backend:** PHP 8.x (vanilla, PDO) â€” no framework
+- **Backend:** PHP 8.x (vanilla, PDO) — no framework
 - **Database:** MySQL 8.x (`ev_charging_db`, 14 tables)
 - **Frontend:** HTML5, CSS3, vanilla JavaScript (AJAX partial loads)
 - **Maps:** Leaflet.js 1.9.4 + OpenStreetMap / Nominatim reverse geocoding
@@ -20,15 +20,15 @@ Drivers search an interactive map for nearby chargers, reserve one with a flat f
 
 ## Key Features
 
-- ðŸ—ºï¸ **Map-based discovery** â€” searchable, sortable station list with live charger availability (public API, no auth required)
-- ðŸ”Œ **Two-step booking flow** â€” flat reservation fee holds the charger; charging cost is quoted from current battery % and billed separately on arrival
-- â±ï¸ **Live countdowns** â€” 12-second polling shows "Arrive in M:SS" and "Charging ends in M:SS" timers
-- ðŸ›‘ **Stop charging early** â€” driver-initiated termination, clearly marked "no refund"
-- ðŸ‘¥ **Three role dashboards** â€” driver / owner / admin, each role-scoped with its own sidebar and data isolation
-- âœ… **Admin moderation** â€” station approval/rejection workflow with activity logging
-- ðŸ“§ **OTP registration** â€” hashed, expiring, attempt-limited email codes
-- ðŸ”” **Notifications** â€” session started/stopped/expired events surfaced per-role
-- â™»ï¸ **Self-healing sessions** â€” `SessionTicker` auto-cancels expired bookings, recovers orphaned chargers, and auto-completes overdue sessions race-safely
+- 🗺️ **Map-based discovery** — searchable, sortable station list with live charger availability (public API, no auth required)
+- 🔌 **Two-step booking flow** — flat reservation fee holds the charger; charging cost is quoted from current battery % and billed separately on arrival
+- ⏱️ **Live countdowns** — 12-second polling shows "Arrive in M:SS" and "Charging ends in M:SS" timers
+- 🛑 **Stop charging early** — driver-initiated termination, clearly marked "no refund"
+- 👥 **Three role dashboards** — driver / owner / admin, each role-scoped with its own sidebar and data isolation
+- ✅ **Admin moderation** — station approval/rejection workflow with activity logging
+- 📧 **OTP registration** — hashed, expiring, attempt-limited email codes
+- 🔔 **Notifications** — session started/stopped/expired events surfaced per-role
+- ♻️ **Self-healing sessions** — `SessionTicker` auto-cancels expired bookings, recovers orphaned chargers, and auto-completes overdue sessions race-safely
 
 ## Setup
 
@@ -45,7 +45,7 @@ Requires [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP 8.x) and 
    composer install
    ```
 
-3. **Create the database** â€” import the schema via phpMyAdmin (`http://localhost/phpmyadmin`) or CLI:
+3. **Create the database** — import the schema via phpMyAdmin (`http://localhost/phpmyadmin`) or CLI:
    ```bash
    mysql -u root -e "CREATE DATABASE IF NOT EXISTS ev_charging_db CHARACTER SET utf8mb4;"
    mysql -u root ev_charging_db < database/schema.sql
@@ -57,7 +57,7 @@ Requires [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP 8.x) and 
    GMAIL_USER=youraddress@gmail.com
    GMAIL_APP_PASSWORD=your-16-char-app-password
    ```
-   > Use a Google [App Password](https://myaccount.google.com/apppasswords), not your normal password. These are the only two environment variables required â€” no OAuth secrets are needed at runtime.
+   > Use a Google [App Password](https://myaccount.google.com/apppasswords), not your normal password. These are the only two environment variables required — no OAuth secrets are needed at runtime.
 
 5. **Start Apache and MySQL** from the XAMPP Control Panel.
 
@@ -65,21 +65,22 @@ Requires [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP 8.x) and 
 
 ## Known Limitations
 
-Honest "next steps" â€” the app is beyond prototype stage but not production-ready:
+Honest "next steps" — the app is beyond prototype stage but not production-ready:
 
-- ðŸ’³ **Payments are simulated** â€” no real gateway integration (Razorpay fields exist in schema but are unwired). #1 production blocker
-- ðŸ **Booking queue race condition** â€” double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
-- ðŸ”’ **No CSRF protection** or login rate limiting on state-changing endpoints
-- ðŸ”‹ **kWh billing assumes 100% charge** â€” no end-battery-% capture
-- âš ï¸ **Google OAuth auto-approves new owner accounts**, bypassing admin moderation
-- ðŸ—‘ï¸ **Cascade-delete on stations** destroys financial history (no soft-delete)
+- 💳 **Payments are simulated** — no real gateway integration (Razorpay fields exist in schema but are unwired). #1 production blocker
+- 🏁 **Booking queue race condition** — double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
+- 🔒 **No CSRF protection** or login rate limiting on state-changing endpoints
+- 🔋 **kWh billing assumes 100% charge** — no end-battery-% capture
+- ⚠️ **Google OAuth auto-approves new owner accounts**, bypassing admin moderation
+- 🗑️ **Cascade-delete on stations** destroys financial history (no soft-delete)
 
-See [PROJECT_REPORT.md Â§11](PROJECT_REPORT.md) for the full audit matrix and roadmap.
+See [PROJECT_REPORT.md §11](PROJECT_REPORT.md) for the full audit matrix and roadmap.
 
 ## Documentation
 
-- [PROJECT_REPORT.md](PROJECT_REPORT.md) â€” architecture, file-by-file breakdown, critical workflows, schema notes, financial logic, audit matrix & roadmap
-- [database/schema.sql](database/schema.sql) â€” full DDL for all 14 tables + sample data
+- [PROJECT_REPORT.md](PROJECT_REPORT.md) — architecture, file-by-file breakdown, critical workflows, schema notes, financial logic, audit matrix & roadmap
+- [database/schema.sql](database/schema.sql) — full DDL for all 14 tables + sample data
 
 ## License
 
+No license has been added yet.

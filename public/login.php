@@ -24,6 +24,14 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
+        /* Reserve the GIS button slot: async-defer client injects its button
+           well after first paint. Empirical rendered height is ~44px (despite
+           size=large's nominal 40px); Auth-style ratchet JS below corrects any
+           further drift - without reservation, divider/footer jump down. */
+        #google-btn-wrapper {
+            align-items: center;
+            min-height: 44px;
+        }
         body {
             background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
             min-height: 100vh;
@@ -289,6 +297,34 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             }, duration);
         }
 
+        // Ratchet-lock the Google slot: if GIS renders a taller state (e.g.
+        // personalized 'Continue as <name>'), raise the reservation so nothing
+        // below re-flows on subsequent renders. Never shrinks within a load.
+        (function () {
+            var w = document.getElementById('google-btn-wrapper');
+            if (!w || !window.MutationObserver) return;
+            var lock = function () {
+                // scrollHeight cannot see NESTED overflow (GIS renders a ~44px
+                // div inside a 40px box) - measure true visual extent instead:
+                // deepest descendant bottom relative to the wrapper top.
+                var wr = w.getBoundingClientRect();
+                var maxBottom = wr.bottom;
+                w.querySelectorAll('*').forEach(function (el) {
+                    var b = el.getBoundingClientRect().bottom;
+                    if (b > maxBottom) maxBottom = b;
+                });
+                var h = Math.max(Math.ceil(maxBottom - wr.top), 40);
+                if (w.style.minHeight !== h + 'px') w.style.minHeight = h + 'px';
+            };
+            lock();
+            new MutationObserver(function () {
+                // GIS settles its swap over several frames - re-lock across a
+                // short window so the reservation catches the final geometry.
+                lock();
+                [60, 180, 400].forEach(function (t) { setTimeout(lock, t); });
+            }).observe(w, { childList: true, subtree: true });
+        })();
+
         const form = document.getElementById('login-form');
         const userTypeInput = document.getElementById('user-type');
         const errorMessage = document.getElementById('error-message');
@@ -411,7 +447,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             }
         }
 
-        // Back-button cache bust
+        // Back-button cache bust (bfcache restores stale typed values)
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
                 document.getElementById('email').value = '';
@@ -424,11 +460,6 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                     loginBtn.disabled = false;
                 }
             }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('email').value = '';
-            document.getElementById('password').value = '';
         });
 
         // Google Sign-In callback

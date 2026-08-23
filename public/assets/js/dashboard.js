@@ -93,6 +93,7 @@
     notifBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       toggleDropdown(notifDropdown);
+      if (typeof openNotifBell === 'function') openNotifBell();
     });
   }
 
@@ -120,6 +121,58 @@
   });
 
 })();
+
+/* ── Notification Bell ── */
+function notifEsc(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+}
+
+function renderNotifBell(data) {
+    const btn = document.getElementById('notif-btn');
+    const body = document.getElementById('notif-items');
+    if (!btn || !body) return;
+    btn.classList.toggle('has-unread', data.unread_count > 0);
+    let badge = btn.querySelector('.notification-count');
+    if (data.unread_count > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'notification-count';
+            btn.appendChild(badge);
+        }
+        badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+    } else if (badge) {
+        badge.remove();
+    }
+    body.innerHTML = data.items.length
+        ? data.items.map(function (n) {
+              return '<div class="dropdown-item"><strong>' + notifEsc(n.action) + '</strong><br>' +
+                     '<small>' + notifEsc(n.details) + '</small></div>';
+          }).join('')
+        : '<div class="dropdown-item muted">No new notifications</div>';
+}
+
+async function refreshNotifBell() {
+    try {
+        const r = await fetch('/EE/api/notifications.php');
+        const j = await r.json();
+        if (j.status === 'success') renderNotifBell(j.data);
+    } catch (e) { /* bell is non-critical; stay silent */ }
+}
+
+async function openNotifBell() {
+    // Opening the bell = viewing it → mark currently-shown items read immediately,
+    // then re-render so the badge hides without any manual action.
+    try {
+        await fetch('/EE/api/notifications.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'mark_all_read' })
+        });
+    } catch (e) { /* ignore */ }
+    refreshNotifBell();
+}
 
 /* ── Global Toast Notification ── */
 function showToast(message, type, duration) {

@@ -366,7 +366,11 @@ CREATE TABLE activity_logs (
     resource_type VARCHAR(50), -- station, booking, user, etc
     resource_id INT,
     details TEXT, -- plain-text messages for notifications; JSON-encoded strings also allowed
-    
+
+    -- Notification read-state (bell dropdown)
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    read_at TIMESTAMP NULL DEFAULT NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,

@@ -6,9 +6,10 @@ Auth::requireUserType('owner');
 $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
+// ponytail: scope leak fixed — owners see only rows addressed to them (was: OR any station activity)
 $stmt = $db->prepare("
     SELECT al.* FROM activity_logs al
-    WHERE al.owner_id = ? OR al.resource_type = 'station'
+    WHERE al.owner_id = ?
     ORDER BY al.created_at DESC LIMIT 50
 ");
 $stmt->execute([$user_id]);
@@ -32,7 +33,7 @@ $notifications = $stmt->fetchAll();
         <tbody>
             <?php if (count($notifications) > 0): ?>
                 <?php foreach ($notifications as $n): ?>
-                <tr>
+                <tr class="<?php echo empty($n['is_read']) ? 'unread-row' : ''; ?>">
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td><?php echo htmlspecialchars($n['resource_type'] ?? '-'); ?></td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($n['created_at'])); ?></td>

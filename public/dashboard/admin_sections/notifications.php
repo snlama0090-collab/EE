@@ -35,7 +35,7 @@ $notifications = $stmt->fetchAll();
         <tbody>
             <?php if (count($notifications) > 0): ?>
                 <?php foreach ($notifications as $n): ?>
-                <tr>
+                <tr class="<?php echo empty($n['is_read']) ? 'unread-row' : ''; ?>">
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td><?php echo htmlspecialchars($n['resource_type'] ?? '-'); ?> #<?php echo $n['resource_id'] ?? ''; ?></td>
                     <td style="font-size:12px;color:var(--muted-foreground);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">

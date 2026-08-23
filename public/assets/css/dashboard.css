@@ -151,6 +151,47 @@ body {
     border: 2px solid var(--card);
 }
 
+/* Numeric badge replaces the bare dot when there are unread items */
+.header-btn.has-unread .notification-dot {
+    display: none;
+}
+
+.notification-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    background: var(--destructive);
+    color: var(--destructive-foreground, #fff);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+    border-radius: 999px;
+    border: 2px solid var(--card);
+}
+
+.dropdown-item.muted {
+    color: var(--muted-foreground);
+    cursor: default;
+}
+
+.dropdown-item small {
+    color: var(--muted-foreground);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* Unread rows on the full notifications page */
+.listing-table tr.unread-row td {
+    font-weight: 600;
+}
+.listing-table tr.unread-row td:first-child {
+    box-shadow: inset 3px 0 0 var(--primary, var(--accent));
+}
+
 .header-profile-pic {
     width: 32px;
     height: 32px;

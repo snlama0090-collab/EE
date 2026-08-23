@@ -23,6 +23,11 @@ $stmt = $db->prepare("SELECT * FROM owners WHERE id = ?");
 $stmt->execute([$user_id]);
 $owner = $stmt->fetch();
 
+// Bell data — same scope rules as api/notifications.php (single source: Notifications helper)
+require_once '../../app/helpers/Notifications.php';
+$notif = Notifications::summary($db, $user_role, $user_id);
+$unread = (int) $notif['unread_count'];
+
 // Profile picture path
 $profilePicPath = '../assets/img/default-avatar.svg';
 $profilePicAbsolute = PUBLIC_PATH . "/assets/uploads/pfp/owner_{$user_id}.jpg";
@@ -148,14 +153,24 @@ if (file_exists($profilePicAbsolute)) {
             <i class="fas fa-moon"></i>
         </button>
         <!-- Notifications -->
-        <button type="button" class="header-btn" id="notif-btn" title="Notifications">
+        <button type="button" class="header-btn<?php echo $unread > 0 ? ' has-unread' : ''; ?>" id="notif-btn" title="Notifications">
             <i class="fas fa-bell"></i>
             <span class="notification-dot"></span>
+            <?php if ($unread > 0): ?><span class="notification-count"><?php echo $unread > 99 ? '99+' : $unread; ?></span><?php endif; ?>
         </button>
         <div class="dropdown" id="notif-dropdown">
             <div class="dropdown-header">Notifications</div>
-            <div class="dropdown-body">
-                <div class="dropdown-item">No new notifications</div>
+            <div class="dropdown-body" id="notif-items">
+                <?php if (empty($notif['items'])): ?>
+                    <div class="dropdown-item muted">No new notifications</div>
+                <?php else: ?>
+                    <?php foreach ($notif['items'] as $n): ?>
+                    <div class="dropdown-item">
+                        <strong><?php echo htmlspecialchars($n['action']); ?></strong><br>
+                        <small><?php echo htmlspecialchars(mb_substr((string)($n['details'] ?? ''), 0, 90)); ?></small>
+                    </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
             <div class="dropdown-footer" onclick="loadSection('notifications')">View all notifications</div>
         </div>

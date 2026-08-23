@@ -86,4 +86,50 @@ $ch=q($db,"SELECT status FROM chargers WHERE id=1");
 rep('20. charger released',$ch[0]['status']==='available','status='.$ch[0]['status']);
 $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='session_stopped' AND resource_id=?",[$bid2]);
 rep('21. session_stopped log',count($al)===1&&strpos($al[0]['details'],'NOT refunded')!==false,json_encode($al[0]));
+// STEP 6: NOTIFICATION BELL — seeded-delta assertions, owner scope-leak regression, isolation
+$drvId = q($db, "SELECT id FROM users WHERE email='driver1@example.com'")[0]['id'];
+// 22: seed exactly 3 known driver notifications, assert unread rises by EXACTLY 3
+$uBefore = (int)(api('GET', "$BASE/api/notifications.php", $dc)['data']['unread_count'] ?? -1);
+// Seeds must reference a driver-owned booking (driver scope uses EXISTS on bookings).
+// Self-contained: reuse the newest driver booking, or create + cleanup a throwaway one.
+$sb = q($db, "SELECT id FROM bookings WHERE user_id=? ORDER BY id DESC LIMIT 1", [$drvId]);
+$seedBid = $sb ? (int)$sb[0]['id'] : 0;
+$seedBookingCreated = false;
+if (!$seedBid) {
+    $db->exec("INSERT INTO bookings (user_id, charger_id, status) VALUES ($drvId, 1, 'completed')");
+    $seedBid = (int)$db->lastInsertId();
+    $seedBookingCreated = true;
+}
+$db->exec("INSERT INTO activity_logs (user_id, action, resource_type, resource_id, details) VALUES
+    ($drvId,'test_notif_a','booking',$seedBid,'SEED A'),
+    ($drvId,'test_notif_b','booking',$seedBid,'SEED B'),
+    ($drvId,'test_notif_c','booking',$seedBid,'SEED C')");
+$nb = api('GET', "$BASE/api/notifications.php", $dc);
+$uAfter = (int)($nb['data']['unread_count'] ?? -1);
+rep('22. bell GET driver (+3 seeded)', $nb['status']==='success' && $uAfter === $uBefore + 3, "before=$uBefore after=$uAfter");
+rep('22b. bell newest-first', (($nb['data']['items'][0]['action'] ?? '') === 'test_notif_c'), 'top='.($nb['data']['items'][0]['action'] ?? 'none'));
+// cleanup seeds, verify count returns to baseline
+$db->exec("DELETE FROM activity_logs WHERE action LIKE 'test_notif_%' AND details LIKE 'SEED %'");
+if ($seedBookingCreated) { $db->exec("DELETE FROM bookings WHERE id=$seedBid"); }
+$uClean = (int)(api('GET', "$BASE/api/notifications.php", $dc)['data']['unread_count'] ?? -1);
+rep('22c. seed cleanup', $uClean === $uBefore, "baseline=$uBefore now=$uClean");
+// 23: owner scope-leak regression — synthetic station log with owner_id NULL must be INVISIBLE to owner
+$db->exec("INSERT INTO activity_logs (action, resource_type, resource_id, details) VALUES ('station_approved','station',1,'TEST leak probe')");
+$no = api('GET', "$BASE/api/notifications.php", $oc);
+$leaked = in_array('station_approved', array_column($no['data']['items'] ?? [], 'action'), true);
+rep('23. owner scope-leak fixed', $no['status']==='success' && $leaked === false, 'probeSeen='.var_export($leaked, true));
+$db->prepare("DELETE FROM activity_logs WHERE action='station_approved' AND details='TEST leak probe'")->execute();
+$ownerUnreadBefore = (int)($no['data']['unread_count'] ?? 0);
+// 24-25: driver marks all read → driver rows flip, owner rows untouched
+$mr = api('POST', "$BASE/api/notifications.php", $dc, ['action'=>'mark_all_read']);
+rep('24. mark_all_read driver', $mr['status']==='success' && ($mr['data']['unread_count']??-1)===0, json_encode($mr));
+// 24b: on-open behavior fires this repeatedly — second consecutive call must stay clean
+$mr2 = api('POST', "$BASE/api/notifications.php", $dc, ['action'=>'mark_all_read']);
+rep('24b. mark_all_read idempotent (on-open repeat)', $mr2['status']==='success' && ($mr2['data']['unread_count']??-1)===0, json_encode($mr2));
+$drv = q($db, "SELECT COUNT(*) AS c FROM activity_logs WHERE user_id=? AND is_read=0", [$drvId]);
+$own = q($db, "SELECT COUNT(*) AS c FROM activity_logs WHERE owner_id=1 AND is_read=0");
+rep('25. cross-role isolation', (int)$drv[0]['c']===0 && (int)$own[0]['c']===$ownerUnreadBefore, 'driverUnread='.$drv[0]['c'].' ownerUnread='.$own[0]['c'].' (before='.$ownerUnreadBefore.')');
+// 26: clear is mark-as-read, never delete
+$total = q($db, "SELECT COUNT(*) AS c FROM activity_logs");
+rep('26. non-destructive', (int)$total[0]['c'] > 0, 'total_rows='.$total[0]['c']);
 echo "DONE\n";

@@ -978,3 +978,9 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 | **Financial integrity** | ⚠️ Weak | No audit trail, cascade-deletes destroy history, billing assumes ideal-case charging |
 
 **Bottom line:** The application is further along than a prototype but is not production-ready. The payment simulation, concurrency gap, missing CSRF protection, and file upload validation need to close before this touches real money or real users.
+
+---
+
+## 10. Known Fragility — Relative API Paths (2026-08-23)
+
+> **TODO:** ~15 inline `fetch('../api/…')` calls across `public/dashboard/{driver,owner,admin}.php` only resolve correctly under rewritten short URLs; under canonical `/EE/public/dashboard/*.php` paths they break exactly like the notification-bell bug fixed today (`dashboard.js` bell fetches now use root-absolute `/EE/api/…`, matching `auth.js`/`landing.js`). If the URL structure ever changes, migrate all client-side fetches to the root-absolute pattern.

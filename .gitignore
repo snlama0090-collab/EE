@@ -19,3 +19,6 @@ app/logs/
 # Key material — nothing in this project should ever track these
 *.pem
 *.key
+
+# Integration-test curl cookie jars — regenerated per run, never commit
+tests/*.txt

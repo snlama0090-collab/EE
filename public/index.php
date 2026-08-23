@@ -26,6 +26,7 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <style>
         body { background: var(--background); color: var(--foreground); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        html { scroll-behavior: smooth; }
         .landing-header { position: fixed; top: 0; left: 0; right: 0; height: var(--header-height); background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding: 0 24px; z-index: 100; }
         .landing-header .brand { display: flex; flex-direction: column; line-height: 1.2; }
         .landing-header .brand .brand-name { font-size: 16px; font-weight: 700; color: var(--foreground); letter-spacing: -0.02em; }
@@ -50,14 +51,14 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .role-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: var(--foreground); }
         .role-card p { font-size: 13px; color: var(--muted-foreground); line-height: 1.5; margin-bottom: 20px; flex: 1; }
         .role-card .btn { margin-top: auto; text-decoration: none; }
-        .features-section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
+        .features-section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; scroll-margin-top: calc(var(--header-height) + 8px); }
         .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; transition: all 0.15s ease; }
         .feature-card:hover { border-color: var(--ring); }
         .feature-card i { font-size: 24px; color: var(--foreground); margin-bottom: 12px; }
         .feature-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--foreground); }
         .feature-card p { font-size: 12px; color: var(--muted-foreground); line-height: 1.5; }
-        .steps-section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
+        .steps-section { padding: 60px 24px; max-width: 1100px; margin: 0 auto; scroll-margin-top: calc(var(--header-height) + 8px); }
         .steps-grid { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
         .step-item { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; text-align: center; flex: 1; min-width: 140px; max-width: 180px; }
         .step-number { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; margin: 0 auto 12px; }
@@ -73,9 +74,6 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .footer-col a, .footer-col p { font-size: 12px; color: var(--muted-foreground); text-decoration: none; display: block; margin-bottom: 6px; }
         .footer-col a:hover { color: var(--foreground); }
         .footer-bottom { max-width: 1100px; margin: 24px auto 0; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--muted-foreground); }
-        .footer-bottom .social-links { display: flex; gap: 12px; }
-        .footer-bottom .social-links a { color: var(--muted-foreground); }
-        .footer-bottom .social-links a:hover { color: var(--foreground); }
         .tab-buttons-landing { display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; }
         .tab-btn-landing { padding: 8px 20px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); color: var(--muted-foreground); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; }
         .tab-btn-landing:hover { border-color: var(--ring); color: var(--foreground); }
@@ -205,7 +203,7 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     </div>
 
     <!-- FEATURES -->
-    <section class="features-section">
+    <section class="features-section" id="features">
         <h2 class="section-title">Why WattPulse?</h2>
         <p class="section-desc">Built for the EV ecosystem — from booking to billing</p>
         <div class="features-grid">
@@ -219,7 +217,7 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     </section>
 
     <!-- HOW IT WORKS -->
-    <section class="steps-section">
+    <section class="steps-section" id="how-it-works">
         <h2 class="section-title">How It Works</h2>
         <p class="section-desc">Two simple flows — one for drivers, one for owners</p>
         <div class="tab-buttons-landing">
@@ -254,17 +252,12 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
     <footer class="landing-footer">
         <div class="footer-inner">
             <div class="footer-col"><h5>WattPulse</h5><p>Making EV charging accessible & affordable for everyone</p></div>
-            <div class="footer-col"><h5>Quick Links</h5><a href="#">Features</a><a href="#">How It Works</a><a href="#">About</a></div>
+            <div class="footer-col"><h5>Quick Links</h5><a href="#features">Features</a><a href="#how-it-works">How It Works</a></div>
             <div class="footer-col"><h5>For Users</h5><a href="login.php">Login</a><a href="register.php?type=driver">Sign Up</a></div>
             <div class="footer-col"><h5>For Owners</h5><a href="login.php">Owner Login</a><a href="register.php?type=owner">Add Station</a></div>
         </div>
         <div class="footer-bottom">
             <p>&copy; 2026 WattPulse. All rights reserved.</p>
-            <div class="social-links">
-                <a href="#"><i class="fab fa-facebook"></i></a>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-                <a href="#"><i class="fab fa-instagram"></i></a>
-            </div>
         </div>
     </footer>
 

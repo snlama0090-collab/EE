@@ -1,7 +1,7 @@
 # EV Charging Station Finder — Project Architecture Report
 
 > **Generated:** 2026-07-15  
-> **Last updated:** 2026-08-22  
+> **Last updated:** 2026-08-23  
 > **Project Root:** `d:/Xampp/htdocs/EE`  
 > **Mode:** Read-only analysis
 
@@ -986,3 +986,20 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 > **TODO:** ~15 inline `fetch('../api/…')` calls across `public/dashboard/{driver,owner,admin}.php` only resolve correctly under rewritten short URLs; under canonical `/EE/public/dashboard/*.php` paths they break exactly like the notification-bell bug fixed today (`dashboard.js` bell fetches now use root-absolute `/EE/api/…`, matching `auth.js`/`landing.js`). If the URL structure ever changes, migrate all client-side fetches to the root-absolute pattern.
 >
 > **Related fix (2026-08-23, server-side):** `APP_URL` in `app/config/config.php` still pointed at the nonexistent legacy directory `ev-charging-station`, sending expired-session redirects (via `app/helpers/Auth.php`) to a 404 — same URL-structure fragility, redirect layer instead of fetch layer. Now `http://localhost/EE`.
+
+---
+
+## 11. Remember Me — Token Rotation & Logout Hardening (2026-08-23)
+
+The Remember Me checkbox was previously non-functional end-to-end: the token was stored hashed correctly, but the boot sequence ran the session-expiry bail **before** the auto-login hook (destroying the remember cookie on the exact path the feature targets), consumed tokens were never rotated, `logout()` left DB rows alive, and `public/logout.php` bypassed `Auth::logout()` entirely (hand-rolled session wipe — meaning Logout didn't actually log out).
+
+**Now implemented** (`app/helpers/Auth.php`):
+- **Ordered boot gate** — `Auth::boot()` runs on every request: valid sessions continue; stale sessions are wiped (session only) and offered a remember-me rescue; unrescuable stale sessions redirect to `?session=expired` exactly as before; plain guests fall through to the unchanged `requireLogin()`/`requireUserType()` gates.
+- **Single-use tokens with rotation** — every successful auto-login consumes the old row and mints a fresh 30-day token + cookie. A stolen cookie dies the moment the legitimate client uses theirs.
+- **Fail-closed liveness check** — auto-login validates the account still exists with `status='active'` in `users`/`owners`/`admins`; ghost accounts get their token row deleted and cookie cleared.
+- **Logout wipes all devices** — `Auth::logout()` deletes every `remember_tokens` row for the identity; `public/logout.php` now routes through it.
+- **Lazy expiry sweep** — expired rows purged opportunistically on remembered login.
+- **UA guard hardened** — `HTTP_USER_AGENT` missing (non-browser clients) no longer emits a PHP warning into JSON response bodies; both sides of the comparison use null-coalescing.
+- **Cookie flags** — HttpOnly + SameSite=Lax; `secure` intentionally `false` while on `http://localhost` (browsers drop Secure cookies over plain HTTP) — **must flip `SESSION_COOKIE_SECURE` when HTTPS is deployed**.
+
+Regression coverage: integration suite checks 27–30b (unauthenticated/expired redirect targets, hash-at-rest proof, auto-login + rotation, replay rejection, tampered-token fail-closed, logout wipe).

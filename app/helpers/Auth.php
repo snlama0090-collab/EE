@@ -15,11 +15,11 @@ class Auth {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['user_type'] = $user_type;
         $_SESSION['login_time'] = time();
-        $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+        // Non-browser clients (curl) may omit User-Agent entirely - never warn into JSON bodies
+        $_SESSION['user_agent'] = ($_SERVER['HTTP_USER_AGENT'] ?? '');
         
         if ($remember) {
-            setcookie('remember_token', self::generateRememberToken($user_id, $user_type), 
-                      time() + (30 * 24 * 60 * 60), '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
+            self::setRememberCookie(self::generateRememberToken($user_id, $user_type));
         }
         
         log_message('INFO', "User $user_id ($user_type) logged in");
@@ -54,7 +54,9 @@ class Auth {
     }
     
     /**
-     * Check if session is valid and not expired
+     * Check if session is valid and not expired.
+     * PURE CHECK - no side effects. Destruction policy belongs to
+     * Auth::boot() / Auth::logout(), not to validators.
      */
     public static function isSessionValid() {
         if (!self::isLoggedIn()) {
@@ -63,14 +65,13 @@ class Auth {
         
         // Check session timeout
         if (time() - $_SESSION['login_time'] > SESSION_TIMEOUT) {
-            self::logout();
+            log_message('INFO', "Session expired for user " . $_SESSION['user_id']);
             return false;
         }
         
-        // Check User Agent for security (IP check removed — handles NAT/mobile gracefully)
-        if ($_SERVER['HTTP_USER_AGENT'] !== $_SESSION['user_agent']) {
+        // Check User Agent for security (IP check removed - handles NAT/mobile gracefully)
+        if (($_SERVER['HTTP_USER_AGENT'] ?? '') !== $_SESSION['user_agent']) {
             log_message('WARNING', "Session hijacking attempt for user " . $_SESSION['user_id']);
-            self::logout();
             return false;
         }
         
@@ -100,23 +101,39 @@ class Auth {
     }
     
     /**
-     * Logout user
+     * Wipe session data only. Remember cookie deliberately survives so
+     * Auth::boot() can attempt a remember-me rescue on this same request.
      */
-    public static function logout() {
-        $user_id = $_SESSION['user_id'] ?? null;
-        
+    public static function destroySession() {
+        $_SESSION = [];
         session_destroy();
-        
-        // Clear remember token
-        if (isset($_COOKIE['remember_token'])) {
-            setcookie('remember_token', '', time() - 3600, '/', '', SESSION_COOKIE_SECURE, SESSION_COOKIE_HTTPONLY);
-        }
-        
-        log_message('INFO', "User $user_id logged out");
     }
     
     /**
-     * Generate remember token
+     * Full logout: kill session AND every remembered device for this identity.
+     */
+    public static function logout() {
+        $user_id = self::getCurrentUserId();
+        $user_type = self::getCurrentUserType();
+
+        self::destroySession();
+
+        if ($user_id !== null && $user_type !== null) {
+            try {
+                $stmt = getDB()->prepare("DELETE FROM remember_tokens WHERE user_id = ? AND user_type = ?");
+                $stmt->execute([$user_id, $user_type]);
+            } catch (Throwable $e) {
+                error_log('Remember-token cleanup failed: ' . $e->getMessage());
+            }
+        }
+
+        self::clearRememberCookie();
+        log_message('INFO', "User $user_id ($user_type) logged out");
+    }
+    
+    /**
+     * Generate remember token: raw token returned for the cookie,
+     * SHA-256 hash persisted so a DB leak never exposes usable credentials.
      */
     private static function generateRememberToken($user_id, $user_type) {
         $token = generate_token();
@@ -131,7 +148,9 @@ class Auth {
     }
     
     /**
-     * Verify remember token
+     * Verify remember token: lookup by hash, enforce expiry, validate the
+     * account still exists and is active (fail closed), then consume the row
+     * and rotate - a brand-new token + cookie is issued for the next cycle.
      */
     public static function verifyRememberToken($token) {
         $db = getDB();
@@ -141,17 +160,94 @@ class Auth {
                             WHERE token = ? AND expires_at > NOW() LIMIT 1");
         $stmt->execute([$hashed]);
         $result = $stmt->fetch();
-        
-        if ($result) {
-            // Delete used token
+
+        if (!$result) return false; // unknown/expired -> fail closed
+
+        // Liveness check: deleted/deactivated accounts must NOT auto-login
+        switch ($result['user_type']) {
+            case 'driver': $table = 'users';  break;
+            case 'owner':  $table = 'owners'; break;
+            case 'admin':  $table = 'admins'; break;
+            default:       return false;
+        }
+        $chk = $db->prepare("SELECT id FROM $table WHERE id = ? AND status = 'active'");
+        $chk->execute([$result['user_id']]);
+        if (!$chk->fetch()) {
             $db->prepare("DELETE FROM remember_tokens WHERE token = ?")->execute([$hashed]);
-            
-            // Start new session
-            self::startSession($result['user_id'], $result['user_type']);
-            return true;
+            self::clearRememberCookie();
+            log_message('WARNING', "Remember token rejected - account inactive: {$result['user_type']}#{$result['user_id']}");
+            return false;
         }
         
-        return false;
+        // Single-use consume + rotation: old row dies, fresh token+cookie minted now
+        $db->prepare("DELETE FROM remember_tokens WHERE token = ?")->execute([$hashed]);
+        self::startSession($result['user_id'], $result['user_type'], true);
+        
+        // Lazy hygiene: sweep expired rows while we hold a connection
+        try { $db->exec("DELETE FROM remember_tokens WHERE expires_at < NOW()"); } catch (Throwable $e) { /* non-fatal */ }
+        return true;
+    }
+    
+    /**
+     * Boot-time entry point for remember-me auto-login.
+     */
+    public static function attemptRememberLogin() {
+        if (!isset($_COOKIE['remember_token'])) return false;
+        return self::verifyRememberToken($_COOKIE['remember_token']);
+    }
+    
+    private static function setRememberCookie($rawToken) {
+        setcookie('remember_token', $rawToken, [
+            'expires'  => time() + (30 * 24 * 60 * 60),
+            'path'     => '/',
+            'secure'   => SESSION_COOKIE_SECURE,
+            'httponly' => SESSION_COOKIE_HTTPONLY,
+            'samesite' => SESSION_COOKIE_SAMESITE,
+        ]);
+    }
+    
+    private static function clearRememberCookie() {
+        if (!isset($_COOKIE['remember_token'])) return;
+        setcookie('remember_token', '', [
+            'expires'  => time() - 3600,
+            'path'     => '/',
+            'secure'   => SESSION_COOKIE_SECURE,
+            'httponly' => SESSION_COOKIE_HTTPONLY,
+            'samesite' => SESSION_COOKIE_SAMESITE,
+        ]);
+    }
+
+    /**
+     * Ordered auth gate for every request. Order matters:
+     *   1. valid session            -> continue
+     *   2. stale/hijacked session   -> wipe session data ONLY, then try remember-me rescue
+     *   3. no session + remember    -> try remember-me
+     *   4. rescued?                 -> continue (fresh token already issued)
+     *   5. had session, unrescuable -> redirect ?session=expired (legacy UX preserved)
+     *   6. plain guest              -> fall through; requireLogin()/requireUserType() gate protected pages
+     *
+     * Replaces the previous inline blocks which ran the expiry bail FIRST,
+     * destroying the remember cookie before auto-login could ever fire.
+     */
+    public static function boot() {
+        $hadSession = self::isLoggedIn();
+        $valid      = $hadSession ? self::isSessionValid() : false;
+
+        if ($valid) return;
+
+        if ($hadSession) {
+            self::destroySession();
+        }
+
+        if (isset($_COOKIE['remember_token'])) {
+            if (self::verifyRememberToken($_COOKIE['remember_token'])) return;
+            self::clearRememberCookie();
+        }
+
+        if (!$hadSession) return;
+
+        header('Location: ' . APP_URL . '/login.php?session=expired');
+        exit;
     }
     
 }
@@ -161,16 +257,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check and validate session on every page load
-if (Auth::isLoggedIn() && !Auth::isSessionValid()) {
-    Auth::logout();
-    header('Location: ' . APP_URL . '/login.php?session=expired');
-    exit;
-}
-
-// Auto-login with remember token if available
-if (!Auth::isLoggedIn() && isset($_COOKIE['remember_token'])) {
-    Auth::verifyRememberToken($_COOKIE['remember_token']);
-}
+// Ordered boot gate - see Auth::boot() for the control-flow contract.
+Auth::boot();
 
 ?>

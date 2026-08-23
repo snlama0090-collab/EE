@@ -148,4 +148,44 @@ $body = (string) curl_exec($ch);
 $http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 rep('27b. expired-variant login lands 200', $http === 200 && strpos($body, 'login-form') !== false, 'status='.$http);
+// 28-30b: Remember Me end-to-end (hash-at-rest, auto-login + rotation, replay kill,
+// tamper fail-closed, logout wipes all devices)
+$hdrs = [];
+$rt = tempnam(sys_get_temp_dir(), 'rt');
+$ch = curl_init("$BASE/api/auth/login.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_POST=>true,
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
+    CURLOPT_POSTFIELDS=>json_encode(['email'=>'driver1@example.com','password'=>'Test@123','user_type'=>'driver','remember'=>true]),
+    CURLOPT_COOKIEJAR=>$rt, CURLOPT_COOKIEFILE=>$rt,
+    CURLOPT_USERAGENT=>'IntegrationTest/1.0',
+    CURLOPT_HEADERFUNCTION=>function($c,$line) use (&$hdrs){ $hdrs[]=$line; return strlen($line); }]);
+$lr = json_decode(curl_exec($ch), true);
+curl_close($ch);
+$rawTok = null;
+foreach ($hdrs as $h) { if (preg_match('/^Set-Cookie: remember_token=([^;\r\n]+)/i', $h, $m)) $rawTok = $m[1]; }
+$drvId = $lr['data']['user_id'] ?? 0;
+$st = q($db, "SELECT token FROM remember_tokens WHERE user_id=? AND user_type='driver' ORDER BY id DESC LIMIT 1", [$drvId]);
+$isHash = $rawTok !== null && $st && hash('sha256', $rawTok) === $st[0]['token'];
+rep('28. remember login stores HASH (never raw)', $isHash, 'cookie='.substr((string)$rawTok,0,8).'... sha256-match='.var_export($isHash,true));
+$ch = curl_init("$BASE/public/dashboard/driver.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_COOKIE=>"remember_token=$rawTok", CURLOPT_USERAGENT=>'IntegrationTest/1.0']);
+curl_exec($ch); $http = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+$new = q($db, "SELECT token FROM remember_tokens WHERE user_id=? AND user_type='driver'", [$drvId]);
+$rotated = !empty($new) && $new[0]['token'] !== hash('sha256', $rawTok);
+rep('29. auto-login rescues + rotates token', $http === 200 && $rotated, 'status='.$http.' rotated='.var_export($rotated,true));
+$ch = curl_init("$BASE/public/dashboard/driver.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_COOKIE=>"remember_token=$rawTok", CURLOPT_USERAGENT=>'IntegrationTest/1.0']);
+curl_exec($ch); $http = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+rep('29b. replay of consumed token rejected', $http === 302, 'status='.$http);
+$fake = str_repeat('ab', 32);
+$ch = curl_init("$BASE/public/dashboard/driver.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_COOKIE=>"remember_token=$fake", CURLOPT_USERAGENT=>'IntegrationTest/1.0']);
+curl_exec($ch); $http = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+rep('30. tampered remember cookie fails closed', $http === 302, 'status='.$http);
+$cntBefore = (int)q($db, "SELECT COUNT(*) c FROM remember_tokens WHERE user_id=? AND user_type='driver'", [$drvId])[0]['c'];
+api('POST', "$BASE/api/auth/login.php", $rt, ['email'=>'driver1@example.com','password'=>'Test@123','user_type'=>'driver','remember'=>true]);
+api('GET', "$BASE/public/logout.php", $rt);
+$cntAfter = (int)q($db, "SELECT COUNT(*) c FROM remember_tokens WHERE user_id=? AND user_type='driver'", [$drvId])[0]['c'];
+rep('30b. logout wipes remembered devices', $cntBefore >= 1 && $cntAfter === 0, "rows_before=$cntBefore rows_after=$cntAfter");
+if (is_file($rt)) @unlink($rt);
 echo "DONE\n";

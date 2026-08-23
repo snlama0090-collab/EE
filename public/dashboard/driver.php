@@ -153,9 +153,9 @@ if (file_exists($profilePicAbsolute)) {
         let userLocation = { lat: 27.7172, lng: 85.3240 };
         let currentSection = '<?php echo $page; ?>';
 
-        function loadSection(sectionName) {
-            // Guard: do nothing if already on this section
-            if (currentSection === sectionName) return;
+        function loadSection(sectionName, force = false) {
+            // Guard: skip reload if already on this section (unless forced)
+            if (!force && currentSection === sectionName) return;
 
             // Stop polling when switching sections to avoid stale network strain
             stopPolling();
@@ -485,7 +485,7 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert('Payment confirmed! Your booking is reserved — show up and the station will start your session.', 'success');
-                    loadSection('bookings');
+                    loadSection('bookings', true);
                     startPollingIfNeeded();
                 } else {
                     showAlert(result.message || 'Payment confirmation failed.', 'error');
@@ -579,7 +579,7 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert('Payment confirmed! Charging session started.', 'success');
-                    loadSection('bookings');
+                    loadSection('bookings', true);
                     startPollingIfNeeded();
                 } else {
                     showAlert(result.message || 'Failed to start charging.', 'error');
@@ -590,6 +590,8 @@ if (file_exists($profilePicAbsolute)) {
         }
 
         // --- shared countdown helper ---
+        let countdownIntervals = [];
+
         function startCountdown(targetIso, element, onExpire) {
             function tick() {
                 const diff = new Date(targetIso.replace(' ', 'T') + '+05:45').getTime() - Date.now();
@@ -603,11 +605,16 @@ if (file_exists($profilePicAbsolute)) {
                 element.textContent = m + ':' + String(s).padStart(2, '0');
             }
             tick();
-            return setInterval(tick, 1000);
+            const id = setInterval(tick, 1000);
+            countdownIntervals.push(id);
+            return id;
         }
 
         // Wire up countdowns when the bookings section loads
         function initCountdowns() {
+            // Clear any previous countdown intervals so reloads don't stack timers
+            countdownIntervals.forEach(clearInterval);
+            countdownIntervals = [];
             document.querySelectorAll('.countdown[data-countdown-to]').forEach(el => {
                 const target = el.dataset.countdownTo;
                 if (!target) return;
@@ -636,7 +643,7 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert('Charging stopped. No refund issued.', 'info');
-                    loadSection('bookings');
+                    loadSection('bookings', true);
                 } else {
                     showAlert(result.message || 'Failed to stop charging.', 'error');
                 }
@@ -682,7 +689,7 @@ if (file_exists($profilePicAbsolute)) {
                         stopPolling();
                         // Timer hit zero — reload section to get completed template
                         if (currentSection === 'bookings' || currentSection === 'dashboard') {
-                            loadSection(currentSection);
+                            loadSection(currentSection, true);
                         }
                         return;
                     }
@@ -720,7 +727,7 @@ if (file_exists($profilePicAbsolute)) {
                             // Timer expired — trigger reload
                             stopPolling();
                             if (currentSection === 'bookings' || currentSection === 'dashboard') {
-                                loadSection(currentSection);
+                                loadSection(currentSection, true);
                             }
                         }
                     });
@@ -770,7 +777,7 @@ if (file_exists($profilePicAbsolute)) {
                 
                 if (result.status === 'success') {
                     showAlert('Reservation cancelled successfully.', 'success');
-                    loadSection('bookings');
+                    loadSection('bookings', true);
                 } else {
                     showAlert(result.message || 'Failed to cancel reservation.', 'error');
                 }

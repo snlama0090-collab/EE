@@ -80,4 +80,3 @@ $active_sessions = $stmt->fetch()['active'] ?? 0;
         </table>
     </div>
 </div>
-</write_to_file>

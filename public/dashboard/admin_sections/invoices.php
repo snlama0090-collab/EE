@@ -78,4 +78,3 @@ $invoices = $stmt->fetchAll();
         <div class="rows-select">Showing <?php echo count($invoices); ?> results</div>
     </div>
 </div>
-</write_to_file>

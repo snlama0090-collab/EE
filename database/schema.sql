@@ -419,6 +419,25 @@ CREATE TABLE login_attempts (
     INDEX idx_ip_time (ip_address, attempted_at)
 );
 
+-- ===== 17. SUPPORT TICKETS TABLE (driver/owner <-> admin help desk) =====
+CREATE TABLE support_tickets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_type VARCHAR(20) NOT NULL,
+    user_id INT NOT NULL,
+    category VARCHAR(30) NOT NULL DEFAULT 'general',
+    subject VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    status ENUM('open','in_progress','resolved') NOT NULL DEFAULT 'open',
+    admin_id INT NULL,
+    admin_reply TEXT NULL,
+    replied_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_user (user_type, user_id),
+    INDEX idx_status_created (status, created_at)
+);
+
 -- ===== SAMPLE DATA (for testing) =====
 
 -- Insert sample users

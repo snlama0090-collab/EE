@@ -28,4 +28,3 @@ $db = getDB();
         <button class="btn btn-primary btn-sm" disabled><i class="fas fa-user-plus"></i> Invite Team Member</button>
     </div>
 </div>
-</write_to_file>

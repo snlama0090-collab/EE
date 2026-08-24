@@ -100,4 +100,3 @@ $bookings = $stmt->fetchAll();
         <div class="rows-select">Showing <?php echo count($bookings); ?> results</div>
     </div>
 </div>
-</write_to_file>

@@ -1030,7 +1030,6 @@ Failed logins are now throttled via `app/helpers/LoginThrottle.php` backed by th
 ---
 
 ## 13. CSRF Protection — Session-Bound Tokens (2026-08-24)
-
 Every authenticated state-changing endpoint now requires a per-session token:
 
 - **Minting:** `Auth::startSession()` sets `$_SESSION['csrf_token'] = generate_token(32)` — one choke point covers password login, remember-me rescue, and OAuth. Rotates per identity establishment, not per request (multi-tab/back-button safe).
@@ -1049,3 +1048,16 @@ Every authenticated state-changing endpoint now requires a per-session token:
 | GET endpoints (`stats.php`, `nearby-stations.php`, all reads) | Out of scope by definition | CSRF targets state changes. |
 
 Regression coverage: integration suite checks 38–43 (meta-token delivery through real shell HTML, valid-token acceptance, missing/tampered rejection with distinct message, foreign-session token binding, login-without-token regression, GET scope guard).
+
+---
+
+## 14. Support Ticket System (2026-08-24)
+
+Working help-desk loop across all three dashboards, deliberately minimal:
+
+- **Schema §17 `support_tickets`** — driver/owner-submitted tickets (`category`/`subject`/`message`), single admin response field (`admin_reply` + `admin_id`/`replied_at`), lifecycle `open → in_progress → resolved` mirroring the bookings-style pattern. Threads/attachments/SLA deliberately deferred.
+- **`api/support.php`** — role-aware endpoint: GET returns own tickets (driver/owner) or the full queue with submitter identity (admin, optional `?status=` filter); POST actions `create` (driver/owner), `reply`, and `set_status` (admin). Every POST passes `Csrf::validate()`; every read — including `?id=` fetches — enforces submitter ownership, so ticket-ID guessing yields 404.
+- **Section UIs are server-rendered**: `loadSection()` refetches section HTML on every navigation, so lists are always fresh with zero rendering JS. Driver/owner get a submission form plus their own ticket cards (status badges, admin replies highlighted); admin gets a triage queue with status-filter chips, per-ticket reply box, and Mark-Resolved. The former static stubs' stray `</write_to_file>` debris lines were removed codebase-wide (14 lines / 13 files).
+- **Notifications reuse:** new tickets insert an `activity_logs` bell row visible to admins; admin replies insert one scoped to the submitter via the extended `Notifications::scope()` (drivers matched through a `support_tickets` EXISTS clause; owners via the existing `owner_id` column).
+
+Regression coverage: integration suite checks 49–57 — creation by both roles, bidirectional list scoping, cross-ID read/reply rejection, missing-CSRF 403, admin visibility + reply (status advance + bell row asserted in DB), resolve transition, guest redirect. Teardown wipes support rows and the disposable test-admin.

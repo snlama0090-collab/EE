@@ -83,4 +83,3 @@ $total_pending = $stmt->fetch()['total_pending'];
         <div class="rows-select">Showing <?php echo count($invoices); ?> results</div>
     </div>
 </div>
-</write_to_file>

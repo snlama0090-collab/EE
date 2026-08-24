@@ -14,8 +14,9 @@ class Notifications
     {
         if ($user_type === 'driver') {
             return [
-                "al.resource_type = 'booking' AND EXISTS (SELECT 1 FROM bookings b WHERE b.id = al.resource_id AND b.user_id = :uid)",
-                [':uid' => $user_id]
+                "((al.resource_type = 'booking' AND EXISTS (SELECT 1 FROM bookings b WHERE b.id = al.resource_id AND b.user_id = :uid))" .
+                " OR (al.resource_type = 'support_ticket' AND EXISTS (SELECT 1 FROM support_tickets st WHERE st.id = al.resource_id AND st.user_id = :uid2)))",
+                [':uid' => $user_id, ':uid2' => $user_id]
             ];
         }
         if ($user_type === 'owner') {

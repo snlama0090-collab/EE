@@ -1,4 +1,5 @@
 <?php
+echo 'VERSION=UNIFIED_2026_08_24 FILE=' . __FILE__ . "\n";
 /**
  * END-TO-END INTEGRATION TEST — DESTRUCTIVE / WRITES TO LIVE DATABASE
  * ================================================================
@@ -132,9 +133,13 @@ rep('24. mark_all_read driver', $mr['status']==='success' && ($mr['data']['unrea
 // 24b: on-open behavior fires this repeatedly — second consecutive call must stay clean
 $mr2 = api('POST', "$BASE/api/notifications.php", $dc, ['action'=>'mark_all_read']);
 rep('24b. mark_all_read idempotent (on-open repeat)', $mr2['status']==='success' && ($mr2['data']['unread_count']??-1)===0, json_encode($mr2));
-$drv = q($db, "SELECT COUNT(*) AS c FROM activity_logs WHERE user_id=? AND is_read=0", [$drvId]);
-$own = q($db, "SELECT COUNT(*) AS c FROM activity_logs WHERE owner_id=1 AND is_read=0");
-rep('25. cross-role isolation', (int)$drv[0]['c']===0 && (int)$own[0]['c']===$ownerUnreadBefore, 'driverUnread='.$drv[0]['c'].' ownerUnread='.$own[0]['c'].' (before='.$ownerUnreadBefore.')');
+// 25: cross-role isolation measured THROUGH the product's own scoping (API unread counts),
+// so legacy unscoped rows (e.g. old google_login entries) can't produce false positives
+$noD2 = api('GET', "$BASE/api/notifications.php", $dc);
+$noO2 = api('GET', "$BASE/api/notifications.php", $oc);
+$dU = (int)($noD2['data']['unread_count'] ?? -1);
+$oU = (int)($noO2['data']['unread_count'] ?? -1);
+rep('25z. cross-role isolation (scoped)', $dU === 0 && $oU === $ownerUnreadBefore, "driverUnread=$dU ownerUnread=$oU (before=$ownerUnreadBefore)");
 // 26: clear is mark-as-read, never delete
 $total = q($db, "SELECT COUNT(*) AS c FROM activity_logs");
 rep('26. non-destructive', (int)$total[0]['c'] > 0, 'total_rows='.$total[0]['c']);
@@ -338,8 +343,72 @@ rep('47b. owner non-digit bank rejected', $ok, json_encode($r));
 rep('48. valid payload clears all rules -> reaches OTP gate', $ok48 && ($r48['status'] ?? '') === 'error', json_encode($r48));
 @unlink($rj);
 
-// Teardown: empty the throttle table so later suite runs and manual logins aren't blocked
+// ===== 49-57: SUPPORT TICKETS (driver/owner submit; admin queue, reply, status) =====
+$adminHash = password_hash('AdminTest@123', PASSWORD_BCRYPT);
+$db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 'super_admin')
+              ON DUPLICATE KEY UPDATE password = VALUES(password)")
+   ->execute(['supporttest-admin@evcharge.com', $adminHash, 'Support Test Admin']);
+$ac = __DIR__ . '/ac.txt';
+@unlink($ac);
+api('POST', "$BASE/api/auth/login.php", $ac, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+csrfFor($BASE, $ac, 'public/dashboard/admin.php');
+
+$r49 = api('POST', "$BASE/api/support.php", $dc, ['action' => 'create', 'category' => 'booking', 'subject' => 'Integration ticket A', 'message' => 'Driver needs help']);
+$tidA = intval($r49['data']['ticket_id'] ?? 0);
+rep('49. driver creates ticket', ($r49['status'] ?? '') === 'success' && $tidA > 0, json_encode($r49));
+
+$r50 = api('POST', "$BASE/api/support.php", $oc, ['action' => 'create', 'category' => 'payment', 'subject' => 'Integration ticket B', 'message' => 'Owner payout question']);
+$tidO = intval($r50['data']['ticket_id'] ?? 0);
+rep('50. owner creates ticket', ($r50['status'] ?? '') === 'success' && $tidO > 0, json_encode($r50));
+
+$listD = api('GET', "$BASE/api/support.php", $dc)['data']['tickets'];
+$listO = api('GET', "$BASE/api/support.php", $oc)['data']['tickets'];
+$idsD = array_column($listD, 'id'); $idsO = array_column($listO, 'id');
+$t51a = in_array($tidA, $idsD) && !in_array($tidO, $idsD);
+rep('51a. driver list scoped', $t51a, json_encode($idsD));
+$t51b = in_array($tidO, $idsO) && !in_array($tidA, $idsO);
+rep('51b. owner list scoped', $t51b, json_encode($idsO));
+
+$r52 = api('GET', "$BASE/api/support.php?id=$tidA", $oc);
+rep('52. cross-id read rejected', ($r52['status'] ?? '') === 'error' && strpos($r52['message'] ?? '', 'not found') !== false, json_encode($r52));
+
+$r53 = api('POST', "$BASE/api/support.php", $oc, ['action' => 'reply', 'ticket_id' => $tidA, 'reply' => 'hijack']);
+rep('53. cross-user reply rejected', ($r53['status'] ?? '') === 'error' && strpos($r53['message'] ?? '', 'Only admins') !== false, json_encode($r53));
+
+// 54 missing CSRF: unprimed fresh driver session
+$dz = __DIR__ . '/dz.txt'; @unlink($dz);
+api('POST', "$BASE/api/auth/login.php", $dz, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+$r54raw = tpost("$BASE/api/support.php", ['action' => 'create', 'subject' => 'x', 'message' => 'y'], null, $dz);
+rep('54. missing CSRF -> distinct 403', $r54raw[0] === 403 && strpos($r54raw[1]['message'] ?? '', 'Invalid security token') !== false, 'http=' . $r54raw[0]);
+@unlink($dz);
+
+$listA = api('GET', "$BASE/api/support.php", $ac)['data']['tickets'];
+$idsA = array_column($listA, 'id');
+$names = array_column($listA, 'submitter_name');
+$t55a = in_array($tidA, $idsA) && in_array($tidO, $idsA);
+rep('55a. admin sees ALL tickets', $t55a, json_encode($idsA));
+
+$r55 = api('POST', "$BASE/api/support.php", $ac, ['action' => 'reply', 'ticket_id' => $tidA, 'reply' => 'Fixed the booking issue.']);
+$row55 = q($db, "SELECT admin_reply, status FROM support_tickets WHERE id = ?", [$tidA])[0];
+$notif = (int)q($db, "SELECT COUNT(*) c FROM activity_logs WHERE resource_type='support_ticket' AND resource_id=? AND user_id IS NOT NULL", [$tidA])[0]['c'];
+rep('55b. reply stored + status advanced + bell row', ($r55['status'] ?? '') === 'success' && $row55['status'] === 'in_progress' && $row55['admin_reply'] !== null && $notif >= 1,
+    json_encode($row55) . " notif=$notif");
+
+$r56 = api('POST', "$BASE/api/support.php", $ac, ['action' => 'set_status', 'ticket_id' => $tidA, 'status' => 'resolved']);
+$row56 = q($db, "SELECT status FROM support_tickets WHERE id = ?", [$tidA])[0];
+rep('56. set_status resolved', ($r56['status'] ?? '') === 'success' && $row56['status'] === 'resolved', json_encode($row56));
+
+$guestJar = __DIR__ . '/gj.txt'; @unlink($guestJar);
+$r57 = tpost("$BASE/api/support.php", ['action' => 'create', 'subject' => 'anon', 'message' => 'anon'], null, $guestJar);
+rep('57. guest POST redirected (no session)', $r57[0] === 302, 'http=' . $r57[0]);
+@unlink($guestJar);
+
+$db->prepare("DELETE FROM support_tickets")->execute();
+$db->prepare("DELETE FROM admins WHERE email = ?")->execute(['supporttest-admin@evcharge.com']);
+
+// Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
+q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");
 $left = (int)q($db, "SELECT COUNT(*) c FROM login_attempts")[0]['c'];
 rep('teardown. login_attempts emptied for next run', $left === 0, "rows_left=$left");
 

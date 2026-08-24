@@ -141,4 +141,3 @@ $active_sessions = $stmt->fetch()['total'];
         <div class="stat-subtitle">Awaiting moderation</div>
     </div>
 </div>
-</write_to_file>

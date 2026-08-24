@@ -136,5 +136,3 @@ $pending_stations = $stmt->fetchAll();
         </div>
     </div>
 </div>
-</write_to_file>
-</write_to_file>

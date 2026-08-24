@@ -31,4 +31,3 @@ $owner = $stmt->fetch();
     <h3 style="margin-bottom:16px;"><i class="fas fa-sliders-h"></i> Station Preferences</h3>
     <p style="color:var(--gray);font-size:13px;">Configure default pricing, operating hours, and other station-level settings from the <a href="#" onclick="loadSection('stations');return false;" style="color:var(--primary);">My Stations</a> section.</p>
 </div>
-</write_to_file>

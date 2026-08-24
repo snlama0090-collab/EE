@@ -77,6 +77,11 @@ define('API_RATE_LIMIT_ENABLED', true);
 define('API_RATE_LIMIT_REQUESTS', 100); // requests per hour
 define('API_RATE_LIMIT_WINDOW', 3600); // 1 hour in seconds
 
+// ===== LOGIN THROTTLING (brute-force protection, enforced by app/helpers/LoginThrottle.php) =====
+define('LOGIN_MAX_ATTEMPTS', 5);      // failed logins per email+IP before that pair locks out
+define('LOGIN_IP_MAX_ATTEMPTS', 20);  // failed logins per IP across ALL emails (spray net)
+define('LOGIN_LOCKOUT_WINDOW', 900);  // lockout window in seconds (shared by both layers)
+
 // ===== LOGGING CONFIGURATION =====
 define('LOG_LEVEL', 'INFO'); // DEBUG, INFO, WARNING, ERROR
 define('LOG_PATH', LOGS_PATH . '/app.log');

@@ -406,9 +406,16 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                 });
                 clearTimeout(timeout);
 
-                if (!response.ok) { throw new Error('HTTP ' + response.status); }
+                // Server responded non-2xx but with a real JSON body (e.g. 429 throttle):
+                // surface its message instead of faking a network error. Genuine
+                // connectivity failures still fall through to the catch below.
+                var data = await response.json().catch(function () { return null; });
 
-                var data = await response.json();
+                if (!response.ok) {
+                    showToast((data && data.message) || ('Server error (HTTP ' + response.status + ')'), 'error');
+                    smoothResetBtn();
+                    return;
+                }
 
                 if (data.status === 'success') {
                     // Fade out body before navigating

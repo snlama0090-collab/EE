@@ -188,4 +188,86 @@ api('GET', "$BASE/public/logout.php", $rt);
 $cntAfter = (int)q($db, "SELECT COUNT(*) c FROM remember_tokens WHERE user_id=? AND user_type='driver'", [$drvId])[0]['c'];
 rep('30b. logout wipes remembered devices', $cntBefore >= 1 && $cntAfter === 0, "rows_before=$cntBefore rows_after=$cntAfter");
 if (is_file($rt)) @unlink($rt);
+
+// ===== 31-37: LOGIN THROTTLING (two-layer brute-force protection) =====
+// SEMANTICS (user-approved): thresholds are COUNT(*) >= N evaluated BEFORE the current
+// failed attempt is recorded, so N wrong attempts execute and request N+1 is the FIRST
+// 429 (standard rate-limit semantics; test wording fixed accordingly).
+// LIMITATION: cross-IP isolation cannot be exercised from this single-host suite —
+// every HTTP request originates from this host's single loopback IP, so only its lockout behavior is
+// runtime-tested; that genuinely different IPs stay unaffected follows from the
+// `ip_address = ?` WHERE clauses (verified by code review), not an executed case.
+function treq($u, $p) {
+    $h = [];
+    $ch = curl_init($u);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_POSTFIELDS => json_encode($p),
+        CURLOPT_HEADERFUNCTION => function ($c, $l) use (&$h) { $h[] = $l; return strlen($l); }]);
+    $b = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    $ra = null;
+    foreach ($h as $x) { if (preg_match('/^Retry-After:\s*(\d+)/i', $x, $m)) $ra = (int)$m[1]; }
+    return [$code, json_decode((string)$b, true), $ra];
+}
+$LI = "$BASE/api/auth/login.php";
+q($db, "DELETE FROM login_attempts");
+// Discover the loopback IP exactly as Apache records it ('::1' on IPv6 hosts, '127.0.0.1' elsewhere)
+treq($LI, ['email' => 'ip-probe@example.com', 'password' => 'zz', 'user_type' => 'driver']);
+$TEST_IP = (string)(q($db, "SELECT ip_address FROM login_attempts WHERE email=? LIMIT 1", ['ip-probe@example.com'])[0]['ip_address'] ?? '');
+q($db, "DELETE FROM login_attempts WHERE email=?", ['ip-probe@example.com']); // probe row must not skew budgets
+// 31: legit login works at zero prior failures
+$r = treq($LI, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+rep('31. legit login at zero prior failures', $r[0] === 200 && ($r[1]['status'] ?? '') === 'success', 'http=' . $r[0]);
+// 32: five wrong passwords on one email all execute; SIXTH request is the first 429 (Layer 1)
+$codes = [];
+for ($i = 1; $i <= 5; $i++) { $codes[] = treq($LI, ['email' => 'driver1@example.com', 'password' => "wrong$i", 'user_type' => 'driver'])[0]; }
+$r6 = treq($LI, ['email' => 'driver1@example.com', 'password' => 'wrong6', 'user_type' => 'driver']);
+rep('32. after 5 recorded fails, 6th req = 429 + Retry-After 900 (Layer 1)',
+    $codes === [200, 200, 200, 200, 200] && $r6[0] === 429 && $r6[2] === 900 && strpos($r6[1]['message'] ?? '', 'Too many login attempts') !== false,
+    'burst=' . implode(',', $codes) . ' 6th_http=' . $r6[0] . ' retry_after=' . var_export($r6[2], true));
+// 32b: the 429 body must parse STANDALONE into the exact shape the login page JS renders
+rep('32b. 429 body parses standalone (shape the UI toasts)',
+    is_array($r6[1]) && ($r6[1]['status'] ?? '') === 'error' && ($r6[1]['message'] ?? '') === 'Too many login attempts. Please try again later.',
+    'decoded=' . json_encode($r6[1]));
+// 33: CORRECT password submitted while pair-locked -> still 429 (lockout wins over valid creds)
+$r = treq($LI, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+rep('33. valid creds still 429 while pair-locked', $r[0] === 429, 'http=' . $r[0]);
+// 34: simulate window expiry by directly deleting the pair rows via PDO -> correct login succeeds
+q($db, "DELETE FROM login_attempts WHERE email=? AND ip_address=?", ['driver1@example.com', $TEST_IP]);
+$r = treq($LI, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+rep('34. window-expiry sim -> correct login succeeds', $r[0] === 200 && ($r[1]['status'] ?? '') === 'success', 'http=' . $r[0]);
+// 35: successful login reset the pair counter -> FULL budget again (five executes, sixth locks)
+$codes = [];
+for ($i = 1; $i <= 5; $i++) { $codes[] = treq($LI, ['email' => 'driver1@example.com', 'password' => "wrong$i", 'user_type' => 'driver'])[0]; }
+$r6 = treq($LI, ['email' => 'driver1@example.com', 'password' => 'wrong6', 'user_type' => 'driver']);
+rep('35. post-reset budget is full (not partially counted)', $codes === [200, 200, 200, 200, 200] && $r6[0] === 429,
+    'burst=' . implode(',', $codes) . ' 6th_http=' . $r6[0]);
+// 36: password SPRAY — many distinct emails, one IP. IP-wide total starts at 5 (from 35);
+// push it to exactly 20 with 15 more real-HTTP failures across distinct fake emails...
+$sprayCodes = [];
+for ($i = 1; $i <= 15; $i++) { $sprayCodes[] = treq($LI, ['email' => "spray$i@example.com", 'password' => 'guess', 'user_type' => 'driver'])[0]; }
+$ipTotal = (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE ip_address=?", [$TEST_IP])[0]['c'];
+// ...then a BRAND NEW, never-before-tried email from the same IP must be instantly 429'd (Layer 2)
+$r = treq($LI, ['email' => 'fresh-face@example.com', 'password' => 'whatever', 'user_type' => 'driver']);
+rep('36. spray fills IP net; brand-new email instant 429 (Layer 2)',
+    $sprayCodes === array_fill(0, 15, 200) && $ipTotal === 20 && $r[0] === 429,
+    'spray=' . implode(',', $sprayCodes) . " ip_total=$ipTotal fresh_http={$r[0]}");
+// 37: prove Layer 2 ALONE blocks correct creds. Purge driver1's pair rows first, then
+// top the IP-wide net back up to 20 rows held entirely by OTHER (fake) emails — mirroring
+// an attacker whose spray failures sit in the table regardless of the victim's own state.
+q($db, "DELETE FROM login_attempts WHERE email=? AND ip_address=?", ['driver1@example.com', $TEST_IP]);
+$have = (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE ip_address=?", [$TEST_IP])[0]['c'];
+$fill = $db->prepare("INSERT INTO login_attempts (email, ip_address, user_type) VALUES (?, ?, 'driver')");
+for ($i = $have + 1; $i <= 20; $i++) { $fill->execute(["netfill$i@example.com", $TEST_IP]); }
+$r = treq($LI, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+rep('37. coarse IP net overrides valid creds (pure Layer 2)', $r[0] === 429,
+    'http=' . $r[0] . ' pair_rows=' . (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE email=?", ['driver1@example.com'])[0]['c']
+    . ' other_email_rows=' . (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE ip_address=? AND email<>?", [$TEST_IP, 'driver1@example.com'])[0]['c']);
+// Teardown: empty the throttle table so later suite runs and manual logins aren't blocked
+q($db, "DELETE FROM login_attempts");
+$left = (int)q($db, "SELECT COUNT(*) c FROM login_attempts")[0]['c'];
+rep('teardown. login_attempts emptied for next run', $left === 0, "rows_left=$left");
+
 echo "DONE\n";

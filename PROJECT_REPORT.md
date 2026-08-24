@@ -50,7 +50,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 | **Nominatim (OpenStreetMap)** | Reverse geocoding for location detection | REST API |
 | **Razorpay** | Payment processing (schema references `razorpay_order_id`, `razorpay_payment_id` — not yet fully wired in frontend) | Schema-level only |
 
-### Database Schema Overview (14 tables)
+### Database Schema Overview (16 tables)
 
 ```
 users ──┬── favorites
@@ -243,9 +243,11 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 **Key Logic:**
 - Line 33-41: Routes query to `users`, `owners`, or `admins` table depending on `user_type`
+- Lines 34-42: `LoginThrottle::check()` brute-force gate runs BEFORE the credential query — returns HTTP 429 + `Retry-After: 900` when either layer trips, with a body identical whether or not the account exists (no enumeration leak)
 - Line 47: `verify_password($password, $user['password'])` via bcrypt
 - Line 54: `Auth::startSession($user['id'], $user_type, $remember)`
-- Line 48: Failed attempts logged via `log_message('WARNING', ...)`
+- On success: `LoginThrottle::reset($db, $email, $ip)` clears only this email+IP pair's failure rows
+- Line 48: Failed attempts logged via `log_message('WARNING', ...)` plus `LoginThrottle::recordFailure()` into `login_attempts`
 
 ### 5.4 `api/auth/register.php`
 
@@ -470,10 +472,11 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 3. API HANDLES AUTHENTICATION
    File: api/auth/login.php
    - Reads JSON input, sanitizes fields
+   - Brute-force gate FIRST: LoginThrottle::check() — if either layer trips → HTTP 429 + Retry-After: 900, identical response regardless of account existence or credential validity
    - Routes query to correct table based on user_type (users/owners/admins) — line 33-42
    - Executes: SELECT id, password, name FROM {table} WHERE email = ? AND status = 'active'
-   - If no user found OR verify_password() fails → logs warning, returns { status: 'error', message: 'Invalid credentials' }
-   - If success → calls Auth::startSession($user['id'], $user_type, $remember) — line 54
+   - If no user found OR verify_password() fails → logs warning, records failure row, returns { status: 'error', message: 'Invalid credentials' }
+   - If success → calls Auth::startSession($user['id'], $user_type, $remember) — line 54, then resets this email+IP pair's throttle counter
 
 4. SESSION IS ESTABLISHED
    File: app/helpers/Auth.php → startSession() (line 14)
@@ -1005,3 +1008,18 @@ The Remember Me checkbox was previously non-functional end-to-end: the token was
 - **Cookie flags** — HttpOnly + SameSite=Lax; `secure` intentionally `false` while on `http://localhost` (browsers drop Secure cookies over plain HTTP) — **must flip `SESSION_COOKIE_SECURE` when HTTPS is deployed**.
 
 Regression coverage: integration suite checks 27–30b (unauthenticated/expired redirect targets, hash-at-rest proof, auto-login + rotation, replay rejection, tampered-token fail-closed, logout wipe).
+
+---
+
+## 12. Login Rate Limiting — Two-Layer Brute-Force Protection (2026-08-24)
+
+Failed logins are now throttled via `app/helpers/LoginThrottle.php` backed by the new `login_attempts` table (`database/schema.sql` §16):
+
+- **Layer 1 (email+IP pair):** ≥ `LOGIN_MAX_ATTEMPTS` (5) failures within `LOGIN_LOCKOUT_WINDOW` (900s) locks that pair.
+- **Layer 2 (spray net):** ≥ `LOGIN_IP_MAX_ATTEMPTS` (20) failures across ALL emails from one IP locks the entire IP — catches multi-account password spraying.
+- **Semantics:** thresholds are `COUNT(*) >= N` evaluated BEFORE the current failed attempt is recorded, so N wrong tries execute and request N+1 is the first 429 (approved interpretation of the design's off-by-one wording).
+- Locked requests get HTTP 429 + `Retry-After: 900` and an account-existence-neutral body, whichever layer tripped and whether or not the submitted credentials were valid.
+- Identity source is raw `$_SERVER['REMOTE_ADDR']` only — X-Forwarded-For is client-spoofable. Scope is `api/auth/login.php` exclusively; `google.php` untouched (OAuth abuse handled upstream).
+- Successful login resets ONLY that email+IP pair's rows (never IP-wide — a reset must never launder an attacker's spray rows against other emails); every `check()` also lazily purges rows older than the window (no cron needed).
+- Successes remain tracked only in `logs/app.log`; the table counts failures exclusively.
+- Regression coverage: integration suite checks 31–37 + self-cleaning teardown (legit login at zero failures, pair lockout on 6th request, valid creds still blocked while locked, PDO-simulated window expiry, full-budget-after-reset proof, 20-row spray causing instant 429 of a brand-new email, pure-Layer-2 block of correct credentials). Cross-IP isolation is not runtime-testable from a single-host suite — covered by code review of the `ip_address = ?` WHERE clauses only.

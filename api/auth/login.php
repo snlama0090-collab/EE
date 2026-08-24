@@ -2,6 +2,7 @@
 header('Content-Type: application/json');
 require_once '../../app/config/config.php';
 require_once '../../app/helpers/Auth.php';
+require_once '../../app/helpers/LoginThrottle.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -30,6 +31,16 @@ if (!validate_email($email) || empty($password)) {
 try {
     $db = getDB();
     
+    // Brute-force gate BEFORE credential lookup: identical response whether or not the account exists.
+    // Raw REMOTE_ADDR only - X-Forwarded-For is client-spoofable (identity rotation).
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    if (LoginThrottle::check($db, $email, $ip)) {
+        header('Retry-After: ' . LOGIN_LOCKOUT_WINDOW);
+        http_response_code(429);
+        echo json_encode(['status' => 'error', 'message' => 'Too many login attempts. Please try again later.']);
+        exit;
+    }
+    
     if ($user_type === 'driver') {
         $stmt = $db->prepare("SELECT id, password, name FROM users WHERE email = ? AND status = 'active'");
     } elseif ($user_type === 'owner') {
@@ -46,12 +57,16 @@ try {
     
     if (!$user || !verify_password($password, $user['password'])) {
         log_message('WARNING', "Failed login attempt for $email ($user_type)");
+        LoginThrottle::recordFailure($db, $email, $ip, $user_type);
         echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
         exit;
     }
     
     // Start session
     Auth::startSession($user['id'], $user_type, $remember);
+    
+    // Success clears ONLY this email+IP pair's failures (never IP-wide)
+    LoginThrottle::reset($db, $email, $ip);
     
     echo json_encode([
         'status' => 'success',

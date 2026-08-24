@@ -407,6 +407,18 @@ CREATE TABLE remember_tokens (
     INDEX idx_token (token)
 );
 
+-- ===== 16. LOGIN ATTEMPTS TABLE (for brute-force rate limiting) =====
+CREATE TABLE login_attempts (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_type VARCHAR(20) NOT NULL,
+    attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_email_ip_time (email, ip_address, attempted_at),
+    INDEX idx_ip_time (ip_address, attempted_at)
+);
+
 -- ===== SAMPLE DATA (for testing) =====
 
 -- Insert sample users

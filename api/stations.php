@@ -3,6 +3,7 @@ header('Content-Type: application/json');
 require_once '../app/config/config.php';
 require_once '../app/helpers/Auth.php';
 require_once '../app/helpers/Location.php';
+require_once '../app/helpers/Csrf.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 $db = getDB();
@@ -185,6 +186,8 @@ try {
         $user_id = Auth::getCurrentUserId();
         $user_type = Auth::getCurrentUserType();
         
+        Csrf::validate();
+
         // 1. Admin Actions (Approve/Reject)
         if ($user_type === 'admin') {
             $action = sanitize($_GET['action'] ?? '');
@@ -320,6 +323,7 @@ try {
         
     } elseif ($method === 'PUT') {
         Auth::requireLogin();
+        Csrf::validate();
         $user_id = Auth::getCurrentUserId();
         $user_type = Auth::getCurrentUserType();
         
@@ -360,6 +364,7 @@ try {
         
     } elseif ($method === 'DELETE') {
         Auth::requireLogin();
+        Csrf::validate();
         $user_id = Auth::getCurrentUserId();
         $user_type = Auth::getCurrentUserType();
         

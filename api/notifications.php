@@ -8,6 +8,7 @@ header('Content-Type: application/json');
 require_once '../app/config/config.php';
 require_once '../app/helpers/Auth.php';
 require_once '../app/helpers/Notifications.php';
+require_once '../app/helpers/Csrf.php';
 
 Auth::requireLogin();
 
@@ -23,6 +24,7 @@ try {
     }
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        Csrf::validate();
         $input = json_decode(file_get_contents('php://input'), true);
         if (($input['action'] ?? '') !== 'mark_all_read') {
             http_response_code(400);

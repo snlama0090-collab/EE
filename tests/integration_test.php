@@ -21,14 +21,20 @@
 error_reporting(E_ALL); ini_set('display_errors', 1);
 $BASE='http://localhost/EE';
 $db=new PDO('mysql:host=localhost;dbname=ev_charging_db;charset=utf8mb4','root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
-function api($m,$u,$c,$p=null){$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$m,CURLOPT_HTTPHEADER=>['Content-Type: application/json'],CURLOPT_COOKIEJAR=>$c,CURLOPT_COOKIEFILE=>$c,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];if($p!==null)$o[CURLOPT_POSTFIELDS]=json_encode($p);curl_setopt_array($ch,$o);$r=curl_exec($ch);curl_close($ch);return json_decode($r,true);}
+$CSRF_TOKENS=[];
+function csrfFor($BASE,$jar,$dash){global $CSRF_TOKENS;if(isset($CSRF_TOKENS[$jar]))return $CSRF_TOKENS[$jar];$ch=curl_init("$BASE/$dash");curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$jar,CURLOPT_USERAGENT=>'IntegrationTest/1.0']);$h=(string)curl_exec($ch);curl_close($ch);preg_match('/name="csrf-token" content="([0-9a-f]{64})"/',$h,$m);return $CSRF_TOKENS[$jar]=($m[1]??'');}
+function api($m,$u,$c,$p=null){global $CSRF_TOKENS;$hdrs=['Content-Type: application/json'];if(strtoupper($m)!=='GET'&&isset($CSRF_TOKENS[$c]))$hdrs[]='X-CSRF-Token: '.$CSRF_TOKENS[$c];$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$m,CURLOPT_HTTPHEADER=>$hdrs,CURLOPT_COOKIEJAR=>$c,CURLOPT_COOKIEFILE=>$c,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];if($p!==null)$o[CURLOPT_POSTFIELDS]=json_encode($p);curl_setopt_array($ch,$o);$r=curl_exec($ch);curl_close($ch);return json_decode($r,true);}
 function q($db,$s,$p=[]){$st=$db->prepare($s);$st->execute($p);return $st->fetchAll();}
+// Minimal authed-POST helper shaped exactly like the verified standalone probe
+function tpost($u,$p,$tok,$jar){$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>'POST',CURLOPT_HTTPHEADER=>$tok===null?['Content-Type: application/json']:['Content-Type: application/json',"X-CSRF-Token: $tok"],CURLOPT_POSTFIELDS=>json_encode($p),CURLOPT_COOKIEJAR=>$jar,CURLOPT_COOKIEFILE=>$jar,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];curl_setopt_array($ch,$o);$r=curl_exec($ch);$c=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);return[$c,json_decode((string)$r,true)];}
 function rep($s,$p,$d){echo($p?"PASS":"FAIL")." | $s | $d\n";}
 $dc=__DIR__.'/dc.txt';$oc=__DIR__.'/oc.txt';@unlink($dc);@unlink($oc);
 $l=api('POST',"$BASE/api/auth/login.php",$dc,['email'=>'driver1@example.com','password'=>'Test@123','user_type'=>'driver']);
 rep('Login driver',$l['status']==='success',json_encode($l));
 $lo=api('POST',"$BASE/api/auth/login.php",$oc,['email'=>'owner1@example.com','password'=>'Test@123','user_type'=>'owner']);
 rep('Login owner',$lo['status']==='success',json_encode($lo));
+csrfFor($BASE,$dc,'public/dashboard/driver.php'); // prime per-session CSRF tokens for all later POSTs
+csrfFor($BASE,$oc,'public/dashboard/owner.php');
 // STEP 1
 $i=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_payment','charger_id'=>1]);
 rep('1. initiate_payment',$i['status']==='success'&&$i['data']['estimated_cost']==50,json_encode($i));
@@ -197,19 +203,22 @@ if (is_file($rt)) @unlink($rt);
 // every HTTP request originates from this host's single loopback IP, so only its lockout behavior is
 // runtime-tested; that genuinely different IPs stay unaffected follows from the
 // `ip_address = ?` WHERE clauses (verified by code review), not an executed case.
-function treq($u, $p) {
+function treq($u, $p, $extraHeaders = [], $jar = null) {
     $h = [];
     $ch = curl_init($u);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => 'POST',
+        CURLOPT_HTTPHEADER => array_merge(['Content-Type: application/json'], $extraHeaders),
         CURLOPT_POSTFIELDS => json_encode($p),
         CURLOPT_HEADERFUNCTION => function ($c, $l) use (&$h) { $h[] = $l; return strlen($l); }]);
+    if ($jar !== null) { curl_setopt($ch, CURLOPT_COOKIEJAR, $jar); curl_setopt($ch, CURLOPT_COOKIEFILE, $jar); }
+    curl_setopt($ch, CURLINFO_HEADER_OUT, true);
     $b = curl_exec($ch);
+    $reqOut = curl_getinfo($ch, CURLINFO_HEADER_OUT);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     $ra = null;
     foreach ($h as $x) { if (preg_match('/^Retry-After:\s*(\d+)/i', $x, $m)) $ra = (int)$m[1]; }
-    return [$code, json_decode((string)$b, true), $ra];
+    return [$code, json_decode((string)$b, true), $ra, $h, $reqOut];
 }
 $LI = "$BASE/api/auth/login.php";
 q($db, "DELETE FROM login_attempts");
@@ -265,6 +274,40 @@ $r = treq($LI, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'use
 rep('37. coarse IP net overrides valid creds (pure Layer 2)', $r[0] === 429,
     'http=' . $r[0] . ' pair_rows=' . (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE email=?", ['driver1@example.com'])[0]['c']
     . ' other_email_rows=' . (int)q($db, "SELECT COUNT(*) c FROM login_attempts WHERE ip_address=? AND email<>?", [$TEST_IP, 'driver1@example.com'])[0]['c']);
+
+// ===== 38-43: CSRF PROTECTION (session-bound token via X-CSRF-Token header) =====
+q($db, 'DELETE FROM login_attempts'); // keep throttle state from checks 32-37 out of this section
+// 42: every login in this suite sent no CSRF header and succeeded (see line-28 login result $lr)
+rep('42. login works without any CSRF token', ($lr['status'] ?? '') === 'success', json_encode($lr));
+// 38a: delivery path — token must appear as meta in the rendered dashboard shell HTML
+$ch = curl_init("$BASE/public/dashboard/driver.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$html = (string) curl_exec($ch);
+curl_close($ch);
+preg_match('/name="csrf-token" content="([0-9a-f]{64})"/', $html, $m);
+$tok = $m[1] ?? '';
+rep('38a. shell HTML delivers session-bound meta token', $tok !== '' && $tok === ($CSRF_TOKENS[$dc] ?? ''), 'len=' . strlen($tok) . ' matches_primed=' . var_export($tok === ($CSRF_TOKENS[$dc] ?? ''), true));
+// 38: valid token accepted on a state-changing endpoint
+$r38 = tpost("$BASE/api/notifications.php", ['action' => 'mark_all_read'], $tok, $dc);
+rep('38. valid token accepted', $r38[0] === 200 && ($r38[1]['status'] ?? '') === 'success', 'http=' . $r38[0]);
+// 39: missing token -> distinct 403 (not the generic error shape)
+$r39 = tpost("$BASE/api/notifications.php", ['action' => 'mark_all_read'], null, $dc);
+rep('39. missing token -> 403 + distinct message', $r39[0] === 403 && strpos($r39[1]['message'] ?? '', 'Invalid security token') !== false, 'http=' . $r39[0] . ' body=' . json_encode($r39[1]) . ' loc=' . json_encode(preg_grep('/^Location:/i', $r39[3] ?? [])));
+// 40: tampered token -> 403
+$tam = $tok !== '' ? substr($tok, 0, -1) . (substr($tok, -1) === 'a' ? 'b' : 'a') : 'deadbeef';
+$r40 = tpost("$BASE/api/notifications.php", ['action' => 'mark_all_read'], $tam, $dc);
+rep('40. tampered token -> 403', $r40[0] === 403, 'http=' . $r40[0]);
+// 41: cross-session binding — the OWNER session's perfectly valid token must fail on the DRIVER session
+$r41 = tpost("$BASE/api/notifications.php", ['action' => 'mark_all_read'], ($CSRF_TOKENS[$oc] ?? 'notoken'), $dc);
+rep('41. foreign-session token -> 403', $r41[0] === 403 && (($CSRF_TOKENS[$oc] ?? '') !== $tok), 'http=' . $r41[0]);
+// 43: scope guard — GET endpoints stay headerless-friendly
+$ch = curl_init("$BASE/api/stats.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$b43 = (string) curl_exec($ch);
+$c43 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+rep('43. GET stats unaffected by CSRF scope', $c43 === 200 && strpos($b43, '"success"') !== false, 'http=' . $c43);
+
 // Teardown: empty the throttle table so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 $left = (int)q($db, "SELECT COUNT(*) c FROM login_attempts")[0]['c'];

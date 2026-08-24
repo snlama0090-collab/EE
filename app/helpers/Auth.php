@@ -17,6 +17,9 @@ class Auth {
         $_SESSION['login_time'] = time();
         // Non-browser clients (curl) may omit User-Agent entirely - never warn into JSON bodies
         $_SESSION['user_agent'] = ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        // Fresh CSRF token on every identity establishment (login / remember-rescue / OAuth)
+        $_SESSION['csrf_token'] = generate_token(32);
+
         
         if ($remember) {
             self::setRememberCookie(self::generateRememberToken($user_id, $user_type));
@@ -254,6 +257,16 @@ class Auth {
 
 // Initialize session if not already done
 if (session_status() === PHP_SESSION_NONE) {
+    // Apply the configured cookie flags to the SESSION cookie itself — previously
+    // only the remember-me cookie honored these constants (audit gap).
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure'   => SESSION_COOKIE_SECURE,
+        'httponly' => SESSION_COOKIE_HTTPONLY,
+        'samesite' => SESSION_COOKIE_SAMESITE,
+    ]);
+
     session_start();
 }
 

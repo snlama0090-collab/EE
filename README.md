@@ -69,7 +69,7 @@ Honest "next steps" — the app is beyond prototype stage but not production-rea
 
 - 💳 **Payments are simulated** — no real gateway integration (Razorpay fields exist in schema but are unwired). #1 production blocker
 - 🏁 **Booking queue race condition** — double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
-- 🔒 **No CSRF protection** or login rate limiting on state-changing endpoints
+- 🔒 ~~No CSRF protection or login rate limiting~~ — **both shipped 2026-08-24**: two-layer login throttle (LOGIN_MAX_ATTEMPTS/IP spray net) + session-bound CSRF tokens (`app/helpers/Csrf.php`) enforced on all state-changing endpoints. Remaining security backlog: file-upload content validation.
 - 🔋 **kWh billing assumes 100% charge** — no end-battery-% capture
 - ⚠️ **Google OAuth auto-approves new owner accounts**, bypassing admin moderation
 - 🗑️ **Cascade-delete on stations** destroys financial history (no soft-delete)

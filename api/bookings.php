@@ -3,6 +3,7 @@ header('Content-Type: application/json');
 require_once '../app/config/config.php';
 require_once '../app/helpers/Auth.php';
 require_once '../app/helpers/SessionTicker.php';
+require_once '../app/helpers/Csrf.php';
 
 Auth::requireLogin();
 
@@ -55,6 +56,7 @@ try {
         ]);
         
     } elseif ($method === 'POST') {
+        Csrf::validate();
         $input = json_decode(file_get_contents('php://input'), true);
         $action = sanitize($input['action'] ?? '');
         
@@ -487,6 +489,7 @@ try {
         }
         
     } elseif ($method === 'DELETE') {
+        Csrf::validate();
         $id = intval($_GET['id'] ?? 0);
         $stmt = $db->prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ? AND user_id = ?");
         $stmt->execute([$id, $user_id]);

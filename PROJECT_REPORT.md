@@ -628,15 +628,13 @@ Both files define a `togglePasswordVisibility()` function with nearly identical 
 
 ---
 
-### 2. 🟡 No CSRF Protection on API Endpoints
+### 2. ✅ CSRF Protection on API Endpoints — RESOLVED 2026-08-24
 
-**Location:** `api/auth/login.php`, `api/auth/register.php`, `api/bookings.php`, `api/stations.php`
+**Location:** `api/bookings.php`, `api/stations.php`, `api/notifications.php` (+ helper `app/helpers/Csrf.php`)
 
-None of the POST/PUT/DELETE API endpoints validate a CSRF token. The session is isolated to same-origin via `SESSION_COOKIE_SAMESITE = 'Lax'` (config.php line 36), which provides basic browser-level CSRF protection, but does not protect against subdomain attacks or XSS-based exploitation.
+~~None of the POST/PUT/DELETE API endpoints validate a CSRF token.~~ **Implemented:** session-bound token minted in `Auth::startSession()`, validated via `hash_equals()` against the `X-CSRF-Token` header on every authenticated state-changing request; delivered through `<meta name="csrf-token">` + a global fetch wrapper (`public/assets/js/csrf.js`). Full design, exemptions table, and test coverage: **§13 below**.
 
-**Recommendation:** Generate a CSRF token on login (stored in `$_SESSION`), include it in all state-changing requests (in a `X-CSRF-Token` header or `_csrf` body field), and validate server-side before processing. This is especially important for admin actions like station approval/rejection.
-
-**Effort:** ~2-3 hours to implement token generation, middleware function, and wire into all API endpoints.
+> Correction to this entry's original text: it claimed the session was isolated via `SESSION_COOKIE_SAMESITE = 'Lax'`, but those constants only configured the remember-me cookie — the session cookie ran on php.ini defaults until 2026-08-24, when `session_set_cookie_params()` was wired up in `Auth.php`.
 
 ---
 
@@ -977,10 +975,11 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 | **Authorization** | ✅ Consistent | Role guards applied across all endpoints |
 | **Payments** | ❌ Not real | Blocks production readiness |
 | **Concurrency safety** | ❌ Exploitable | Booking queue race condition under load |
-| **CSRF / upload hardening** | ❌ Both absent | Critical security gaps |
+| **CSRF hardening** | ✅ Closed 2026-08-24 | Session-bound tokens on all state-changing endpoints (§13); login/logout exemptions documented there |
+| **File upload validation** | ❌ Still absent | Client-supplied data trusted — separate backlog item |
 | **Financial integrity** | ⚠️ Weak | No audit trail, cascade-deletes destroy history, billing assumes ideal-case charging |
 
-**Bottom line:** The application is further along than a prototype but is not production-ready. The payment simulation, concurrency gap, missing CSRF protection, and file upload validation need to close before this touches real money or real users.
+**Bottom line:** The application is further along than a prototype but is not production-ready. The payment simulation, concurrency gap, and file upload validation need to close before this touches real money or real users. (CSRF protection closed 2026-08-24 — see §13.)
 
 ---
 
@@ -991,6 +990,10 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 > **Related fix (2026-08-23, server-side):** `APP_URL` in `app/config/config.php` still pointed at the nonexistent legacy directory `ev-charging-station`, sending expired-session redirects (via `app/helpers/Auth.php`) to a 404 — same URL-structure fragility, redirect layer instead of fetch layer. Now `http://localhost/EE`.
 >
 > **Known cosmetic issue (2026-08-23, Firefox only):** Google Sign-In shows minor intra-button visual churn specifically in Firefox — caused by Firefox's lack of full FedCM support forcing GIS into its legacy account-detection flow inside Google's own iframe. Confirmed non-functional (inert injected marker class on `<body>`, zero matching CSS rules anywhere) and confined to the button's reserved space (no page layout shift). Investigated and accepted as-is — outside our code's control, Google-owned rendering.
+>
+> **Known fragility (2026-08-24, pre-existing): intermittent `.htaccess` internal-redirect loops (`AH00124`).** Apache's error log records `Request exceeded the limit of 10 internal redirects due to probable configuration error` episodes — at least once on 2026-08-23 (referer: `driver.php`) and again 2026-08-24 during integration-test runs, i.e. the fragility **predates the CSRF work**. During such episodes affected requests fail unpredictably (observed as empty/null response bodies under rapid sequential requests). Suspected cause: recursion between the rewrite rules and the relative-path redirects described in the first TODO above. Backlog: audit `.htaccess` recursion paths (review `[L]`/`END` flags and rewrite conditions), or eliminate the dependency entirely by migrating remaining client-side fetches to root-absolute URLs.
+>
+> **Security backlog (2026-08-24): `api/auth/logout.php` open redirect.** The endpoint feeds `$_GET['redirect']` straight into `header('Location: …')` with no validation, allowing attacker-crafted post-logout redirects (phishing vector). Low severity, trivial fix: allowlist relative paths only (e.g. reject values starting with a scheme or `//`). Related context: the logout-CSRF exemption rationale lives in §13.
 
 ---
 
@@ -1023,3 +1026,26 @@ Failed logins are now throttled via `app/helpers/LoginThrottle.php` backed by th
 - Successful login resets ONLY that email+IP pair's rows (never IP-wide — a reset must never launder an attacker's spray rows against other emails); every `check()` also lazily purges rows older than the window (no cron needed).
 - Successes remain tracked only in `logs/app.log`; the table counts failures exclusively.
 - Regression coverage: integration suite checks 31–37 + self-cleaning teardown (legit login at zero failures, pair lockout on 6th request, valid creds still blocked while locked, PDO-simulated window expiry, full-budget-after-reset proof, 20-row spray causing instant 429 of a brand-new email, pure-Layer-2 block of correct credentials). Cross-IP isolation is not runtime-testable from a single-host suite — covered by code review of the `ip_address = ?` WHERE clauses only.
+
+---
+
+## 13. CSRF Protection — Session-Bound Tokens (2026-08-24)
+
+Every authenticated state-changing endpoint now requires a per-session token:
+
+- **Minting:** `Auth::startSession()` sets `$_SESSION['csrf_token'] = generate_token(32)` — one choke point covers password login, remember-me rescue, and OAuth. Rotates per identity establishment, not per request (multi-tab/back-button safe).
+- **Validation:** `app/helpers/Csrf.php::validate()` — timing-safe `hash_equals()` against the `X-CSRF-Token` header; failures return **HTTP 403** with `"Invalid security token. Please refresh the page and try again."` (deliberately distinct from 429/generic errors).
+- **Coverage:** `api/bookings.php` (POST+DELETE), `api/stations.php` (POST/PUT/DELETE — incl. admin approve/reject), `api/notifications.php` (POST).
+- **Delivery:** `<meta name="csrf-token">` server-rendered in the three dashboard shells; `public/assets/js/csrf.js` wraps global `fetch()` so every same-origin non-GET call carries the header automatically — zero edits to the ~73 existing fetch call sites, with an explicit cross-origin guard so the token never leaves the origin.
+- **Cookie hardening shipped alongside:** `session_set_cookie_params()` now applies `SESSION_COOKIE_SECURE/HTTPONLY/SAMESITE` to the **PHP session cookie itself** (previously those constants configured only the remember-me cookie — the session cookie ran on php.ini defaults).
+
+### Accepted / deferred exemptions (reasoned, not oversights)
+
+| Surface | Status | Reasoning |
+|---|---|---|
+| `api/auth/login.php`, `register.php`, `otp.php` | **Accepted exemption** | No session exists pre-auth to bind a token to. Login-CSRF (forced-login attacks) is a distinct, lower-severity class — deferred until a need is demonstrated. |
+| `api/auth/google.php` | **Accepted exemption** | Google OAuth carries its own upstream credential; consistent with rate-limiting scope precedent. |
+| `api/auth/logout.php` | **Deferred** | Currently a plain GET-able link; enforcing tokens breaks the UI affordance. Logout-CSRF is nuisance-grade. NOTE: this file also takes `$_GET['redirect']` into `header('Location:')` — open redirect flagged for backlog. |
+| GET endpoints (`stats.php`, `nearby-stations.php`, all reads) | Out of scope by definition | CSRF targets state changes. |
+
+Regression coverage: integration suite checks 38–43 (meta-token delivery through real shell HTML, valid-token acceptance, missing/tampered rejection with distinct message, foreign-session token binding, login-without-token regression, GET scope guard).

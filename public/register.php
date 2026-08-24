@@ -473,6 +473,12 @@ $project_name = 'WattPulse';
                             <i class="fas fa-eye" id="eye-icon-password"></i>
                         </button>
                     </div>
+                    <!-- Live password checklist (mirrors server rules; UX only) -->
+                    <div id="pw-checklist" style="display:none;margin-top:6px;font-size:12px;color:var(--muted-foreground);">
+                        <span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span> ·
+                        <span id="pw-rule-upper">Uppercase letter</span> ·
+                        <span id="pw-rule-num">Number</span>
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom:14px;">
@@ -522,6 +528,12 @@ $project_name = 'WattPulse';
     </div>
 
     <script>
+        // Password policy mirrored from server config so client hints can never drift
+        window.PW_CONFIG = {
+            min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>,
+            upper: <?php echo PASSWORD_REQUIRE_UPPERCASE ? 'true' : 'false'; ?>,
+            num: <?php echo PASSWORD_REQUIRE_NUMBERS ? 'true' : 'false'; ?>
+        };
         // showToast defined inline for early availability (fallback if dashboard.js hasn't loaded yet)
         function showToast(message, type, duration) {
             type = type || 'info';
@@ -588,6 +600,11 @@ $project_name = 'WattPulse';
         function setFormFieldsState(formElement, enabled) {
             formElement.querySelectorAll('input, select, textarea').forEach(f => f.disabled = !enabled);
         }
+
+        // Initialize tab state — disables the inactive role's fields so FormData
+        // stays clean (otherwise the hidden form's empty `name` overwrites the
+        // active one during the formData.forEach copy).
+        selectUserType(selectedUserType);
 
         function goToStep(step) {
             const step1 = document.getElementById('step-1');

@@ -308,6 +308,36 @@ $c43 = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 rep('43. GET stats unaffected by CSRF scope', $c43 === 200 && strpos($b43, '"success"') !== false, 'http=' . $c43);
 
+// ===== 44-48: SERVER-SIDE REGISTRATION VALIDATION HARDENING =====
+// Validation runs BEFORE the verified-OTP gate, so each rejection below proves its rule
+// without needing SMTP. Check 48 (valid-but-unverified) doubles as regression proof that
+// no earlier rule misfires on a legitimate payload.
+$rj = __DIR__ . '/rj.txt';
+@unlink($rj);
+$regBase = ['user_type' => 'driver', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'car_model' => 'Tesla Model 3', 'battery_capacity' => '40'];
+$regExpect = function ($payload, $needle) use ($BASE, $rj) {
+    $r = api('POST', "$BASE/api/auth/register.php", $rj, $payload);
+    return [$r, strpos($r['message'] ?? '', $needle) !== false];
+};
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'valid1pass']), 'uppercase');
+rep('44a. register rejects missing uppercase', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'ValidPass']), 'at least one number');
+rep('44b. register rejects missing number', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['name' => 'A']), 'between 2 and 100');
+rep('45a. register rejects short name', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['name' => str_repeat('A', 101)]), 'between 2 and 100');
+rep('45b. register rejects overlong name', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['battery_capacity' => '0']), 'positive number');
+rep('46. driver battery=0 rejected', $ok, json_encode($r));
+$ownerBad = ['user_type' => 'owner', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'company_name' => '', 'bank_account' => '1234567890'];
+[$r, $ok] = $regExpect($ownerBad, 'Company name is required');
+rep('47a. owner empty company rejected', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($ownerBad, ['company_name' => 'Green Energy Ltd', 'bank_account' => 'ABC123']), '5-20 digits');
+rep('47b. owner non-digit bank rejected', $ok, json_encode($r));
+[$r48, $ok48] = $regExpect($regBase, 'Email not verified');
+rep('48. valid payload clears all rules -> reaches OTP gate', $ok48 && ($r48['status'] ?? '') === 'error', json_encode($r48));
+@unlink($rj);
+
 // Teardown: empty the throttle table so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 $left = (int)q($db, "SELECT COUNT(*) c FROM login_attempts")[0]['c'];

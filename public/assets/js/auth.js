@@ -24,6 +24,25 @@
     var otpEmailDisplay = $('otp-email-display');
     var submitBtn       = $('submit-btn');
 
+    // ── live password checklist (mirrors server rules via window.PW_CONFIG) ──
+    var pwEl = $('password');
+    if (pwEl) {
+        var pwBox = $('pw-checklist');
+        var ruleEls = { len: $('pw-rule-len'), upper: $('pw-rule-upper'), num: $('pw-rule-num') };
+        var cfg = window.PW_CONFIG || { min: 8, upper: true, num: true };
+        var repaintPw = function () {
+            var v = pwEl.value;
+            var states = [
+                [v.length >= cfg.min, ruleEls.len],
+                [!cfg.upper || /[A-Z]/.test(v), ruleEls.upper],
+                [!cfg.num || /[0-9]/.test(v), ruleEls.num]
+            ];
+            states.forEach(function (p) { if (p[1]) p[1].style.color = p[0] ? '#22c55e' : ''; });
+        };
+        pwEl.addEventListener('focus', function () { if (pwBox) pwBox.style.display = 'block'; });
+        pwEl.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; repaintPw(); });
+    }
+
     // ── show / hide modal ──
     function showOtpModal() {
         if (!otpModal) return;
@@ -107,6 +126,22 @@
             }
             if (data.password.length < 8) {
                 if (typeof showToast === 'function') showToast('Password must be at least 8 characters', 'error');
+                return;
+            }
+            var pwCfg = window.PW_CONFIG || { upper: true, num: true };
+            if (pwCfg.upper && !/[A-Z]/.test(data.password)) {
+                if (typeof showToast === 'function') showToast('Password must contain at least one uppercase letter', 'error');
+                return;
+            }
+            if (pwCfg.num && !/[0-9]/.test(data.password)) {
+                if (typeof showToast === 'function') showToast('Password must contain at least one number', 'error');
+                return;
+            }
+
+            // Name length (mirrors NAME_MIN_LENGTH / NAME_MAX_LENGTH)
+            var nameVal = (data.name || '').trim();
+            if (nameVal.length < 2 || nameVal.length > 100) {
+                if (typeof showToast === 'function') showToast('Name must be between 2 and 100 characters', 'error');
                 return;
             }
             if (!data.terms) {

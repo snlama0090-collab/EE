@@ -231,6 +231,12 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                         <i class="fas fa-eye" id="eye-icon"></i>
                     </button>
                 </div>
+                <!-- Live password checklist (UX only; server-side auth is unchanged) -->
+                <div id="pw-checklist" style="display:none;margin-top:6px;font-size:12px;color:var(--muted-foreground);">
+                    <span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span> ·
+                    <span id="pw-rule-upper">Uppercase letter</span> ·
+                    <span id="pw-rule-num">Number</span>
+                </div>
             </div>
 
             <!-- Remember Me -->
@@ -328,6 +334,25 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         const form = document.getElementById('login-form');
         const userTypeInput = document.getElementById('user-type');
         const errorMessage = document.getElementById('error-message');
+        // Live password checklist (mirrors config; UX only)
+        const pwField = document.getElementById('password');
+        const pwBox = document.getElementById('pw-checklist');
+        const ruleEls = {
+            len: document.getElementById('pw-rule-len'),
+            upper: document.getElementById('pw-rule-upper'),
+            num: document.getElementById('pw-rule-num')
+        };
+        const PW_LOGIN_CFG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?> };
+        function paintPwRules() {
+            const v = pwField.value;
+            [[v.length >= PW_LOGIN_CFG.min, ruleEls.len],
+             [/[A-Z]/.test(v), ruleEls.upper],
+             [/[0-9]/.test(v), ruleEls.num]].forEach(function (p) {
+                if (p[1]) p[1].style.color = p[0] ? '#22c55e' : '';
+            });
+        }
+        pwField.addEventListener('focus', function () { if (pwBox) pwBox.style.display = 'block'; });
+        pwField.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; paintPwRules(); });
         const tabButtons = document.querySelectorAll('.tab-btn');
         const roleBadge = document.getElementById('role-badge');
         const roleLabels = <?php echo json_encode($role_subtitles); ?>;
@@ -381,7 +406,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             const btnText = document.getElementById('btn-text');
 
             if (!email || !password) { showToast('Please fill in all fields', 'error'); return; }
-            if (password.length < 6) { showToast('Password must be at least 6 characters', 'error'); return; }
+            if (password.length < <?php echo (int) PASSWORD_MIN_LENGTH; ?>) { showToast('Password must be at least <?php echo (int) PASSWORD_MIN_LENGTH; ?> characters', 'error'); return; }
 
             // Freeze button width to prevent layout reflow before swapping text
             loginBtn.style.minWidth = loginBtn.offsetWidth + 'px';

@@ -638,15 +638,13 @@ Both files define a `togglePasswordVisibility()` function with nearly identical 
 
 ---
 
-### 3. 🟡 Password Complexity Requirements Not Enforced Server-Side
+### 3. ✅ Password Complexity / Validation Gaps — RESOLVED 2026-08-24
 
-**Location:** `api/auth/register.php` (lines 25-28), `api/auth/login.php`
+**Location:** `api/auth/register.php`, `public/assets/js/auth.js`, `public/login.php`
 
-The config defines `PASSWORD_REQUIRE_UPPERCASE` and `PASSWORD_REQUIRE_NUMBERS` (config.php lines 73-74), but the registration API only checks minimum length (`PASSWORD_MIN_LENGTH`). The uppercase/number requirements are not validated on the server. Client-side validation in `register.php` also only checks length.
+~~Config defined `PASSWORD_REQUIRE_UPPERCASE`/`PASSWORD_REQUIRE_NUMBERS` but nothing enforced them; registration only checked minimum length.~~ **Implemented:** the server now honors all three password flags (`PASSWORD_REQUIRE_SPECIAL_CHARS` remains intentionally `false`) plus `NAME_MIN_LENGTH`/`NAME_MAX_LENGTH` (2–100) — both previously dead config. Role fields gained real validation too: driver battery capacity must be > 0 and car model non-empty; owner company name non-empty and bank account digits-only (5–20). Client side mirrors everything: live ticking checklist under both password fields driven by a `window.PW_CONFIG` object injected from the same constants (can't drift), plus submit-time toasts; login's stale "6 characters" hint aligned to `PASSWORD_MIN_LENGTH`.
 
-**Recommendation:** Add server-side checks in `api/auth/register.php` to validate uppercase and numeric requirements when their respective config flags are true, matching the config intent. Also enforce on password change endpoints if added later.
-
-**Effort:** ~15 minutes.
+Regression coverage: integration suite checks 44–48 — each rejection message asserted against the live endpoint (validation runs before the OTP gate, so no SMTP needed), with check 48 proving a fully valid payload still clears every rule and reaches the gate.
 
 ---
 

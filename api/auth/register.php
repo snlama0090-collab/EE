@@ -33,6 +33,52 @@ if (strlen($password) < PASSWORD_MIN_LENGTH) {
     exit;
 }
 
+// Complexity rules honored from config (previously dead flags — enforced since 2026-08-24)
+if (PASSWORD_REQUIRE_UPPERCASE && !preg_match('/[A-Z]/', $password)) {
+    echo json_encode(['status' => 'error', 'message' => 'Password must contain at least one uppercase letter']);
+    exit;
+}
+
+if (PASSWORD_REQUIRE_NUMBERS && !preg_match('/[0-9]/', $password)) {
+    echo json_encode(['status' => 'error', 'message' => 'Password must contain at least one number']);
+    exit;
+}
+
+if (strlen($name) < NAME_MIN_LENGTH || strlen($name) > NAME_MAX_LENGTH) {
+    echo json_encode(['status' => 'error', 'message' => 'Name must be between ' . NAME_MIN_LENGTH . ' and ' . NAME_MAX_LENGTH . ' characters']);
+    exit;
+}
+
+// ── Role-field hardening: DB-free checks, validated BEFORE the OTP gate ──
+if ($user_type === 'driver') {
+    $car_model = sanitize($input['car_model'] ?? '');
+    $battery = floatval($input['battery_capacity'] ?? 0);
+
+    if ($car_model === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Car model is required']);
+        exit;
+    }
+    if ($battery <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Battery capacity must be a positive number']);
+        exit;
+    }
+} elseif ($user_type === 'owner') {
+    $company = sanitize($input['company_name'] ?? '');
+    $bank = sanitize($input['bank_account'] ?? '');
+
+    if ($company === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Company name is required']);
+        exit;
+    }
+    if (!preg_match('/^[0-9]{5,20}$/', $bank)) {
+        echo json_encode(['status' => 'error', 'message' => 'Bank account must be 5-20 digits']);
+        exit;
+    }
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid user type']);
+    exit;
+}
+
 if (!validate_phone($phone)) {
     echo json_encode(['status' => 'error', 'message' => 'Invalid phone number. Expected format: +977 98XXXXXXXX or 98XXXXXXXX']);
     exit;
@@ -73,9 +119,6 @@ try {
     $db->beginTransaction();
 
     if ($user_type === 'driver') {
-        $car_model = sanitize($input['car_model'] ?? '');
-        $battery = floatval($input['battery_capacity'] ?? 0);
-
         $stmt = $db->prepare("
             INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -84,19 +127,12 @@ try {
         $stmt->execute([$email, $hashed_password, $name, $phone, $car_model, $battery]);
 
     } elseif ($user_type === 'owner') {
-        $company = sanitize($input['company_name'] ?? '');
-        $bank = sanitize($input['bank_account'] ?? '');
-
         $stmt = $db->prepare("
             INSERT INTO owners (email, password, name, company_name, phone, bank_account_number)
             VALUES (?, ?, ?, ?, ?, ?)
         ");
 
         $stmt->execute([$email, $hashed_password, $name, $company, $phone, $bank]);
-    } else {
-        $db->rollBack();
-        echo json_encode(['status' => 'error', 'message' => 'Invalid user type']);
-        exit;
     }
 
     // INSERT succeeded — only now consume the verified OTP row.

@@ -368,7 +368,7 @@ $project_name = 'WattPulse';
 
         <!-- Registration Form (Step 2) -->
         <div class="form-section" id="step-2">
-            <form id="register-form" autocomplete="off">
+            <form id="register-form" novalidate autocomplete="off">
                 <input type="hidden" id="user-type" name="user_type" value="driver">
 
                 <!-- DRIVER FORM -->

@@ -43,6 +43,108 @@
         pwEl.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; repaintPw(); });
     }
 
+    // ── unified declarative validation engine (shared by both auth pages) ──
+    // Forms carry `novalidate`: THIS layer is the client gate; the server remains
+    // the security boundary. Rules mirror api/auth/register.php exactly.
+    var Validation = (function () {
+        var style = document.createElement('style');
+        style.textContent =
+            '.field-error{color:#e5484d;font-size:12px;margin-top:4px;}' +
+            '.is-invalid{border-color:#e5484d !important;}';
+        document.head.appendChild(style);
+
+        var RE = {
+            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            gmail: /^[a-zA-Z0-9._%+-]+@gmail\.com$/i,
+            phone: /^(?:\+977\s?)?9[78]\d{8}$/,
+            bank: /^[0-9]{5,20}$/
+        };
+        var boundForms = {};
+
+        function hostFor(input) {
+            return input.closest('.form-group') || input.parentNode;
+        }
+        function setError(input, msg) {
+            input.classList.add('is-invalid');
+            var host = hostFor(input);
+            var err = host.querySelector('.field-error[data-for="' + input.id + '"]');
+            if (!err) {
+                err = document.createElement('div');
+                err.className = 'field-error';
+                err.setAttribute('data-for', input.id);
+                host.appendChild(err);
+            }
+            err.textContent = msg;
+        }
+        function clearError(input) {
+            input.classList.remove('is-invalid');
+            var host = hostFor(input);
+            var err = host.querySelector('.field-error[data-for="' + input.id + '"]');
+            if (err) err.textContent = '';
+        }
+        function getV(id) {
+            var el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+
+        /**
+         * Bind a rule table to a form.
+         * rules: [{ id, when?(getV)->bool, checks: [[test(value)->bool, msg], ...] }]
+         * Returns validateAll() -> bool (focuses + scrolls to first offender).
+         */
+        function bindRules(formId, rules) {
+            var form = document.getElementById(formId);
+            if (!form || boundForms[formId]) return null;
+            boundForms[formId] = true;
+            if (!window.__VLOG) window.__VLOG = [];
+            window.__VLOG.push('BIND ' + formId + ' utype=' + JSON.stringify(getV('user_type')));
+            var touched = {};
+
+            function runOne(rule) {
+                var el = document.getElementById(rule.id);
+                if (!el || el.disabled) { clearError(el); return null; } // N/A fields carry no error
+                if (rule.when && !rule.when(getV)) { clearError(el); return null; }
+                var v = el.type === 'checkbox' ? el.checked : el.value;
+                for (var i = 0; i < rule.checks.length; i++) {
+                    if (!rule.checks[i][0](v)) {
+                        setError(el, rule.checks[i][1]);
+                        return el;
+                    }
+                }
+                clearError(el);
+                return null;
+            }
+            function validateAll() {
+                var first = null;
+                rules.forEach(function (r) {
+                    var bad = runOne(r);
+                    if (bad && !first) first = bad;
+                });
+                rules.forEach(function (r) {
+                    var el = document.getElementById(r.id);
+                    if (el) touched[el.id] = true; // keep live-updating after an attempt
+                });
+                if (first) {
+                    first.focus();
+                    if (first.scrollIntoView) first.scrollIntoView({ block: 'center' });
+                }
+                return first === null;
+            }
+            rules.forEach(function (r) {
+                var el = document.getElementById(r.id);
+                if (!el) return;
+                el.addEventListener('blur', function () { touched[el.id] = true; runOne(r); });
+                el.addEventListener('input', function () { if (touched[el.id]) runOne(r); });
+                if (el.type === 'checkbox') {
+                    el.addEventListener('change', function () { touched[el.id] = true; runOne(r); });
+                }
+            });
+            return validateAll;
+        }
+
+        return { RE: RE, bindRules: bindRules };
+    })();
+
     // ── show / hide modal ──
     function showOtpModal() {
         if (!otpModal) return;
@@ -99,10 +201,82 @@
         }).then(parseJson);
     }
 
+    // ── declarative rule tables + bindings ──
+    var pwMin = (window.PW_CONFIG && window.PW_CONFIG.min) || 8;
+    var pwUpper = !window.PW_CONFIG || window.PW_CONFIG.upper !== false;
+    var pwNum = !window.PW_CONFIG || window.PW_CONFIG.num !== false;
+
+    var isDriver = function (getV) { return getV('user-type') === 'driver'; };
+    var isOwner = function (getV) { return getV('user-type') === 'owner'; };
+
+    var nameChecks = [
+        [function (v) { return v.trim().length >= 2 && v.trim().length <= 100; }, 'Name must be between 2 and 100 characters'],
+        [function (v) { return (v.match(/[A-Za-z\u00C0-\u024F]/g) || []).length >= 2; }, 'Please enter your real name']
+    ];
+    var emailGmailChecks = [
+        [function (v) { return v.trim() !== ''; }, 'Email address is required'],
+        [function (v) { return Validation.RE.gmail.test(v.trim()); }, 'Only @gmail.com addresses are allowed.']
+    ];
+    var phoneChecks = [
+        [function (v) { return v.trim() !== ''; }, 'Phone number is required'],
+        [function (v) { return Validation.RE.phone.test(v.trim()); }, 'Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX)']
+    ];
+
+    window.__loginValidate = Validation.bindRules('login-form', [
+        { id: 'email', checks: [
+            [function (v) { return v.trim() !== ''; }, 'Email address is required'],
+            [function (v) { return Validation.RE.email.test(v.trim()); }, 'Enter a valid email address']
+        ]},
+        { id: 'password', checks: [
+            [function (v) { return String(v).length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters']
+        ]}
+    ]);
+
+    var regValidate;
+    window.__regValidate = regValidate = Validation.bindRules('register-form', [
+        { id: 'driver-name', when: isDriver, checks: nameChecks },
+        { id: 'driver-email', when: isDriver, checks: emailGmailChecks },
+        { id: 'driver-phone', when: isDriver, checks: phoneChecks },
+        { id: 'car-model', when: isDriver, checks: [
+            [function (v) { return v.trim() !== ''; }, 'Car model is required'],
+            [function (v) { return v.trim().length <= 100; }, 'Car model is too long']
+        ]},
+        { id: 'battery-capacity', when: isDriver, checks: [
+            [function (v) { return v !== ''; }, 'Select your battery capacity']
+        ]},
+        { id: 'battery-other-input', when: function (getV) { return isDriver(getV) && getV('battery-capacity') === 'other'; }, checks: [
+            [function (v) { var n = parseFloat(v); return v.trim() !== '' && !isNaN(n) && n > 0; }, 'Enter a valid capacity between 0.1 and 1000 kWh'],
+            [function (v) { return parseFloat(v) <= 1000; }, 'Capacity looks too large (max 1000 kWh)']
+        ]},
+        { id: 'owner-name', when: isOwner, checks: nameChecks },
+        { id: 'company-name', when: isOwner, checks: [
+            [function (v) { return v.trim() !== ''; }, 'Company name is required'],
+            [function (v) { return v.trim().length <= 150; }, 'Company name is too long']
+        ]},
+        { id: 'owner-email', when: isOwner, checks: emailGmailChecks },
+        { id: 'owner-phone', when: isOwner, checks: phoneChecks },
+        { id: 'bank-account', when: isOwner, checks: [
+            [function (v) { return Validation.RE.bank.test(v.trim()); }, 'Bank account must be 5-20 digits']
+        ]},
+        { id: 'password', checks: [
+            [function (v) { return v.length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters'],
+            [function (v) { return !pwUpper || /[A-Z]/.test(v); }, 'Password must contain at least one uppercase letter'],
+            [function (v) { return !pwNum || /[0-9]/.test(v); }, 'Password must contain at least one number']
+        ]},
+        { id: 'confirm-password', checks: [
+            [function (v) { return v !== '' && v === document.getElementById('password').value; }, 'Passwords do not match']
+        ]},
+        { id: 'terms', checks: [
+            [function (v) { return v === true; }, 'Please accept the Terms & Conditions']
+        ]}
+    ]);
+
     // ── intercept registration form ──
     if (registerForm) {
         registerForm.addEventListener('submit', function (e) {
             e.preventDefault();
+
+            if (!regValidate()) return; // inline errors shown; focus on first offender
 
             var formData = new FormData(registerForm);
             var data = {};
@@ -119,41 +293,8 @@
                 }
             }
 
-            // client-side validation
-            if (data.password !== data.confirm_password) {
-                if (typeof showToast === 'function') showToast('Passwords do not match', 'error');
-                return;
-            }
-            if (data.password.length < 8) {
-                if (typeof showToast === 'function') showToast('Password must be at least 8 characters', 'error');
-                return;
-            }
-            var pwCfg = window.PW_CONFIG || { upper: true, num: true };
-            if (pwCfg.upper && !/[A-Z]/.test(data.password)) {
-                if (typeof showToast === 'function') showToast('Password must contain at least one uppercase letter', 'error');
-                return;
-            }
-            if (pwCfg.num && !/[0-9]/.test(data.password)) {
-                if (typeof showToast === 'function') showToast('Password must contain at least one number', 'error');
-                return;
-            }
-
-            // Name length (mirrors NAME_MIN_LENGTH / NAME_MAX_LENGTH)
-            var nameVal = (data.name || '').trim();
-            if (nameVal.length < 2 || nameVal.length > 100) {
-                if (typeof showToast === 'function') showToast('Name must be between 2 and 100 characters', 'error');
-                return;
-            }
-            if (!data.terms) {
-                if (typeof showToast === 'function') showToast('Please accept terms & conditions', 'error');
-                return;
-            }
-
-            // Gmail-only validation
-            if (!GMAIL_RE.test(data.email)) {
-                if (typeof showToast === 'function') showToast('Only @gmail.com addresses are allowed.', 'error');
-                return;
-            }
+            // client-side validation is handled by the declarative engine above;
+            // reaching this point means every field passed its rules.
 
             // store for later
             pendingFormData = data;

@@ -187,6 +187,8 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             .auth-card { padding: 24px; }
         }
     </style>
+    <script>window.PW_CONFIG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?> };</script>
+    <script src="assets/js/auth.js" defer></script>
 </head>
 <body>
     <div class="auth-card">
@@ -210,7 +212,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             </button>
         </div>
 
-        <form id="login-form" onsubmit="handleLogin(event)" autocomplete="off">
+        <form id="login-form" novalidate autocomplete="off" onsubmit="handleLogin(event)">
             <input type="hidden" id="user-type" name="user_type" value="driver">
 
             <!-- Error Message -->

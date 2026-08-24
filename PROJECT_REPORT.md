@@ -646,6 +646,8 @@ Both files define a `togglePasswordVisibility()` function with nearly identical 
 
 Regression coverage: integration suite checks 44–48 — each rejection message asserted against the live endpoint (validation runs before the OTP gate, so no SMTP needed), with check 48 proving a fully valid payload still clears every rule and reaches the gate.
 
+**Client layer unified (2026-08-24):** both auth forms now run under a shared declarative validation engine (`public/assets/js/auth.js`) with `novalidate` + inline `.field-error` messages and red borders on every field — including login's email format (previously native-browser-only) — with rules mirrored from the same server constants via an injected `window.PW_CONFIG`; behavior verified by a headless-Chrome DOM matrix across every field/rule (invalid AND valid cases), incl. focus-first-offender ordering and a real authenticated-login round-trip.
+
 ---
 
 ### 4. 🟢 Inline JavaScript in Every Page — No Centralized Module

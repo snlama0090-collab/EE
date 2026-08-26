@@ -199,27 +199,40 @@ try {
             }
             
             if ($action === 'approve') {
+                // Fetch name + owner BEFORE the update so we can notify them
+                $stmt = $db->prepare("SELECT name, owner_id FROM stations WHERE id = ?");
+                $stmt->execute([$station_id]);
+                $st = $stmt->fetch();
+
                 $stmt = $db->prepare("UPDATE stations SET approval_status = 'approved', is_active = TRUE WHERE id = ?");
                 $stmt->execute([$station_id]);
-                
-                // Log action
-                $stmt = $db->prepare("INSERT INTO activity_logs (admin_id, action, resource_type, resource_id) VALUES (?, 'approve', 'station', ?)");
-                $stmt->execute([$user_id, $station_id]);
-                
+
+                if ($st) {
+                    // Single row doubles as audit trail AND the owner's bell notification
+                    $db->prepare("INSERT INTO activity_logs (admin_id, owner_id, action, resource_type, resource_id, details) VALUES (?, ?, 'station_approved', 'station', ?, ?)")
+                       ->execute([$user_id, $st['owner_id'], $station_id, 'Your station "' . $st['name'] . '" has been approved and is now live.']);
+                }
+
                 echo json_encode(['status' => 'success', 'message' => 'Station approved successfully']);
                 exit;
-                
+
             } elseif ($action === 'reject') {
                 $input = json_decode(file_get_contents('php://input'), true);
                 $reason = sanitize($input['reason'] ?? 'No reason provided');
-                
+
+                $stmt = $db->prepare("SELECT name, owner_id FROM stations WHERE id = ?");
+                $stmt->execute([$station_id]);
+                $st = $stmt->fetch();
+
                 $stmt = $db->prepare("UPDATE stations SET approval_status = 'rejected', rejection_reason = ? WHERE id = ?");
                 $stmt->execute([$reason, $station_id]);
-                
-                // Log action
-                $stmt = $db->prepare("INSERT INTO activity_logs (admin_id, action, resource_type, resource_id, details) VALUES (?, 'reject', 'station', ?, ?)");
-                $stmt->execute([$user_id, $station_id, json_encode(['reason' => $reason])]);
-                
+
+                if ($st) {
+                    $details = 'Your station "' . $st['name'] . '" was rejected. Reason: ' . $reason;
+                    $db->prepare("INSERT INTO activity_logs (admin_id, owner_id, action, resource_type, resource_id, details) VALUES (?, ?, 'station_rejected', 'station', ?, ?)")
+                       ->execute([$user_id, $st['owner_id'], $station_id, $details]);
+                }
+
                 echo json_encode(['status' => 'success', 'message' => 'Station rejected']);
                 exit;
             }

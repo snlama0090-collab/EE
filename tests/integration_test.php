@@ -405,6 +405,58 @@ rep('57. guest POST redirected (no session)', $r57[0] === 302, 'http=' . $r57[0]
 $db->prepare("DELETE FROM support_tickets")->execute();
 $db->prepare("DELETE FROM admins WHERE email = ?")->execute(['supporttest-admin@evcharge.com']);
 
+// ===== 58-61: STATION APPROVAL/REJECTION OWNER NOTIFICATIONS =====
+$adminHash3 = password_hash('AdminTest@123', PASSWORD_BCRYPT);
+$db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 'super_admin')
+              ON DUPLICATE KEY UPDATE password = VALUES(password)")
+   ->execute(['supporttest-admin@evcharge.com', $adminHash3, 'Support Test Admin']);
+$ac2 = __DIR__ . '/ac2.txt';
+@unlink($ac2);
+api('POST', "$BASE/api/auth/login.php", $ac2, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+csrfFor($BASE, $ac2, 'public/dashboard/admin.php');
+
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status)
+              VALUES (1, 'Notif Test Station A', 27.70, 85.32, 'Kathmandu', 'Kathmandu', 1, 'pending')")->execute();
+$sidA = intval($db->lastInsertId());
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status)
+              VALUES (1, 'Notif Test Station B', 27.71, 85.33, 'Kathmandu', 'Kathmandu', 1, 'pending')")->execute();
+$sidB = intval($db->lastInsertId());
+
+$r58 = api('POST', "$BASE/api/stations.php?action=approve&id=$sidA", $ac2);
+$row58 = q($db, "SELECT owner_id, action, details FROM activity_logs WHERE resource_type='station' AND resource_id=? ORDER BY id DESC LIMIT 1", [$sidA])[0];
+rep('58. approve notifies owner', ($r58['status'] ?? '') === 'success'
+    && $row58['owner_id'] == 1
+    && $row58['action'] === 'station_approved'
+    && strpos($row58['details'], 'Notif Test Station A') !== false
+    && strpos($row58['details'], 'approved and is now live') !== false,
+    json_encode($row58));
+
+$no59 = api('GET', "$BASE/api/notifications.php", $oc);
+$has59 = false;
+foreach (($no59['data']['items'] ?? []) as $it) {
+    if (($it['action'] ?? '') === 'station_approved' && strpos($it['details'] ?? '', 'Notif Test Station A') !== false) { $has59 = true; }
+}
+rep('59. owner bell lists approval', $has59, 'unread=' . ($no59['data']['unread_count'] ?? '?'));
+
+$r60 = api('POST', "$BASE/api/stations.php?action=reject&id=$sidB", $ac2, ['reason' => 'Incomplete charger details']);
+$row60 = q($db, "SELECT owner_id, action, details FROM activity_logs WHERE resource_type='station' AND resource_id=? ORDER BY id DESC LIMIT 1", [$sidB])[0];
+rep('60. reject notifies owner with reason', ($r60['status'] ?? '') === 'success'
+    && $row60['owner_id'] == 1
+    && $row60['action'] === 'station_rejected'
+    && strpos($row60['details'], 'Notif Test Station B') !== false
+    && strpos($row60['details'], 'was rejected') !== false
+    && strpos($row60['details'], 'Incomplete charger details') !== false,
+    json_encode($row60));
+
+// 61: driver isolation — station events are scoped out of the driver bell entirely
+$noDrv = api('GET', "$BASE/api/notifications.php", $dc);
+$drvJson = json_encode($noDrv['data']['items'] ?? []);
+rep('61. driver isolation (scoped out)', strpos($drvJson, 'station_approved') === false && strpos($drvJson, 'station_rejected') === false && strpos($drvJson, 'Notif Test Station') === false, substr($drvJson, 0, 140));
+
+// cleanup synthetic stations + their activity rows (incl. any strays from earlier runs)
+$db->prepare("DELETE FROM stations WHERE name LIKE 'Notif Test Station%'")->execute();
+$db->prepare("DELETE FROM activity_logs WHERE resource_type='station' AND (resource_id IN (?, ?) OR details LIKE '%Notif Test Station%')")->execute([$sidA, $sidB]);
+
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");

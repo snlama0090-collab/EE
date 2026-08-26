@@ -11,7 +11,7 @@ class Auth {
     /**
      * Start a new session for user
      */
-    public static function startSession($user_id, $user_type, $remember = false) {
+    public static function startSession($user_id, $user_type, $remember = false, $profile_complete = true) {
         $_SESSION['user_id'] = $user_id;
         $_SESSION['user_type'] = $user_type;
         $_SESSION['login_time'] = time();
@@ -19,6 +19,9 @@ class Auth {
         $_SESSION['user_agent'] = ($_SERVER['HTTP_USER_AGENT'] ?? '');
         // Fresh CSRF token on every identity establishment (login / remember-rescue / OAuth)
         $_SESSION['csrf_token'] = generate_token(32);
+        // Google sign-up gate: false marks a provisional account that must finish
+        // complete-profile.php before dashboards become reachable.
+        $_SESSION['profile_complete'] = $profile_complete;
 
         
         if ($remember) {
@@ -100,6 +103,18 @@ class Auth {
         if (!self::isUserType($type)) {
             http_response_code(403);
             die('Access Denied');
+        }
+    }
+    
+    /**
+     * Block dashboard access for provisional (Google sign-up, profile_complete=false)
+     * accounts until the completion step finishes. Missing flag (password logins)
+     * means complete - only an explicit false trips the gate.
+     */
+    public static function requireProfileComplete() {
+        if (isset($_SESSION['profile_complete']) && $_SESSION['profile_complete'] === false) {
+            header('Location: ' . APP_URL . '/complete-profile.php');
+            exit;
         }
     }
     

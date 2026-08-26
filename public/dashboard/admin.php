@@ -4,6 +4,7 @@ require_once '../../app/helpers/Auth.php';
 require_once '../../app/helpers/Csrf.php';
 
 Auth::requireUserType('admin');
+Auth::requireProfileComplete(); // defensive symmetry; admins are never provisional
 
 // Server-side initial page — no flicker
 $allowed = ['overview', 'analytics', 'orders', 'customers', 'invoices', 'users', 'stations', 'reviews', 'reports', 'notifications', 'settings', 'support'];

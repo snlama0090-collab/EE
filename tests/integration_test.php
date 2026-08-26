@@ -457,6 +457,90 @@ rep('61. driver isolation (scoped out)', strpos($drvJson, 'station_approved') ==
 $db->prepare("DELETE FROM stations WHERE name LIKE 'Notif Test Station%'")->execute();
 $db->prepare("DELETE FROM activity_logs WHERE resource_type='station' AND (resource_id IN (?, ?) OR details LIKE '%Notif Test Station%')")->execute([$sidA, $sidB]);
 
+// ===== 62-69: GOOGLE SIGN-UP PROVISIONAL ACCOUNT FLOW =====
+// Scope honesty (R7): the live OAuth leg (browser One Tap -> Google tokeninfo
+// verification of a real ID token) cannot be exercised offline without either
+// network interception or a test-only bypass seam (rejected as a security risk).
+// Everything around that leg IS covered below: migration defaults, the shared
+// dashboard gate function, the completion-API guards (CSRF / role / state), and
+// byte-for-byte the SQL shapes the new provisioning/completion branches run.
+$u62 = $db->query("SELECT COUNT(*) c FROM users WHERE profile_complete = 0")->fetch()['c'];
+$o62 = $db->query("SELECT COUNT(*) c FROM owners WHERE profile_complete = 0")->fetch()['c'];
+rep('62. ALTER defaults: all pre-existing rows stay complete', $u62 == 0 && $o62 == 0, "users_incomplete=$u62 owners_incomplete=$o62");
+
+// 63/64: gate function probed in a subprocess - requireProfileComplete() exits
+// mid-script when it trips, so the REACHED marker proves continued execution.
+$probeFile = __DIR__ . '/_gate_probe.tmp.php';
+$probeBase = '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999001; $_SESSION["user_type"] = "driver";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "";
+__FLAG__
+Auth::requireProfileComplete();
+echo "REACHED";
+';
+file_put_contents($probeFile, str_replace('__FLAG__', '$_SESSION["profile_complete"] = false;', $probeBase));
+$out63 = [];
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($probeFile) . ' 2>&1', $out63);
+file_put_contents($probeFile, str_replace('__FLAG__', '// unset = password-login shape', $probeBase));
+$out64 = [];
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($probeFile) . ' 2>&1', $out64);
+unlink($probeFile);
+rep('63. gate blocks flagged-incomplete session', implode('', $out63) === '', 'out="' . implode(' ', $out63) . '"');
+rep('64. gate leaves normal sessions untouched', strpos(implode('', $out64), 'REACHED') !== false, 'out="' . implode(' ', $out64) . '"');
+
+// Fresh authenticated jars for the completion-API guard matrix.
+$gg = __DIR__ . '/gs_driver.txt'; @unlink($gg);
+api('POST', "$BASE/api/auth/login.php", $gg, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+csrfFor($BASE, $gg, 'public/dashboard/driver.php');
+// Unprimed sibling jar for the SAME seed account: separate cookie jar = separate
+// server-side session (profile_complete unset), but api() attaches no CSRF token
+// because csrfFor() was never called against this jar.
+$gn = __DIR__ . '/gs_noc.txt'; @unlink($gn);
+api('POST', "$BASE/api/auth/login.php", $gn, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+$ga2 = __DIR__ . '/gs_admin.txt'; @unlink($ga2);
+api('POST', "$BASE/api/auth/login.php", $ga2, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+
+$r65 = api('POST', "$BASE/api/auth/google.php", $gn, ['action' => 'complete_profile', 'name' => 'Test Driver One', 'car_model' => 'Nexon EV', 'battery_capacity' => 40]);
+rep('65. completion without CSRF -> distinct 403', ($r65['status'] ?? '') === 'error'
+    && strpos($r65['message'] ?? '', 'security token') !== false, json_encode($r65));
+
+$r66 = api('POST', "$BASE/api/auth/google.php", $ga2, ['action' => 'complete_profile', 'name' => 'Admin Person']);
+rep('66. completion refused for admin sessions', ($r66['status'] ?? '') === 'error'
+    && strpos($r66['message'] ?? '', 'driver and owner') !== false, json_encode($r66));
+
+$r67 = api('POST', "$BASE/api/auth/google.php", $gg, ['action' => 'complete_profile', 'name' => 'Test Driver One', 'car_model' => 'Nexon EV', 'battery_capacity' => 40]);
+rep('67. already-complete session cannot rewrite via this endpoint (409)', ($r67['status'] ?? '') === 'error'
+    && strpos($r67['message'] ?? '', 'already completed') !== false, json_encode($r67));
+
+// 68: driver branch SQL shapes, replayed exactly as google.php issues them.
+$db->prepare("INSERT INTO users (email, password, name, email_verified, profile_complete)
+              VALUES ('gprov-driver@test.local', 'x', 'Prov Driver', TRUE, FALSE)")->execute();
+$p68 = intval($db->lastInsertId());
+$pre68 = q($db, "SELECT car_model, car_full_capacity_kwh, phone, profile_complete FROM users WHERE id=?", [$p68])[0];
+$db->prepare("UPDATE users SET name=?, car_model=?, car_full_capacity_kwh=?, profile_complete=TRUE WHERE id=?")
+   ->execute(['Prov Driver Final', 'Tata Nexon EV Max', 45.50, $p68]);
+$post68 = q($db, "SELECT name, car_model, car_full_capacity_kwh, profile_complete FROM users WHERE id=?", [$p68])[0];
+rep('68. driver: sparse provisional row -> completion UPDATE flips cleanly',
+    is_null($pre68['car_model']) && is_null($pre68['phone']) && $pre68['profile_complete'] == 0
+    && $post68['car_model'] === 'Tata Nexon EV Max' && floatval($post68['car_full_capacity_kwh']) === 45.5 && $post68['profile_complete'] == 1,
+    json_encode([$pre68, $post68]));
+$db->prepare("DELETE FROM users WHERE id=?")->execute([$p68]);
+
+// 69: owner variant - NOT NULL company satisfied with '' provisionally.
+$db->prepare("INSERT INTO owners (email, password, name, company_name, email_verified, approval_status, profile_complete)
+              VALUES ('gprov-owner@test.local', 'x', 'Prov Owner', '', TRUE, 'approved', FALSE)")->execute();
+$p69 = intval($db->lastInsertId());
+$pre69 = q($db, "SELECT company_name, bank_account_number, profile_complete FROM owners WHERE id=?", [$p69])[0];
+$db->prepare("UPDATE owners SET name=?, company_name=?, bank_account_number=?, profile_complete=TRUE WHERE id=?")
+   ->execute(['Prov Owner Final', 'Himalayan Charge Co', '98765432101234', $p69]);
+$post69 = q($db, "SELECT company_name, bank_account_number, profile_complete FROM owners WHERE id=?", [$p69])[0];
+rep('69. owner: provisional empty-string company -> completion UPDATE flips cleanly',
+    $pre69['company_name'] === '' && is_null($pre69['bank_account_number']) && $pre69['profile_complete'] == 0
+    && $post69['company_name'] === 'Himalayan Charge Co' && $post69['bank_account_number'] === '98765432101234' && $post69['profile_complete'] == 1,
+    json_encode([$pre69, $post69]));
+$db->prepare("DELETE FROM owners WHERE id=?")->execute([$p69]);
+
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");

@@ -10,6 +10,72 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
+
+// ── Completion step of Google sign-up: session-bound, NOT token-bound ──
+// Runs under the session startSession() minted during provisional creation,
+// guarded by CSRF like every other state-changing endpoint.
+if (($input['action'] ?? '') === 'complete_profile') {
+    if (!Auth::isSessionValid()) {
+        http_response_code(401);
+        echo json_encode(['status' => 'error', 'message' => 'Session expired. Please sign in again.']);
+        exit;
+    }
+    $auth_type = Auth::getCurrentUserType();
+    if (!in_array($auth_type, ['driver', 'owner'], true)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'Profile completion is for driver and owner accounts only']);
+        exit;
+    }
+    require_once '../../app/helpers/Csrf.php';
+    Csrf::validate();
+
+    // Matrix row 6 parity: finished profiles don't rewrite through this endpoint
+    // (name/vehicle/company edits belong to a future settings surface, not here).
+    if (!isset($_SESSION['profile_complete']) || $_SESSION['profile_complete'] !== false) {
+        http_response_code(409);
+        echo json_encode(['status' => 'error', 'message' => 'Profile already completed']);
+        exit;
+    }
+
+    $db = getDB();
+    $fail = function ($msg, $code = 400) {
+        http_response_code($code);
+        echo json_encode(['status' => 'error', 'message' => $msg]);
+        exit;
+    };
+
+    $name = sanitize($input['name'] ?? '');
+    if (mb_strlen(trim($name)) < 2 || mb_strlen(trim($name)) > 100) $fail('Name must be between 2 and 100 characters');
+    if (preg_match_all('/[A-Za-z\\x{00C0}-\\x{024F}]/u', $name) < 2) $fail('Please enter your real name');
+
+    if ($auth_type === 'driver') {
+        $car_model = sanitize($input['car_model'] ?? '');
+        $battery   = floatval($input['battery_capacity'] ?? 0);
+        if ($car_model === '') $fail('Car model is required');
+        if (mb_strlen($car_model) > 100) $fail('Car model is too long');
+        if ($battery <= 0) $fail('Battery capacity must be a positive number');
+        // Rules mirror api/auth/register.php exactly; server stays the security boundary.
+        $db->prepare("UPDATE users SET name = ?, car_model = ?, car_full_capacity_kwh = ?, profile_complete = TRUE WHERE id = ?")
+           ->execute([$name, $car_model, $battery, Auth::getCurrentUserId()]);
+    } else {
+        $company = sanitize($input['company_name'] ?? '');
+        $bank    = sanitize($input['bank_account'] ?? '');
+        if ($company === '') $fail('Company name is required');
+        if (mb_strlen($company) > 150) $fail('Company name is too long');
+        if (!preg_match('/^[0-9]{5,20}$/', $bank)) $fail('Bank account must be 5-20 digits');
+        $db->prepare("UPDATE owners SET name = ?, company_name = ?, bank_account_number = ?, profile_complete = TRUE WHERE id = ?")
+           ->execute([$name, $company, $bank, Auth::getCurrentUserId()]);
+    }
+
+    $_SESSION['profile_complete'] = true;
+    echo json_encode([
+        'status'   => 'success',
+        'message'  => 'Profile completed',
+        'redirect' => ($auth_type === 'driver') ? 'dashboard/driver.php' : 'dashboard/owner.php'
+    ]);
+    exit;
+}
+
 $id_token = $input['token'] ?? '';
 $user_type = sanitize($input['user_type'] ?? 'driver');
 
@@ -25,7 +91,7 @@ try {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // ponytail: set false for local-only dev
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
@@ -60,45 +126,62 @@ try {
     $user_id = null;
     
     // 2. Check if user already exists
+    $profile_complete = true;
+    
     if ($user_type === 'driver') {
-        $stmt = $db->prepare("SELECT id, name FROM users WHERE email = ?");
+        $stmt = $db->prepare("SELECT id, name, profile_pic, profile_complete FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
         if ($user) {
             $user_id = $user['id'];
+            // Existing row - includes implicit same-email LINKING of password accounts.
+            // SAFE BY CONSTRUCTION (decision D): Google has verified the caller owns
+            // this exact mailbox, so a local account on that mailbox is reachable only
+            // by its legitimate owner. No impersonation surface; stored password hash
+            // below is never overwritten by the random one used for provisionals.
+            $profile_complete = (bool)$user['profile_complete'];
         } else {
-            // Auto-register new driver
+            // Provisional registration: real verified identity ONLY - no fabricated
+            // car fields. Role-specific data arrives via complete-profile.php.
+            // ponytail: legacy flow inserted car_model='Generic EV', 50.00 kWh here;
+            // retroactive cleanup of those rows is tracked in PROJECT_REPORT §17.
             $random_pass = hash_password(bin2hex(random_bytes(16)));
             
             $stmt = $db->prepare("
-                INSERT INTO users (email, password, name, profile_pic, car_model, car_full_capacity_kwh, email_verified)
-                VALUES (?, ?, ?, ?, 'Generic EV', 50.00, TRUE)
+                INSERT INTO users (email, password, name, profile_pic, email_verified, profile_complete)
+                VALUES (?, ?, ?, ?, TRUE, FALSE)
             ");
             $stmt->execute([$email, $random_pass, $name, $picture]);
             $user_id = $db->lastInsertId();
+            $profile_complete = false;
             
             log_message('INFO', "New driver auto-registered via Google: $email");
         }
         
     } elseif ($user_type === 'owner') {
-        $stmt = $db->prepare("SELECT id, company_name as name FROM owners WHERE email = ?");
+        $stmt = $db->prepare("SELECT id, company_name as name, profile_complete FROM owners WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
         if ($user) {
             $user_id = $user['id'];
+            // Same verified-email safety argument as the driver branch (decision D).
+            $profile_complete = (bool)$user['profile_complete'];
         } else {
-            // Auto-register new owner
+            // Provisional registration: NO fabricated company naming either -
+            // NOT NULL satisfied with '' until completion fills the real name.
+            // approval_status='approved' mirrors legacy intent: it gates the operator
+            // account, not stations (station submissions run their own pipeline).
             $random_pass = hash_password(bin2hex(random_bytes(16)));
-            $company_name = $name . ' Enterprise';
             
             $stmt = $db->prepare("
-                INSERT INTO owners (email, password, name, company_name, email_verified, approval_status)
-                VALUES (?, ?, ?, ?, TRUE, 'approved')
+                INSERT INTO owners (email, password, name, company_name, email_verified, approval_status, profile_complete)
+                VALUES (?, ?, ?, '', TRUE, 'approved', FALSE)
             ");
-            $stmt->execute([$email, $random_pass, $name, $company_name]);
+            $stmt->execute([$email, $random_pass, $name]);
             $user_id = $db->lastInsertId();
+            $profile_complete = false;
             
             log_message('INFO', "New owner auto-registered via Google: $email");
         }
@@ -120,8 +203,8 @@ try {
         exit;
     }
     
-    // 3. Establish session
-    Auth::startSession($user_id, $user_type, false);
+    // 3. Establish session - the gate flag travels with the identity
+    Auth::startSession($user_id, $user_type, false, $profile_complete);
     
     // Log activity
     $log_user_id   = ($user_type === 'driver') ? $user_id : null;
@@ -129,6 +212,17 @@ try {
     $log_admin_id  = ($user_type === 'admin')  ? $user_id : null;
     $log_stmt = $db->prepare("INSERT INTO activity_logs (admin_id, user_id, owner_id, action, resource_type, details) VALUES (?, ?, ?, 'google_login', 'auth', ?)");
     $log_stmt->execute([$log_admin_id, $log_user_id, $log_owner_id, json_encode(['email' => $email, 'user_type' => $user_type])]);
+
+    // Provisional accounts route to profile completion instead of a dashboard.
+    // Role-agnostic status keeps both frontend handlers' redirect paths identical.
+    if (!$profile_complete) {
+        echo json_encode([
+            'status'   => 'incomplete',
+            'message'  => 'Finish setting up your profile',
+            'redirect' => 'complete-profile.php'
+        ]);
+        exit;
+    }
 
     // Return redirect URL
     $redirectMap = [

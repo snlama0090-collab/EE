@@ -26,6 +26,7 @@ CREATE TABLE users (
     verification_token VARCHAR(255),
     verification_expires_at TIMESTAMP,
     status ENUM('active', 'inactive', 'banned') DEFAULT 'active',
+    profile_complete BOOLEAN NOT NULL DEFAULT 1, -- Google sign-up: 0 = provisional row awaiting role-specific profile completion
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +58,7 @@ CREATE TABLE owners (
     verification_token VARCHAR(255),
     status ENUM('active', 'inactive', 'banned') DEFAULT 'active',
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    profile_complete BOOLEAN NOT NULL DEFAULT 1, -- Google sign-up: 0 = provisional row awaiting role-specific profile completion
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

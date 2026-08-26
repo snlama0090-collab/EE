@@ -1097,3 +1097,39 @@ During the station-notification / Terms-&-Conditions session, two completions we
 
 **Process rule adopted:** every completion claim must carry its verifying command output in the *same* message — proof and assertion together, no deferred or recalled evidence.
 
+---
+
+## 17. Google Sign-Up Completion Flow (2026-08-26)
+
+New Google emails no longer receive silently fabricated accounts. Provisional rows hold **only verified identity data** (email/name/picture); role-specific fields arrive through `public/complete-profile.php` behind a hard dashboard gate. Decisions locked with product owner: **A** boolean `profile_complete` columns (default TRUE — migration locks nobody out), **B** incomplete rows stay visible in admin lists un-filtered, **C** T&C checkbox required at completion, **D** implicit same-email linking kept — safe because Google verifies mailbox ownership before authenticating, so linking cannot impersonate anyone; a provisional's random password hash never overwrites an existing account's hash. A 409 state-guard additionally prevents finished profiles rewriting fields through the completion endpoint (edits belong to a future settings surface).
+
+Coverage: suite checks 62–69 (migration defaults, subprocess-proven gate block/pass, missing-CSRF distinct 403, admin-role refusal, 409 rewrite guard, exact provisioning/completion SQL shapes for both roles). The live OAuth leg itself (real Google tokeninfo call) is disclosed-untestable offline. Headless-Chrome E2E additionally proves: provisional session renders the completion form; pristine submit shows mirrored inline errors; battery-"other" toggle works; valid submission reaches the API with the csrf.js-injected header and succeeds; the dashboard gate lifts and `driver.php` renders in-browser afterward.
+
+### ⚠️ Deferred follow-up: legacy fabricated-data rows (do not lose)
+Rows created by the OLD flow still carry `car_model='Generic EV'`/50.00 kWh (drivers) and `company_name='<Google name> Enterprise'` (owners) — and today they pass as `profile_complete=1` like everyone else. Deliberately NOT mass-fixed in this task: retroactive cleanup (null the fake fields, optionally flip their `profile_complete=0`) needs a human-reviewed fingerprint query first (fake-field patterns + missing-phone signal, volume checked before any bulk UPDATE). Owner sign-off required before it ever runs.
+
+---
+
+## 18. Codebase Audit Backlog (2026-08-26) — findings filed, deliberately unfixed
+
+Full-mine audit against `.clinerules`; items categorized **(a) safe/trivial** vs **(b) discuss-first**. None scheduled yet; this section is the durable record so nothing is lost at context reset.
+
+### (a) Safe / trivial
+- **Nine dead constants** in `app/config/config.php`, zero consumers repo-wide: `UPLOADS_PATH`, `API_URL`, `DEFAULT_LATITUDE`, `DEFAULT_LONGITUDE`, `MAX_SEARCH_RADIUS_KM`, `ITEMS_PER_PAGE`, `API_RATE_LIMIT_ENABLED`, `LOG_LEVEL`, `LOG_MAX_SIZE`, `APP_PATH`. Pure deletions. (`DB_*`, `PASSWORD_HASH_*`, `LOG_PATH`, `DEBUG` are consumed internally — verified, NOT dead.)
+- **`admin_sections/support.php:28` hardcodes `LIMIT 200`** while dead `ITEMS_PER_PAGE` exists — reconcile once the constant decision lands.
+- **Six hardcoded `/EE/api/...` fetch URLs** (`login.php:428`, both google handlers in login/register, 3× admin support twin driver/owner variants too) vs the `APP_URL` interpolation pattern used elsewhere — portability shortcut, unmarked.
+- **Completion-page accessibility batch** (`public/complete-profile.php`): T&C checkbox lacks label association (F-a1), `#battery_other` has no label/aria-label (F-a2), all `.field-error` divs lack `role="alert"`/`aria-live` (F-a3), `target="_blank"` links missing `rel="noopener noreferrer"` (F-a4), no `autocomplete` attrs (F-a5).
+- **Ignored `tests/*.txt` litter** (cookie jars + probe outputs) — harmless under current `.gitignore`, cosmetic deletion only.
+- ~~SSL-comment hazard~~ **RESOLVED IN THIS COMMIT** (`google.php:94`) — hazardous instructional comment removed.
+- ~~`Auth::attemptRememberLogin()` wrapper~~ **CONFIRMED DEAD** (zero callers incl. own class; boot() uses its own inline cookie branch) — flagged for deletion next time Auth.php is touched.
+
+### (b) Discuss-first
+- **Stations approve/reject race**: non-atomic SELECT→UPDATE pairs (`api/stations.php` ~203/207, 223/227); deleted-between-calls station skips logging silently. Transaction or guarded UPDATE needs a design call.
+- **Geo-default duplication**: Kathmandu literals `27.7172/85.3240` hardcoded in 6 places (landing.js:16, stations.php:128/132, driver/owner/admin shells) while config's versions sit dead — pick one source of truth.
+- **`PASSWORD_REQUIRE_SPECIAL_CHARS`**: definition-only; either implement the check or retire the flag so config stops implying an option that doesn't exist.
+- **`$role` raw echo precedent**: `complete-profile.php:52,91` echoes server-whitelisted value unescaped — safe today; normalize or accept as documented exception.
+
+### Correction of record (R6 supersession)
+The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). That was wrong: `Auth::boot()` is unconditionally invoked at require-time from `Auth.php:288-289`, reached by every Auth bootstrap including both login surfaces — wiring shipped complete in `7d150ed`, and `git log -S 'Auth::boot();'` proves co-committal. Audit grep-design flaws identified; finding retracted.
+
+

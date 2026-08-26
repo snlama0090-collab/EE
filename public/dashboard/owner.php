@@ -5,6 +5,7 @@ require_once '../../app/helpers/Csrf.php';
 
 // Require owner login
 Auth::requireUserType('owner');
+Auth::requireProfileComplete(); // Google sign-up: unfinished profiles route to complete-profile.php
 
 $user_id = Auth::getCurrentUserId();
 

@@ -5,6 +5,7 @@ require_once '../../app/helpers/Csrf.php';
 
 // Require driver login
 Auth::requireUserType('driver');
+Auth::requireProfileComplete(); // Google sign-up: unfinished profiles route to complete-profile.php
 
 $user_id = Auth::getCurrentUserId();
 

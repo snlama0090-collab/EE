@@ -680,6 +680,9 @@ $project_name = 'WattPulse';
                 const data = await res.json();
                 if (data.status === 'success') {
                     window.location.href = data.redirect;
+                } else if (data.status === 'incomplete') {
+                    // Google sign-up: provisional account -> finish profile first
+                    window.location.href = data.redirect;
                 } else {
                     wrapper.innerHTML = originalHTML;
                     showToast(data.message || 'Google registration failed.', 'error');

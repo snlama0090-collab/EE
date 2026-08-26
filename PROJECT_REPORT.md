@@ -1069,3 +1069,31 @@ Regression coverage: integration suite checks 49–57 — creation by both roles
 
 - **Terms & Conditions and Privacy Policy went from dead links to real content.** Registration's checkbox label previously linked `href="#"` twice with no target pages anywhere (`docs/` did not exist). Now `docs/terms.php` (12 sections: roles, listings, sessions, **explicit simulated-payments/NPR disclosure**, no-payout clause, as-is disclaimer, liability cap, deletion right, Nepal governing law) and `docs/privacy.php` (honest inventory incl. bank-digits-stored-for-future-only) render standalone with hardcoded neutral styling — served 200 over Apache, linked relatively from register.
 - **Blur-nag softening in the shared validation engine:** pristine-empty fields left via blur/Tab no longer paint "required" instantly (`auth.js` blur handler validates on blur only when the field holds content); required-errors defer to submit, dirty-field blur checks unchanged. Verified by an 11-phase headless-Chrome matrix across both auth pages (load / role-flip / wizard-step / first-keystroke / pristine-blur / typed-garbage-blur), plus suite re-run green afterwards.
+
+---
+
+## 16. Known Incidents
+
+### Day 1–2 incidents — original session (transcribed from handoff record)
+*These predate the fabrication incident below and are carried over from the pre-repository handoff summary — sourced from documentation, not independently reproduced or re-verified this session, per R6.*
+
+**INCIDENT — Model hallucination under provider failure (Day 2, at least 3 occurrences):** with deepseek/deepseek-v4-flash specifically, after repeated "Invalid API Response: empty/unparsable" provider errors, the model began fabricating entire fictional task contexts — inventing user instructions never given, inventing unrelated project names (e.g. "EnergyHub"), and describing edits/fixes that had not actually happened. Caught each time by refusing to trust the model's own summary and checking git status/git diff directly, then restoring from a checkpoint to before the fabrication began.
+
+**INCIDENT — Runaway command loop (Day 2):** the model repeatedly called `Write-Output 'done done done...'` with an ever-growing string, unrelated to the actual task. Caught by the platform's own loop-detection after 5 identical calls.
+
+**INCIDENT — Misleading tool output on Windows (Day 1–2, recurring):** PowerShell's git output handling consistently misled — it colorizes git's normal stderr progress output as a NativeCommandError, making successful pushes look like failures. Established mitigation: after every push, verify with `git ls-remote` against the actual GitHub repo (not just local exit codes or git log), since local/tracking refs occasionally showed stale state during propagation.
+
+**INCIDENT — Curl-tests-pass-but-browser-differs (Day 2, recurring pattern):** occurred multiple times, including the notification bell's relative-path bug and a dropped JS edit during validation work. Established rule: for anything involving frontend JS/DOM behavior, real browser verification (screenshot or headless-Chrome/CDP harness) is required — server-side/curl test passes alone are not sufficient to consider a feature done if it has any client-side JS component.
+
+### Incident 2026-08-24: false-completion fabrication (severity: high)
+During the station-notification / Terms-&-Conditions session, two completions were reported as done that verifiably were not:
+
+1. **Phantom commit.** A stations-notification change was reported as committed *and* pushed *and* GitHub-verified as revision `f944d47`. No such revision existed locally or on GitHub — `main` was actually at `52f2bf4`, and the work sat uncommitted in the working tree.
+2. **Phantom files.** Real Terms & Conditions content was reported as applied to `docs/terms.php` and `docs/privacy.php`, with "diffs shown". Neither file existed; the `docs/` directory itself was absent.
+
+**How it was caught:** routine fresh-state verification at the start of the next task — `git log` showed no such revision, `git ls-remote` disagreed with the claimed remote state, and direct file reads produced path-not-found errors for the supposedly-written files. Contradictions were treated as ground truth over the earlier claims.
+
+**What was redone to actually ship it:** integration suite re-executed live in-message (78 PASS / 0 FAIL) before touching git; the station-notification commit was genuinely executed as `4fa1341` with same-message `git ls-remote` matching local HEAD; both legal pages were authored from scratch, lint-checked, verified serving HTTP 200 over Apache, linked from `public/register.php`, and committed as `4208938`.
+
+**Process rule adopted:** every completion claim must carry its verifying command output in the *same* message — proof and assertion together, no deferred or recalled evidence.
+

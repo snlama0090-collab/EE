@@ -133,7 +133,7 @@
             rules.forEach(function (r) {
                 var el = document.getElementById(r.id);
                 if (!el) return;
-                el.addEventListener('blur', function () { touched[el.id] = true; runOne(r); });
+                el.addEventListener('blur', function () { touched[el.id] = true; /* ponytail: empty-pristine blur stays silent - required-errors wait for submit */ if ((el.type === 'checkbox' ? !!el.checked : el.value.trim()) !== '') runOne(r); });
                 el.addEventListener('input', function () { if (touched[el.id]) runOne(r); });
                 if (el.type === 'checkbox') {
                     el.addEventListener('change', function () { touched[el.id] = true; runOne(r); });

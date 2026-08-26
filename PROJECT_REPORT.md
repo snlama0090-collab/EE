@@ -1062,3 +1062,10 @@ Working help-desk loop across all three dashboards, deliberately minimal:
 
 Regression coverage: integration suite checks 49–57 — creation by both roles, bidirectional list scoping, cross-ID read/reply rejection, missing-CSRF 403, admin visibility + reply (status advance + bell row asserted in DB), resolve transition, guest redirect. Teardown wipes support rows and the disposable test-admin.
 - **Station lifecycle notifications (added post-commit):** admin approve/reject now writes an owner-addressed `activity_logs` row (`action='station_approved'/'station_rejected'`) so the owner's bell fires on both transitions; covered by checks 58–61 including a driver-scoping isolation assertion.
+
+---
+
+## 15. Real Legal Pages & Validation-Nag Softening (2026-08-24)
+
+- **Terms & Conditions and Privacy Policy went from dead links to real content.** Registration's checkbox label previously linked `href="#"` twice with no target pages anywhere (`docs/` did not exist). Now `docs/terms.php` (12 sections: roles, listings, sessions, **explicit simulated-payments/NPR disclosure**, no-payout clause, as-is disclaimer, liability cap, deletion right, Nepal governing law) and `docs/privacy.php` (honest inventory incl. bank-digits-stored-for-future-only) render standalone with hardcoded neutral styling — served 200 over Apache, linked relatively from register.
+- **Blur-nag softening in the shared validation engine:** pristine-empty fields left via blur/Tab no longer paint "required" instantly (`auth.js` blur handler validates on blur only when the field holds content); required-errors defer to submit, dirty-field blur checks unchanged. Verified by an 11-phase headless-Chrome matrix across both auth pages (load / role-flip / wizard-step / first-keystroke / pristine-blur / typed-garbage-blur), plus suite re-run green afterwards.

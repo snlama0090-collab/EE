@@ -494,7 +494,7 @@ $project_name = 'WattPulse';
                 <!-- Terms & Conditions -->
                 <div class="checkbox-group" style="display:flex;align-items:flex-start;gap:8px;margin-bottom:20px;">
                     <input type="checkbox" id="terms" name="terms" required style="width:auto;margin-top:2px;">
-                    <label for="terms" style="margin:0;font-size:13px;">I agree to the <a href="#" target="_blank" style="color:var(--foreground);">Terms & Conditions</a> and <a href="#" target="_blank" style="color:var(--foreground);">Privacy Policy</a></label>
+                    <label for="terms" style="margin:0;font-size:13px;">I agree to the <a href="../docs/terms.php" target="_blank" style="color:var(--foreground);">Terms &amp; Conditions</a> and <a href="../docs/privacy.php" target="_blank" style="color:var(--foreground);">Privacy Policy</a></label>
                 </div>
 
                 <div class="button-group">

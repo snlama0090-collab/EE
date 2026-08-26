@@ -26,7 +26,7 @@ $receipts = $stmt->fetchAll();
         <p>Payment receipts and billing history for completed sessions</p>
     </div>
     <div class="listing-actions">
-        <button class="btn btn-secondary" onclick="loadSection('receipts')">
+        <button class="btn btn-secondary" onclick="loadSection('receipts', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

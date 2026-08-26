@@ -203,7 +203,7 @@ if (file_exists($profilePicAbsolute)) {
                         <div style="padding: 32px; text-align: center; color: #FF3B30;">
                             <i class="fas fa-exclamation-circle" style="font-size: 48px; display: block; margin-bottom: 16px;"></i>
                             <p>Failed to load this section</p>
-                            <button onclick="loadSection('${sectionName}')" style="margin-top: 16px; padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer;">Try Again</button>
+                            <button onclick="loadSection('${sectionName}', true)" style="margin-top: 16px; padding: 8px 16px; background: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer;">Try Again</button>
                         </div>`;
                 });
         }

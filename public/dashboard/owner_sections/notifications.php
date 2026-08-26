@@ -21,7 +21,7 @@ $notifications = $stmt->fetchAll();
         <p>Activity updates for your stations</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('notifications')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('notifications', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

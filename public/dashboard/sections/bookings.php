@@ -28,7 +28,7 @@ $bookings = $stmt->fetchAll();
         <p>View and manage your charging session history</p>
     </div>
     <div class="listing-actions">
-        <button class="btn btn-secondary" onclick="loadSection('bookings')">
+        <button class="btn btn-secondary" onclick="loadSection('bookings', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
         <button class="btn btn-primary" onclick="loadSection('find-stations')">

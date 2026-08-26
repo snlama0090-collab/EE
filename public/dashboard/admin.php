@@ -164,9 +164,9 @@ $unread = (int) $notif['unread_count'];
 <script>
     let currentSection = '<?php echo $page; ?>';
 
-    function loadSection(sectionName) {
-        // Guard: do nothing if already on this section
-        if (currentSection === sectionName) return;
+    function loadSection(sectionName, force = false) {
+        // Guard: skip reload if already on this section (unless forced)
+        if (!force && currentSection === sectionName) return;
 
         if (currentSection !== sectionName) {
             history.pushState(null, '', `?page=${sectionName}`);
@@ -212,7 +212,7 @@ $unread = (int) $notif['unread_count'];
                     <div style="padding: 32px; text-align: center; color: #FF3B30;">
                         <i class="fas fa-exclamation-circle" style="font-size: 48px; display: block; margin-bottom: 16px;"></i>
                         <p>Failed to load this section</p>
-                        <button type="button" onclick="loadSection('${sectionName}')" style="margin-top: 16px; padding: 8px 16px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                        <button type="button" onclick="loadSection('${sectionName}', true)" style="margin-top: 16px; padding: 8px 16px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer;">
                             Try Again
                         </button>
                     </div>
@@ -224,7 +224,7 @@ $unread = (int) $notif['unread_count'];
         showConfirm('Approve this station?', function() {
             fetch(`../api/stations.php?action=approve&id=${stationId}`, { method: 'POST' })
                 .then(r => r.json()).then(data => {
-                    if (data.status === 'success') loadSection(currentSection);
+                    if (data.status === 'success') loadSection(currentSection, true);
                 });
         });
     }
@@ -317,7 +317,7 @@ $unread = (int) $notif['unread_count'];
         showConfirm('Approve this station?', function() {
             fetch(`../api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
                 .then(r => r.json()).then(function(data) {
-                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection); }
+                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection, true); }
                 });
         });
     }
@@ -332,7 +332,7 @@ $unread = (int) $notif['unread_count'];
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reason: reason })
                 }).then(r => r.json()).then(function(data) {
-                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection); }
+                    if (data.status === 'success') { closeStationDetail(); loadSection(currentSection, true); }
                 });
             }
         }, { confirmLabel: 'Reject Station', confirmClass: 'btn-danger' });

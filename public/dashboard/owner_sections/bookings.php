@@ -31,7 +31,7 @@ $bookings = $stmt->fetchAll();
             <p>Monitor and manage all booking activity across your stations</p>
         </div>
         <div class="listing-actions">
-            <button class="btn btn-secondary" onclick="loadSection('bookings')">
+            <button class="btn btn-secondary" onclick="loadSection('bookings', true)">
                 <i class="fas fa-sync"></i> Refresh List
             </button>
         </div>

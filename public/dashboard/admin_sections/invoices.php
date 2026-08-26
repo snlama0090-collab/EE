@@ -24,7 +24,7 @@ $invoices = $stmt->fetchAll();
         <p>View all payment transactions and billing records</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('invoices')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('invoices', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

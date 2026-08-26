@@ -29,7 +29,7 @@ $active_sessions = $stmt->fetch()['active'] ?? 0;
         <p>Performance metrics for your stations</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('analytics')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('analytics', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

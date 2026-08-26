@@ -16,7 +16,7 @@ $notifications = $stmt->fetchAll();
         <p>Your booking and account updates</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('notifications')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('notifications', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

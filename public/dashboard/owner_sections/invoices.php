@@ -33,7 +33,7 @@ $total_pending = $stmt->fetch()['total_pending'];
         <p>Revenue logs and payment records for your stations</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('invoices')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('invoices', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

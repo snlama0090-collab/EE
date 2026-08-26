@@ -54,7 +54,7 @@ $active_sessions = $stmt->fetch()['total'];
         <p>Platform-wide metrics and performance data</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('analytics')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('analytics', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

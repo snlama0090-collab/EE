@@ -23,7 +23,7 @@ $reviews = $stmt->fetchAll();
         <p>User feedback and flagged content moderation</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('reviews')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('reviews', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

@@ -19,7 +19,7 @@ $stations = $stmt->fetchAll();
         <p>Monitor and manage charging station registrations</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('stations')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('stations', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

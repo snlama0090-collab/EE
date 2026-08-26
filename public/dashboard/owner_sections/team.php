@@ -14,7 +14,7 @@ $db = getDB();
         <p>Manage your local site staff and operators</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('team')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('team', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

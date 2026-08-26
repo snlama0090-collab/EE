@@ -25,7 +25,7 @@ $bookings = $stmt->fetchAll();
         <p>View all platform bookings and charging activity</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('orders')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('orders', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

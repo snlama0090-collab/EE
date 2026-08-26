@@ -1,5 +1,4 @@
 <?php
-echo 'VERSION=UNIFIED_2026_08_24 FILE=' . __FILE__ . "\n";
 /**
  * END-TO-END INTEGRATION TEST — DESTRUCTIVE / WRITES TO LIVE DATABASE
  * ================================================================

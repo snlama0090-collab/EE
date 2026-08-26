@@ -14,7 +14,7 @@ $drivers = $stmt->fetchAll();
         <p>Manage all registered EV drivers on the platform</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('customers')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('customers', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

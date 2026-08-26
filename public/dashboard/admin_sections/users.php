@@ -20,7 +20,7 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
         <p>Manage all platform users and station owners</p>
     </div>
     <div class="listing-actions">
-        <button type="button" class="btn btn-secondary" onclick="loadSection('users')">
+        <button type="button" class="btn btn-secondary" onclick="loadSection('users', true)">
             <i class="fas fa-sync"></i> Refresh
         </button>
     </div>

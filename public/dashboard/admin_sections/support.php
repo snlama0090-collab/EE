@@ -84,7 +84,7 @@ function supportPost(payload, tid, doneMsg) {
             var m = document.getElementById('st-msg-' + tid);
             if (m) m.textContent = res.status === 'success' ? doneMsg : (res.message || 'Failed.');
             if (typeof showToast === 'function') showToast(res.message || doneMsg, res.status === 'success' ? 'success' : 'error');
-            if (res.status === 'success' && typeof loadSection === 'function') setTimeout(function () { loadSection('support'); }, 800);
+            if (res.status === 'success' && typeof loadSection === 'function') setTimeout(function () { loadSection('support', true); }, 800);
         })
         .catch(function () { if (typeof showToast === 'function') showToast('Network error.', 'error'); });
 }

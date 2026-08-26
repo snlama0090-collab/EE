@@ -267,9 +267,9 @@ if (file_exists($profilePicAbsolute)) {
         let revenueChart = null;
         let kwhChart = null;
 
-        function loadSection(sectionName) {
-            // Guard: do nothing if already on this section
-            if (currentSection === sectionName) return;
+        function loadSection(sectionName, force = false) {
+            // Guard: skip reload if already on this section (unless forced)
+            if (!force && currentSection === sectionName) return;
 
             if (currentSection !== sectionName) {
                 history.pushState(null, '', `?page=${sectionName}`);
@@ -320,7 +320,7 @@ if (file_exists($profilePicAbsolute)) {
                         <div style="padding: 32px; text-align: center; color: #FF3B30;">
                             <i class="fas fa-exclamation-circle" style="font-size: 48px; display: block; margin-bottom: 16px;"></i>
                             <p>Failed to load this section</p>
-                            <button onclick="loadSection('${sectionName}')" style="margin-top: 16px; padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            <button onclick="loadSection('${sectionName}', true)" style="margin-top: 16px; padding: 8px 16px; background: #34C759; color: white; border: none; border-radius: 8px; cursor: pointer;">
                                 Try Again
                             </button>
                         </div>
@@ -551,7 +551,8 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert('Station submitted successfully for admin approval.', 'success');
-                    loadSection('stations');
+                    loadSection('stations', true);
+                    toggleStationView('list-view');
                 } else {
                     showAlert(result.message || 'Failed to submit station.', 'error');
                 }

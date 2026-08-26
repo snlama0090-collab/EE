@@ -77,7 +77,16 @@ try {
             $category = sanitize($input['category'] ?? 'general');
             $subject  = sanitize($input['subject'] ?? '');
             $message  = sanitize($input['message'] ?? '');
-            $allowed  = ['general', 'booking', 'payment', 'station', 'other'];
+            $allowed  = [
+                // shared
+                'general', 'account', 'other',
+                // driver categories
+                'booking', 'billing', 'charger',
+                // owner categories
+                'station_approval', 'payout', 'charger_management',
+                // legacy slugs (existing DB rows)
+                'payment', 'station',
+            ];
             if (!in_array($category, $allowed, true)) $category = 'general';
             if ($subject === '' || mb_strlen($subject) > 150) {
                 http_response_code(400);

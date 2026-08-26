@@ -34,8 +34,9 @@ $badgeColor = function ($s) {
         <select id="st-category" style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
             <option value="general">General question</option>
             <option value="booking">Booking issue</option>
-            <option value="payment">Payment / billing</option>
-            <option value="station">Station or charger</option>
+            <option value="billing">Payment / billing</option>
+            <option value="charger">Charger problem</option>
+            <option value="account">Account issue</option>
             <option value="other">Other</option>
         </select>
     </div>

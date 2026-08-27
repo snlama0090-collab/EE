@@ -44,6 +44,9 @@ input:focus,select:focus{outline:2px solid #22c55e33;border-color:#22c55e}
 .terms{display:flex;gap:8px;align-items:flex-start;margin-top:20px;font-size:13px}
 button{width:100%;margin-top:22px;background:#16a34a;color:#fff;border:0;border-radius:8px;padding:12px;font-size:15px;font-weight:600;cursor:pointer}
 button:disabled{opacity:.6;cursor:default}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;z-index:99;max-width:90%}
+.toast.error{background:#dc2626}
+.toast.show{opacity:.97}
 </style>
 </head>
 <body>
@@ -54,7 +57,7 @@ button:disabled{opacity:.6;cursor:default}
 
   <form id="complete-form" novalidate>
     <label for="name">Full name</label>
-    <input type="text" id="name" value="<?php echo htmlspecialchars($acct['name'], ENT_QUOTES); ?>">
+    <input type="text" id="name" autocomplete="name" value="<?php echo htmlspecialchars($acct['name'], ENT_QUOTES); ?>">
     <div class="field-error" id="err-name"></div>
 
 <?php if ($role === 'driver'): ?>
@@ -69,7 +72,7 @@ button:disabled{opacity:.6;cursor:default}
       <option value="50">50 kWh</option><option value="60">60 kWh</option>
       <option value="75">75 kWh</option><option value="other">Other…</option>
     </select>
-    <input type="number" id="battery_other" step="0.1" min="0.1" placeholder="Enter exact kWh" style="display:none;margin-top:8px">
+    <input type="number" id="battery_other" step="0.1" min="0.1" aria-label="Exact battery capacity in kWh" placeholder="Enter exact kWh" style="display:none;margin-top:8px">
     <div class="field-error" id="err-battery_capacity"></div>
 <?php else: ?>
     <label for="company_name">Company name</label>
@@ -83,8 +86,9 @@ button:disabled{opacity:.6;cursor:default}
 
     <div class="terms">
       <input type="checkbox" id="terms">
-      <span>I agree to the <a href="../docs/terms.php" target="_blank">Terms &amp; Conditions</a>
-      and <a href="../docs/privacy.php" target="_blank">Privacy Policy</a></span>
+      <label for="terms" style="font-weight:normal">I agree to the
+        <a href="../docs/terms.php" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a> and
+        <a href="../docs/privacy.php" target="_blank" rel="noopener noreferrer">Privacy Policy</a></label>
     </div>
     <div class="field-error" id="err-terms"></div>
 
@@ -95,6 +99,20 @@ button:disabled{opacity:.6;cursor:default}
 <script src="<?php echo APP_URL; ?>/public/assets/js/csrf.js"></script>
 <script>
 (function () {
+  // A11y: inline errors get announced by screen readers (roles assigned before any message fires).
+  document.querySelectorAll('.field-error').forEach(function (el) {
+    el.setAttribute('role', 'alert');
+    el.setAttribute('aria-live', 'polite');
+  });
+  // App-consistent failure surfacing (was alert()): standalone page has no shared shell toast.
+  var toastEl = null;
+  function showToast(msg, type) {
+    if (!toastEl) { toastEl = document.createElement('div'); document.body.appendChild(toastEl); }
+    toastEl.className = 'toast show ' + (type || 'error');
+    toastEl.textContent = msg;
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(function () { toastEl.classList.remove('show'); }, 3500);
+  }
   // Client layer is UX-only; api/auth/google.php re-checks everything server-side.
   var hasLetters = function (v) { return (v.match(/[A-Za-z\u00C0-\u024F]/g) || []).length >= 2; };
   var BANK_RE = /^[0-9]{5,20}$/;
@@ -147,10 +165,10 @@ button:disabled{opacity:.6;cursor:default}
       var data = await res.json();
       if (data.status === 'success') { window.location.href = data.redirect; return; }
       btn.disabled = false; btn.textContent = 'Try again';
-      alert(data.message || 'Something went wrong.');
+      showToast(data.message || 'Something went wrong.', 'error');
     } catch (err) {
       btn.disabled = false; btn.textContent = 'Try again';
-      alert('Network error - please try again.');
+      showToast('Network error - please try again.', 'error');
     }
   });
 })();

@@ -84,7 +84,7 @@ $badgeColor = function ($s) {
             message: document.getElementById('st-message').value
         };
         btn.disabled = true;
-        fetch('/EE/api/support.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        fetch('<?php echo APP_URL; ?>/api/support.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 btn.disabled = false;

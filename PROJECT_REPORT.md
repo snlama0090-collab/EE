@@ -1132,4 +1132,17 @@ Full-mine audit against `.clinerules`; items categorized **(a) safe/trivial** vs
 ### Correction of record (R6 supersession)
 The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). That was wrong: `Auth::boot()` is unconditionally invoked at require-time from `Auth.php:288-289`, reached by every Auth bootstrap including both login surfaces — wiring shipped complete in `7d150ed`, and `git log -S 'Auth::boot();'` proves co-committal. Audit grep-design flaws identified; finding retracted.
 
+### Sweep outcome (2026-08-26 commits `74c035f` & `1a72526`)
+**Closed this session:** nine verifiably-dead constants + `attemptRememberLogin()` wrapper (`74c035f`) · six hardcoded `/EE/` fetch URLs across five files → APP_URL interpolation · completion-page accessibility batch (F-a1..a5) · `alert()` → app-styled toast · 14 leaked tool-syntax artifacts purged repo-wide · ledger corrections recorded above (`1a72526`).
+
+**Open — decision-first (b) items:** stations approve/reject atomicity (SELECT→UPDATE race) · geo-default single-source-of-truth vs 5 duplicated literal sites · `PASSWORD_REQUIRE_SPECIAL_CHARS` retire-vs-implement · `$role` raw-echo normalization precedent.
+
+**Open — manual verification bundle:** real-browser click-through covering complete-profile.php interactive layer (toast styling/timing, label-for quirk where embedded legal links toggle the checkbox) plus the Google sign-up flow generally.
+
+**Open — inherited backlog:** `LOG_MAX_SIZE` log-rotation wiring (issue #22, deliberately spared) · legacy fabricated-data row retroactive cleanup (§17, owner sign-off required) · logout.php open redirect + pre-existing `.htaccess` AH00124 rewrite-loop fragility (§10) · original handoff untouched set: simulated payments roadmap, upload content validation, booking queue race condition, cascade-delete financial-history loss, kWh-billing assumption.
+
+### ⚠️ New environment-hardening item: MySQL chronic crash-recovery regime (do not lose)
+Log evidence through 2026-08-27: **93** `Starting crash recovery` markers since June (near-every boot), historical `[ERROR] InnoDB: Your database may be corrupt…` storms (06-16, 06-27), today's double InnoDB assertion failure + `mysqld got exception 0x8000…` immediately preceding the clean `LSN=7873599` boot; mysqld runs as an **unsupervised console process** (no Windows service registered); disk healthy (D: 73 GB free). Primary hypothesis: abrupt terminations of the manually-launched process; assertions treated as secondary until integrity proves otherwise. Gated remediation sequence — **each step requires its own explicit go-ahead (R10)**: (1) verified full `mysqldump` outside repo · (2) `mysqlcheck --all-databases --check` integrity verdict, repair-free · (3) graceful-stop console instance, register bundled MariaDB as managed auto-restart Windows service.
+
+
 

@@ -638,7 +638,7 @@ if (file_exists($profilePicAbsolute)) {
                 const target = el.dataset.countdownTo;
                 if (!target) return;
                 startCountdown(target, el, function() {
-                    if (currentSection === 'bookings') loadSection('bookings');
+                    if (currentSection === 'bookings') loadSection('bookings', true);
                 });
             });
         }

@@ -1137,7 +1137,7 @@ The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). Th
 
 **Open — decision-first (b) items:** stations approve/reject atomicity (SELECT→UPDATE race) · geo-default single-source-of-truth vs 5 duplicated literal sites · `PASSWORD_REQUIRE_SPECIAL_CHARS` retire-vs-implement · `$role` raw-echo normalization precedent.
 
-**Open — manual verification bundle:** real-browser click-through covering complete-profile.php interactive layer (toast styling/timing, label-for quirk where embedded legal links toggle the checkbox) plus the Google sign-up flow generally.
+**Open — manual verification bundle:** real-browser click-through covering complete-profile.php interactive layer (toast styling/timing, label-for quirk where embedded legal links toggle the checkbox), the Google sign-up flow generally, **and the refresh/submit flows from the force-coverage sweep below** (admin reject, driver/owner ticket submit, owner station-delete/success-path, driver countdown-expiry).
 
 **Open — inherited backlog:** `LOG_MAX_SIZE` log-rotation wiring (issue #22, deliberately spared) · legacy fabricated-data row retroactive cleanup (§17, owner sign-off required) · logout.php open redirect + pre-existing `.htaccess` AH00124 rewrite-loop fragility (§10) · original handoff untouched set: simulated payments roadmap, upload content validation, booking queue race condition, cascade-delete financial-history loss, kWh-billing assumption.
 
@@ -1149,6 +1149,9 @@ The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). Th
 - **Service hardening applied**: Windows service **MySQL** registered (`--install` + `--defaults-file=D:\Xampp\mysql\bin\my.ini`), START_TYPE `AUTO_START`, failure actions `restart/10000ms · reset 86400s`, `RUNNING` verified, clean post-install boot logged (single expected crash-recovery line from the prior hard death), manual stop/start survivability consistent with SCM semantics.
 - **Weekly integrity sweep armed**: Task `MySQL Weekly Integrity Check` (SYSTEM, weekly Mon 09:00, Next Run 8/31/2026) runs wrapper `D:\db_backups\weekly_check.cmd` → appends all-databases check to `_weekly_check.log`, raises `_weekly_check_ALERT.txt` on any `error/Corrupt` hit. Task/tooling live outside the repo intentionally (machine-local ops); ledger records paths for discoverability.
 - **Residual watch-item**: if InnoDB assertions ever recur under the supervised service, escalate to MariaDB 10.4-specific investigation or an upgrade path rather than further point repairs.
+
+### Stale owner-notes reconciliation + residual force-coverage sweep (2026-08-27)
+Owner-notes items **1 (station submit refresh)** and **4 (refresh icons)** were already fixed in `082a327` (shipped 2026-08-26) — that commit was missing from this ledger, recorded here; admin support reply/resolve was covered too. The re-verification sweep found five residual unforced same-section calls, **fixed same day**: `admin.php:241` reject path · driver/owner ticket submit (`sections/support.php:99`, `owner_sections/support.php:93`) · owner station-delete (`owner.php:647`) · owner success-path (`owner.php:682`) · `driver.php:641` countdown-expiry conditional made force-aware (intent preserved: refresh only when already viewing bookings — the guard had rendered it a permanent no-op). Suite green (86/0); interactive confirmation folded into the manual-browser-pass bundle above. `overview.php`'s `location.reload()` refresh variant intentionally untouched (works as-is).
 
 
 

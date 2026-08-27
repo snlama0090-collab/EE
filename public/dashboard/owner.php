@@ -644,7 +644,7 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert('Station deleted successfully.', 'success');
-                    loadSection('stations');
+                    loadSection('stations', true);
                 } else {
                     showAlert(result.message || 'Failed to delete.', 'error');
                 }
@@ -679,7 +679,7 @@ if (file_exists($profilePicAbsolute)) {
                 const result = await response.json();
                 if (result.status === 'success') {
                     showAlert(result.message, 'success');
-                    loadSection('bookings');
+                    loadSection('bookings', true);
                 } else {
                     showAlert(result.message || 'Operation failed.', 'error');
                 }

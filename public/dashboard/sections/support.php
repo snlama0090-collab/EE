@@ -96,7 +96,7 @@ $badgeColor = function ($s) {
                 btn.disabled = false;
                 if (res.status === 'success') {
                     showToast('Ticket submitted! We will reply here.', 'success');
-                    loadSection('support');
+                    loadSection('support', true);
                 } else {
                     showToast(res.message || 'Failed to submit ticket.', 'error');
                 }

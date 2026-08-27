@@ -238,7 +238,7 @@ $unread = (int) $notif['unread_count'];
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason })
             }).then(r => r.json()).then(data => {
-                if (data.status === 'success') loadSection(currentSection);
+                if (data.status === 'success') loadSection(currentSection, true);
             });
         }
     }

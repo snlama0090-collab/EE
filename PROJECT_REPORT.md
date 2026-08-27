@@ -1153,6 +1153,9 @@ The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). Th
 ### Stale owner-notes reconciliation + residual force-coverage sweep (2026-08-27)
 Owner-notes items **1 (station submit refresh)** and **4 (refresh icons)** were already fixed in `082a327` (shipped 2026-08-26) — that commit was missing from this ledger, recorded here; admin support reply/resolve was covered too. The re-verification sweep found five residual unforced same-section calls, **fixed same day**: `admin.php:241` reject path · driver/owner ticket submit (`sections/support.php:99`, `owner_sections/support.php:93`) · owner station-delete (`owner.php:647`) · owner success-path (`owner.php:682`) · `driver.php:641` countdown-expiry conditional made force-aware (intent preserved: refresh only when already viewing bookings — the guard had rendered it a permanent no-op). Suite green (86/0); interactive confirmation folded into the manual-browser-pass bundle above. `overview.php`'s `location.reload()` refresh variant intentionally untouched (works as-is).
 
+**Bookings #147-149 drift — investigated & benign (2026-08-27):** the bookings count drifted 135→137 during the browser-verification pass; traced via `app.log` + `activity_logs` to the integration suite's own lifecycle checks (`initiate_payment` ×2 per run, seeded driver1/charger1 fixtures — bookings #147 @18:06, #148/#149 @20:15, one `completed` + one `stopped`). SessionTicker exonerated: it only UPDATEs/audits and structurally cannot INSERT bookings. These rows persist **by design** (suite teardown intentionally keeps seeded-fixture bookings) — **do not re-flag this drift in future sessions**; expect +2 bookings per suite run.
+
+
 
 
 

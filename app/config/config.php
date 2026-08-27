@@ -34,14 +34,11 @@ define('DB_CHARSET', 'utf8mb4');
 // resolved to EE/app instead of EE root — uploads/logs silently landed inside app/. __DIR__
 // is natively normalized, making this robust on Windows and Linux.
 define('APP_ROOT', dirname(__DIR__, 2));
-define('APP_PATH', APP_ROOT . '/app');
 define('PUBLIC_PATH', APP_ROOT . '/public');
-define('UPLOADS_PATH', PUBLIC_PATH . '/assets/uploads');
 define('LOGS_PATH', APP_ROOT . '/logs');
 
 // ===== APPLICATION URLs =====
 define('APP_URL', 'http://localhost/EE');
-define('API_URL', APP_URL . '/api');
 
 // ===== SESSION CONFIGURATION =====
 define('SESSION_TIMEOUT', 3600); // 1 hour in seconds
@@ -61,19 +58,12 @@ define('ELECTRICITY_RATE_PER_KWH', 10); // In NPR
 define('BOOKING_BASE_FEE', 50); // In NPR
 
 // ===== LOCATION CONFIGURATION =====
-define('DEFAULT_LATITUDE', 27.7172); // Kathmandu
-define('DEFAULT_LONGITUDE', 85.3240);
 define('DEFAULT_SEARCH_RADIUS_KM', 5);
-define('MAX_SEARCH_RADIUS_KM', 50);
 
 // ===== FILE UPLOAD CONFIGURATION =====
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5 MB
 
-// ===== PAGINATION CONFIGURATION =====
-define('ITEMS_PER_PAGE', 20);
-
 // ===== API CONFIGURATION =====
-define('API_RATE_LIMIT_ENABLED', true);
 define('API_RATE_LIMIT_REQUESTS', 100); // requests per hour
 define('API_RATE_LIMIT_WINDOW', 3600); // 1 hour in seconds
 
@@ -83,7 +73,6 @@ define('LOGIN_IP_MAX_ATTEMPTS', 20);  // failed logins per IP across ALL emails 
 define('LOGIN_LOCKOUT_WINDOW', 900);  // lockout window in seconds (shared by both layers)
 
 // ===== LOGGING CONFIGURATION =====
-define('LOG_LEVEL', 'INFO'); // DEBUG, INFO, WARNING, ERROR
 define('LOG_PATH', LOGS_PATH . '/app.log');
 define('LOG_MAX_SIZE', 10 * 1024 * 1024); // 10 MB
 

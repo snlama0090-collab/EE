@@ -206,14 +206,6 @@ class Auth {
         return true;
     }
     
-    /**
-     * Boot-time entry point for remember-me auto-login.
-     */
-    public static function attemptRememberLogin() {
-        if (!isset($_COOKIE['remember_token'])) return false;
-        return self::verifyRememberToken($_COOKIE['remember_token']);
-    }
-    
     private static function setRememberCookie($rawToken) {
         setcookie('remember_token', $rawToken, [
             'expires'  => time() + (30 * 24 * 60 * 60),

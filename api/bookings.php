@@ -131,6 +131,44 @@ try {
             $booking_id = $db->lastInsertId();
             $db->commit();
             
+            // Khalti mode: create the real gateway payment and hand back the hosted payment URL.
+            // Simulated mode falls through to the original response below, unchanged.
+            if (PAYMENT_DRIVER === 'khalti') {
+                require_once __DIR__ . '/../app/helpers/KhaltiPayment.php';
+                
+                $gw = KhaltiPayment::initiate($booking_id, BOOKING_BASE_FEE, 'EV Charging Reservation Fee');
+                if (!$gw['ok']) {
+                    // Gateway initiation failed — booking stays pending_payment and the
+                    // existing expiry flow (SessionTicker) cancels it and frees the charger.
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => $gw['error'],
+                        'data' => ['booking_id' => $booking_id]
+                    ]);
+                    exit;
+                }
+                
+                // Pending transaction row: transaction_id + gateway_payment_id are filled
+                // in by the lookup-verified completion (khalti-return.php), never before.
+                $stmt = $db->prepare("INSERT INTO payment_transactions
+                    (booking_id, payment_method, amount, currency, gateway_order_ref, status)
+                    VALUES (?, 'khalti', ?, 'NPR', ?, 'pending')");
+                $stmt->execute([$booking_id, BOOKING_BASE_FEE, $gw['pidx']]);
+                
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Redirecting to Khalti for payment',
+                    'data' => [
+                        'booking_id' => $booking_id,
+                        'estimated_cost' => $total_cost,
+                        'currency' => 'NPR',
+                        'payment_url' => $gw['payment_url'],
+                        'payment_driver' => 'khalti'
+                    ]
+                ]);
+                exit;
+            }
+            
             echo json_encode([
                 'status' => 'success',
                 'message' => 'Payment initiation request created',

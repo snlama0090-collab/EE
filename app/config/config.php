@@ -21,6 +21,11 @@ if (file_exists($envDir . '/.env')) {
 define('GMAIL_USER', $_ENV['GMAIL_USER'] ?? '');
 define('GMAIL_APP_PASSWORD', $_ENV['GMAIL_APP_PASSWORD'] ?? '');
 
+/* ===== PAYMENT GATEWAY (Khalti) ===== */
+define('PAYMENT_DRIVER', $_ENV['PAYMENT_DRIVER'] ?? 'simulated');   // simulated | khalti
+define('KHALTI_BASE_URL', $_ENV['KHALTI_BASE_URL'] ?? 'https://dev.khalti.com/api/v2/'); // live: https://khalti.com/api/v2/
+define('KHALTI_SECRET_KEY', $_ENV['KHALTI_SECRET_KEY'] ?? '');
+
 // ===== DATABASE CONFIGURATION =====
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');

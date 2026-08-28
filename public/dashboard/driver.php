@@ -474,6 +474,13 @@ if (file_exists($profilePicAbsolute)) {
                             // Show payment confirmation preview
                             close();
                             const data = res.data;
+                            // Khalti mode: the API returned a hosted payment URL —
+                            // leave the app and pay there; lookup-verified on return.
+                            // Simulated mode has no payment_url and falls through.
+                            if (data.payment_url) {
+                                window.location.href = data.payment_url;
+                                return;
+                            }
                             showConfirm(
                                 `Reservation Summary\nFee: NPR ${data.estimated_cost.toFixed(2)}\n\nProceed with payment?`,
                                 function() {

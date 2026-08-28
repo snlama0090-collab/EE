@@ -67,7 +67,7 @@ Requires [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP 8.x) and 
 
 Honest "next steps" — the app is beyond prototype stage but not production-ready:
 
-- 💳 **Payments are simulated** — no real gateway integration (Razorpay fields exist in schema but are unwired). #1 production blocker
+- 💳 **Payments are simulated** — `PAYMENT_DRIVER=simulated` default; Khalti sandbox integration underway (gateway columns `gateway_*` in schema; legacy Razorpay names retired — no NPR settlement). #1 production blocker until live
 - 🏁 **Booking queue race condition** — double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
 - 🔒 ~~No CSRF protection or login rate limiting~~ — **both shipped 2026-08-24**: two-layer login throttle (LOGIN_MAX_ATTEMPTS/IP spray net) + session-bound CSRF tokens (`app/helpers/Csrf.php`) enforced on all state-changing endpoints. Remaining security backlog: file-upload content validation.
 - 🔋 **kWh billing assumes 100% charge** — no end-battery-% capture

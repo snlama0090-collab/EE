@@ -317,10 +317,10 @@ CREATE TABLE payment_transactions (
     amount DECIMAL(10, 2),
     currency VARCHAR(3) DEFAULT 'NPR',
     
-    -- Razorpay Integration
-    razorpay_order_id VARCHAR(100),
-    razorpay_payment_id VARCHAR(100),
-    razorpay_signature VARCHAR(255),
+    -- Payment Gateway (Khalti pidx/transaction id; generic so eSewa fits later)
+    gateway_order_ref VARCHAR(100),
+    gateway_payment_id VARCHAR(100),
+    gateway_signature VARCHAR(255),
     
     -- Status
     status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',

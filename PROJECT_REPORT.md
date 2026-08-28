@@ -48,7 +48,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 | **Chart.js 4.4.7** | Owner financial dashboards (revenue / kWh charts) | CDN |
 | **Google Identity Services (GSI)** | OAuth 2.0 sign-in/up (One Tap) | CDN |
 | **Nominatim (OpenStreetMap)** | Reverse geocoding for location detection | REST API |
-| **Razorpay** | Payment processing (schema references `razorpay_order_id`, `razorpay_payment_id` — not yet fully wired in frontend) | Schema-level only |
+| **Khalti** | Payment gateway for NPR (hosted-checkout ePayment API; `gateway_order_ref`/`gateway_payment_id`/`gateway_signature` columns; Razorpay rejected — no NPR settlement for Nepali merchants) | Integration in progress (Phase 1: reservation fee) |
 
 ### Database Schema Overview (16 tables)
 
@@ -1154,6 +1154,18 @@ The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). Th
 Owner-notes items **1 (station submit refresh)** and **4 (refresh icons)** were already fixed in `082a327` (shipped 2026-08-26) — that commit was missing from this ledger, recorded here; admin support reply/resolve was covered too. The re-verification sweep found five residual unforced same-section calls, **fixed same day**: `admin.php:241` reject path · driver/owner ticket submit (`sections/support.php:99`, `owner_sections/support.php:93`) · owner station-delete (`owner.php:647`) · owner success-path (`owner.php:682`) · `driver.php:641` countdown-expiry conditional made force-aware (intent preserved: refresh only when already viewing bookings — the guard had rendered it a permanent no-op). Suite green (86/0); interactive confirmation folded into the manual-browser-pass bundle above. `overview.php`'s `location.reload()` refresh variant intentionally untouched (works as-is).
 
 **Bookings #147-149 drift — investigated & benign (2026-08-27):** the bookings count drifted 135→137 during the browser-verification pass; traced via `app.log` + `activity_logs` to the integration suite's own lifecycle checks (`initiate_payment` ×2 per run, seeded driver1/charger1 fixtures — bookings #147 @18:06, #148/#149 @20:15, one `completed` + one `stopped`). SessionTicker exonerated: it only UPDATEs/audits and structurally cannot INSERT bookings. These rows persist **by design** (suite teardown intentionally keeps seeded-fixture bookings) — **do not re-flag this drift in future sessions**; expect +2 bookings per suite run.
+
+## 19. Khalti Payment Gateway — Phase 1: reservation fee (2026-08-28)
+
+- **Gateway choice**: **Khalti** (ePayment API v2, hosted checkout) over eSewa — deciding factor: sandbox self-signup with **no business onboarding/KYC**, NPR-native paisa integer amounts, and lookup-as-sole-authority semantics. **Razorpay rejected** (India-first, no NPR settlement for Nepali merchants); legacy `razorpay_*` columns renamed to `gateway_order_ref`/`gateway_payment_id`/`gateway_signature` (additive live-DB ALTER + `schema.sql` synced; UNIQUE key on `gateway_order_ref`).
+- **Driver gating**: `PAYMENT_DRIVER` in `.env` (`simulated` default | `khalti`), plus `KHALTI_BASE_URL` (sandbox default; live = swap one line) and `KHALTI_SECRET_KEY`. In simulated mode **nothing is read and no code path changes** — full suite byte-identical (86/0 verified post-integration).
+- **Phase 1 scope**: flat Rs.50 reservation fee only. `initiate_payment` (khalti mode) → gateway initiate → `payment_transactions` row `status='pending'` with `gateway_order_ref=pidx` (`transaction_id` stays NULL until verified) → hosted `payment_url` returned; front-end (`driver.php`) redirects to it when present, simulated dialog otherwise.
+- **Completion**: `public/payment/khalti-return.php` — re-asks the gateway via `KhaltiPayment::lookup()` (secret-key authenticated; redirect payloads never trusted). Completes only on literal `Completed` **plus amount guard** (gateway paisa total must equal txn amount). Both updates status-guarded → duplicate returns/callbacks are idempotent no-ops; mirrors simulated `confirm_payment` semantics (`booked`/`payment_status='completed'`). Guest-safe by design (gateway server callback carries no session; pidx is a bearer reference). No CSRF token here — no authenticated form submission exists on this endpoint (documented in-file).
+- **Edge cases**: abandon/cancel/expire → txn `failed`-or-pending, booking stays `pending_payment`, existing SessionTicker expiry frees the charger; gateway-success-but-lost-callback → return-landing lookup still completes, and pidx lookup is re-runnable (reconciliation-ready); refunds: none — app T&C no-refund policy stands (dashboard-manual if ever needed).
+- **New files**: `app/helpers/KhaltiPayment.php` (initiate/lookup statics), `public/payment/khalti-return.php`. Modified: `api/bookings.php` (khalti branch after commit, simulated path untouched), `driver.php` (6-line redirect), `config.php` (3 defines), schema/docs per above.
+- **Secrets**: sandbox secret key lives in `.env` only — never committed, never displayed; `.gitignore` coverage verified.
+- **Phase 2 (deferred)**: variable battery-% charging fee (`confirm_charging_payment`) on the same plumbing; helper needs only an optional order-ref prefix param.
+- **Status**: code shipped, suite green. **Real sandbox round-trip pending** operator-side `.env` keys (`PAYMENT_DRIVER=khalti` + `KHALTI_SECRET_KEY`) — manual sandbox verification (pay / abandon / idempotency / rollback) is the next milestone step.
 
 
 

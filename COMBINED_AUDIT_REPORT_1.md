@@ -11,6 +11,7 @@
 **`api/bookings.php` (`confirm_payment`, lines ~156–228)**
 There is no real payment gateway integration. "Payment confirmation" just generates a fake `transaction_id = 'TXN' . time() . ...`, sets `payment_method = 'wallet'`, and marks it `completed` — no money actually moves, no gateway call happens. `razorpay_order_id` / `razorpay_payment_id` / `razorpay_signature` exist in the schema but are never populated or verified.
 **Fix:** Integrate Razorpay (or equivalent) SDK, verify `razorpay_signature` server-side before marking any booking as paid.
+> **[2026-08-28 update]** Superseded: Razorpay rejected (India-first, no NPR settlement for Nepali merchants); columns renamed to `gateway_*`; **Khalti** chosen (sandbox without business onboarding). See PROJECT_REPORT §19.
 
 ### 2. Booking queue race condition (charger double-booking)
 **`api/bookings.php` (`initiate_payment` ~90–109, legacy path ~248–267)**

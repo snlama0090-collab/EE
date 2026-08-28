@@ -65,10 +65,18 @@ class KhaltiPayment {
      *              total_amount is the gateway-reported amount in PAISA, when present.
      */
     public static function lookup($pidx) {
-        $ch = curl_init(KHALTI_BASE_URL . 'epayment/lookup/?pidx=' . urlencode($pidx));
+        // Docs: lookup is POST {pidx} (application/json). NOTE: Expired/User canceled
+        // responses return HTTP 400 WITH a valid status payload — they are real
+        // lookup answers, not transport failures.
+        $ch = curl_init(KHALTI_BASE_URL . 'epayment/lookup/');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER     => ['Authorization: Key ' . KHALTI_SECRET_KEY],
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode(['pidx' => $pidx]),
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Key ' . KHALTI_SECRET_KEY,
+                'Content-Type: application/json',
+            ],
             CURLOPT_TIMEOUT        => 15,
             CURLOPT_SSL_VERIFYPEER => true,
         ]);
@@ -77,7 +85,7 @@ class KhaltiPayment {
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($body === false || $code !== 200) {
+        if ($body === false || ($code !== 200 && $code !== 400)) {
             error_log("[KhaltiPayment] lookup failed: HTTP=$code err=$err");
             return ['ok' => false, 'status' => 'Unknown', 'total_amount' => null,
                     'transaction_id' => null, 'error' => 'Payment gateway unreachable.'];

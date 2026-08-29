@@ -104,6 +104,17 @@ button:disabled{opacity:.6;cursor:default}
 
 <script src="<?php echo APP_URL; ?>/public/assets/js/csrf.js"></script>
 <script>
+    // preset picker
+    function selectPreset(key, el) {
+        var inp = document.getElementById('preset-input');
+        if (!inp) return;
+        if (inp.value === key) { inp.value = ''; el.style.borderColor = 'transparent'; return; } // click again = deselect
+        inp.value = key;
+        var imgs = document.querySelectorAll('.preset-picker img');
+        for (var i = 0; i < imgs.length; i++) imgs[i].style.borderColor = 'transparent';
+        el.style.borderColor = 'var(--primary)';
+    }
+
 (function () {
   // A11y: inline errors get announced by screen readers (roles assigned before any message fires).
   document.querySelectorAll('.field-error').forEach(function (el) {
@@ -167,6 +178,8 @@ button:disabled{opacity:.6;cursor:default}
       Object.keys(payload).forEach(function (k) { fd.append(k, payload[k]); });
       var fi = document.getElementById('pfp-input');
       if (fi && fi.files && fi.files[0]) fd.append('pfp', fi.files[0]);
+      var pe = document.getElementById('preset-input');
+      if (pe && pe.value) fd.append('preset', pe.value);
       var res = await fetch('/EE/api/auth/google.php', { method: 'POST', body: fd });
       var data = await res.json();
       if (data.status === 'success') { window.location.href = data.redirect; return; }

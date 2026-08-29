@@ -500,6 +500,16 @@ $project_name = 'WattPulse';
                     <label for="terms" style="margin:0;font-size:13px;">I agree to the <a href="../docs/terms.php" target="_blank" style="color:var(--foreground);">Terms &amp; Conditions</a> and <a href="../docs/privacy.php" target="_blank" style="color:var(--foreground);">Privacy Policy</a></label>
                 </div>
 
+                <!-- Preset picker (optional; the uploaded file wins if both used) -->
+                <div class="preset-picker" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <?php $presetList = preset_keys(); foreach ($presetList as $pk): ?>
+                    <img src="assets/img/presets/<?php echo $pk; ?>.jpg" alt="<?php echo $pk; ?>"
+                         onclick="selectPreset('<?php echo $pk; ?>', this)"
+                         style="width:48px;height:48px;border-radius:50%;cursor:pointer;border:3px solid transparent;object-fit:cover;">
+                <?php endforeach; ?>
+                </div>
+                <input type="hidden" id="preset-input" name="preset" value="">
+
                 <!-- Profile picture (optional): driver avatar / owner logo, resized server-side -->
                 <div class="checkbox-group" style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
                     <input type="file" id="pfp-input" name="pfp" accept="image/*" style="width:auto;">
@@ -614,6 +624,16 @@ $project_name = 'WattPulse';
         // stays clean (otherwise the hidden form's empty `name` overwrites the
         // active one during the formData.forEach copy).
         selectUserType(selectedUserType);
+
+        function selectPreset(key, el) {
+            var inp = document.getElementById('preset-input');
+            if (!inp) return;
+            if (inp.value === key) { inp.value = ''; el.style.borderColor = 'transparent'; return; } // click again = deselect
+            inp.value = key;
+            var imgs = document.querySelectorAll('.preset-picker img');
+            for (var i = 0; i < imgs.length; i++) imgs[i].style.borderColor = 'transparent';
+            el.style.borderColor = 'var(--primary)';
+        }
 
         function goToStep(step) {
             const step1 = document.getElementById('step-1');

@@ -689,6 +689,17 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
 
+        // --- preset logo picker (profile form) ---
+        function selectPreset(key, el) {
+            var inp = document.getElementById('preset-input');
+            if (!inp) return;
+            if (inp.value === key) { inp.value = ''; el.style.borderColor = 'transparent'; return; } // click again = deselect
+            inp.value = key;
+            var imgs = document.querySelectorAll('.preset-picker img');
+            for (var i = 0; i < imgs.length; i++) imgs[i].style.borderColor = 'transparent';
+            el.style.borderColor = 'var(--primary)';
+        }
+
         // --- profile.php (owner profile form) ---
         async function saveProfile(event) {
             event.preventDefault();

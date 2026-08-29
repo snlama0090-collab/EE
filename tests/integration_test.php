@@ -348,6 +348,21 @@ curl_close($ch);
 preg_match('/name="csrf-token" content="([0-9a-f]{64})"/', $html, $m);
 $tok = $m[1] ?? '';
 rep('38a. shell HTML delivers session-bound meta token', $tok !== '' && $tok === ($CSRF_TOKENS[$dc] ?? ''), 'len=' . strlen($tok) . ' matches_primed=' . var_export($tok === ($CSRF_TOKENS[$dc] ?? ''), true));
+// 38c/38d: fragment GET-renderability regression guard — the 2026-08-29 incident
+// (d8ea54a placed Csrf::validate() unconditionally on the dual-purpose profile
+// fragments, 403-ing the GET that renders the profile form; invisible to the
+// suite because nothing ever GET-ed a fragment). Authenticated GET must render
+// the form, never the token-error body.
+$ch = curl_init("$BASE/public/dashboard/sections/profile.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$b38c = (string) curl_exec($ch);
+$c38c = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+rep('38c. driver profile fragment GET renders (no CSRF-gate regression)', $c38c === 200 && strpos($b38c, 'driver-profile-form') !== false && strpos($b38c, 'Invalid security token') === false, 'code=' . $c38c . ' form=' . var_export(strpos($b38c, 'driver-profile-form') !== false, true));
+$ch = curl_init("$BASE/public/dashboard/owner_sections/profile.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $oc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$b38d = (string) curl_exec($ch);
+$c38d = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+rep('38d. owner profile fragment GET renders (no CSRF-gate regression)', $c38d === 200 && strpos($b38d, 'owner-profile-form') !== false && strpos($b38d, 'Invalid security token') === false, 'code=' . $c38d . ' form=' . var_export(strpos($b38d, 'owner-profile-form') !== false, true));
 // 38: valid token accepted on a state-changing endpoint
 $r38 = tpost("$BASE/api/notifications.php", ['action' => 'mark_all_read'], $tok, $dc);
 rep('38. valid token accepted', $r38[0] === 200 && ($r38[1]['status'] ?? '') === 'success', 'http=' . $r38[0]);

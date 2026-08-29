@@ -4,7 +4,11 @@ require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
 require_once dirname(__DIR__, 3) . '/app/helpers/Csrf.php';
 
 Auth::requireUserType('driver');
-Csrf::validate();
+// CSRF gate on the state-changing POST only — the GET renders this same file
+// as the profile form (loaded via loadSection), and must not be token-gated.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Csrf::validate();
+}
 $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
@@ -72,7 +76,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         }
-        
+
+        // Preset selection (optional; an uploaded avatar wins if both are present)
+        $preset = sanitize($_POST['preset'] ?? '');
+        if ($preset !== '' && !(isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK)) {
+            if (apply_preset($preset, PUBLIC_PATH . "/assets/uploads/pfp/{$user_id}.jpg")) {
+                // preset copied over the avatar slot
+            } else {
+                log_message('WARNING', "Avatar: preset '$preset' unavailable - skipped for user {$user_id}");
+            }
+        }
+
         $db->commit();
         echo json_encode(['status' => 'success', 'message' => 'Profile updated successfully.']);
     } catch (Exception $e) {
@@ -105,6 +119,21 @@ if (file_exists($profilePicAbsolute)) {
     <div class="dashboard-section-card">
         <form id="driver-profile-form" method="POST" onsubmit="saveProfile(event)" enctype="multipart/form-data">
             
+            <!-- Preset picker (optional; an uploaded avatar wins if both used) -->
+            <?php $presetList = preset_keys(); if ($presetList): ?>
+            <div style="margin-bottom:16px;">
+                <div style="font-size:13px;color:var(--gray);margin-bottom:8px;">Or pick a preset avatar:</div>
+                <div class="preset-picker" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <?php foreach ($presetList as $pk): ?>
+                    <img src="../assets/img/presets/<?php echo $pk; ?>.jpg" alt="<?php echo $pk; ?>"
+                         onclick="selectPreset('<?php echo $pk; ?>', this)"
+                         style="width:48px;height:48px;border-radius:50%;cursor:pointer;border:3px solid transparent;object-fit:cover;">
+                <?php endforeach; ?>
+                </div>
+                <input type="hidden" id="preset-input" name="preset" value="">
+            </div>
+            <?php endif; ?>
+
             <!-- Avatar Section -->
             <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px; border-bottom:1px solid var(--border); padding-bottom:20px;">
                 <div style="position:relative; display:inline-block;">

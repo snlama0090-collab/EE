@@ -178,6 +178,18 @@ try {
         }
     }
 
+    // Preset selection (optional; an uploaded picture wins if both are present).
+    // Read from $input so both the multipart ($_POST) and JSON paths carry it.
+    $preset = sanitize($input['preset'] ?? '');
+    if ($preset !== '' && !($pfp_file !== null && $pfp_file['error'] === UPLOAD_ERR_OK)) {
+        $pfpName = ($user_type === 'owner') ? "owner_{$new_id}.jpg" : "{$new_id}.jpg";
+        if (apply_preset($preset, PUBLIC_PATH . "/assets/uploads/pfp/" . $pfpName)) {
+            // preset copied over the picture slot
+        } else {
+            log_message('WARNING', "Signup pfp: preset '$preset' unavailable - skipped for user {$new_id}");
+        }
+    }
+
     // INSERT succeeded — only now consume the verified OTP row.
     $db->prepare('DELETE FROM registration_otps WHERE email = ?')->execute([$email]);
 

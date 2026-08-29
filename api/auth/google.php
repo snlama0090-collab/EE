@@ -103,6 +103,17 @@ if (($input['action'] ?? '') === 'complete_profile') {
            ->execute([$name, $company, $bank, Auth::getCurrentUserId()]);
     }
 
+    // Preset selection (optional; an uploaded picture wins if both are present).
+    // Read from $input so both the multipart ($_POST) and JSON paths carry it.
+    $preset = sanitize($input['preset'] ?? '');
+    if ($preset !== '' && !($pfp_file !== null && $pfp_file['error'] === UPLOAD_ERR_OK)) {
+        if (apply_preset($preset, $targetPfp)) {
+            // preset copied over the picture slot
+        } else {
+            log_message('WARNING', "Completion pfp: preset '$preset' unavailable - skipped for user " . Auth::getCurrentUserId());
+        }
+    }
+
     $_SESSION['profile_complete'] = true;
     echo json_encode([
         'status'   => 'success',

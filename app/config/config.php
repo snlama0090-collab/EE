@@ -238,6 +238,36 @@ function resize_profile_image($sourcePath, $targetPath, $maxDim = 512) {
 }
 
 /**
+ * Preset avatar/logo catalog. The preset FILES under assets/img/presets/ are
+ * user-provided and gitignored — they may be absent in any given checkout, so
+ * the catalog is SCANNED FROM DISK (not hardcoded): callers only ever see
+ * presets that actually exist, and a fresh clone simply yields an empty set.
+ */
+function preset_keys() {
+    $out = [];
+    foreach (glob(PUBLIC_PATH . '/assets/img/presets/preset_*.jpg') ?: [] as $f) {
+        if (preg_match('/^(preset_\d{2})\.jpg$/', basename($f), $m)) $out[] = $m[1];
+    }
+    sort($out);
+    return $out;
+}
+
+function preset_is_available($key) {
+    return in_array($key, preset_keys(), true);
+}
+
+/**
+ * Copy a preset image over the user's picture slot (same fixed-name
+ * convention as uploads, so all existing display sites render it unchanged).
+ * Returns false for unknown keys or missing files — callers treat that as
+ * "gracefully skip", never an error (fresh-clone degradation).
+ */
+function apply_preset($key, $targetPath) {
+    if (!preset_is_available($key)) return false;
+    return @copy(PUBLIC_PATH . "/assets/img/presets/$key.jpg", $targetPath);
+}
+
+/**
  * Hash a password
  */
 function hash_password($password) {

@@ -78,7 +78,7 @@ $badgeColor = ['open' => '#f59e0b', 'in_progress' => '#3b82f6', 'resolved' => '#
 
 <script>
 function supportPost(payload, tid, doneMsg) {
-    fetch('<?php echo APP_URL; ?>/api/support.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    fetch('/EE/api/support.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
         .then(function (r) { return r.json(); })
         .then(function (res) {
             var m = document.getElementById('st-msg-' + tid);

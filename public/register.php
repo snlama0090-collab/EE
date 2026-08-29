@@ -675,7 +675,7 @@ $project_name = 'WattPulse';
             wrapper.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted-foreground);font-size:14px;"><span class="spinner"></span> Creating your account...</div>';
 
             try {
-                const res = await fetch('<?php echo APP_URL; ?>/api/auth/google.php', {
+                const res = await fetch('/EE/api/auth/google.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: idToken, user_type: selectedUserType })

@@ -157,7 +157,7 @@ button:disabled{opacity:.6;cursor:default}
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       // csrf.js wrapper auto-injects X-CSRF-Token on same-origin POSTs.
-      var res = await fetch('<?php echo APP_URL; ?>/api/auth/google.php', {
+      var res = await fetch('/EE/api/auth/google.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

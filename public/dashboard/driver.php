@@ -403,7 +403,7 @@ if (file_exists($profilePicAbsolute)) {
 
         // --- booking modal (P2P prepaid flow) ---
         function bookStation(stationId) {
-            fetch(`../api/stations.php?id=${stationId}`)
+            fetch(`/EE/api/stations.php?id=${stationId}`)
                 .then(r => r.json())
                 .then(result => {
                     if (result.status !== 'success') throw new Error(result.message);
@@ -457,7 +457,7 @@ if (file_exists($profilePicAbsolute)) {
                         this.disabled = true;
                         this.textContent = 'Reserving...';
 
-                        fetch('../api/bookings.php', {
+                        fetch('/EE/api/bookings.php', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ action: 'initiate_payment', charger_id: chargerId })
@@ -503,7 +503,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function confirmPayment(bookingId) {
             try {
-                const response = await fetch('../api/bookings.php', {
+                const response = await fetch('/EE/api/bookings.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'confirm_payment', booking_id: bookingId })
@@ -562,7 +562,7 @@ if (file_exists($profilePicAbsolute)) {
                 this.disabled = true;
                 this.textContent = 'Calculating...';
 
-                fetch('../api/bookings.php', {
+                fetch('/EE/api/bookings.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'initiate_charging_payment', booking_id: bookingId, battery_percent: batteryPct })
@@ -597,7 +597,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function confirmChargingPayment(bookingId, batteryPercent) {
             try {
-                const response = await fetch('../api/bookings.php', {
+                const response = await fetch('/EE/api/bookings.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'confirm_charging_payment', booking_id: bookingId, battery_percent: batteryPercent })
@@ -661,7 +661,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doStopCharging(bookingId) {
             try {
-                const response = await fetch('../api/bookings.php', {
+                const response = await fetch('/EE/api/bookings.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'stop_session', booking_id: bookingId })
@@ -683,7 +683,7 @@ if (file_exists($profilePicAbsolute)) {
 
         function startPollingIfNeeded() {
             // Only poll if there's an active charging/pending_payment booking
-            fetch('../api/bookings.php')
+            fetch('/EE/api/bookings.php')
                 .then(r => r.json())
                 .then(res => {
                     if (res.status !== 'success') return;
@@ -706,7 +706,7 @@ if (file_exists($profilePicAbsolute)) {
         }
 
         function pollTick() {
-            fetch('../api/bookings.php')
+            fetch('/EE/api/bookings.php')
                 .then(r => r.json())
                 .then(res => {
                     if (res.status !== 'success') return;
@@ -796,7 +796,7 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doCancelBooking(id) {
             try {
-                const response = await fetch(`../api/bookings.php?id=${id}`, {
+                const response = await fetch(`/EE/api/bookings.php?id=${id}`, {
                     method: 'DELETE'
                 });
                 const result = await response.json();

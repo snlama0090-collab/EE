@@ -223,7 +223,7 @@ $unread = (int) $notif['unread_count'];
 
     function approveStation(stationId) {
         showConfirm('Approve this station?', function() {
-            fetch(`../api/stations.php?action=approve&id=${stationId}`, { method: 'POST' })
+            fetch(`/EE/api/stations.php?action=approve&id=${stationId}`, { method: 'POST' })
                 .then(r => r.json()).then(data => {
                     if (data.status === 'success') loadSection(currentSection, true);
                 });
@@ -233,7 +233,7 @@ $unread = (int) $notif['unread_count'];
     function rejectStation(stationId) {
         const reason = prompt('Reason for rejection:');
         if (reason) {
-            fetch(`../api/stations.php?action=reject&id=${stationId}`, {
+            fetch(`/EE/api/stations.php?action=reject&id=${stationId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reason })
@@ -256,7 +256,7 @@ $unread = (int) $notif['unread_count'];
         document.getElementById('station-detail-modal').style.display = 'flex';
         document.getElementById('station-detail-actions').style.display = 'none';
 
-        fetch(`../api/stations.php?id=${stationId}`)
+        fetch(`/EE/api/stations.php?id=${stationId}`)
             .then(r => r.json())
             .then(result => {
                 if (result.status !== 'success') throw new Error(result.message || 'Failed');
@@ -316,7 +316,7 @@ $unread = (int) $notif['unread_count'];
 
     function doModalApprove(id) {
         showConfirm('Approve this station?', function() {
-            fetch(`../api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
+            fetch(`/EE/api/stations.php?action=approve&id=${id || detailStationId}`, { method: 'POST' })
                 .then(r => r.json()).then(function(data) {
                     if (data.status === 'success') { closeStationDetail(); loadSection(currentSection, true); }
                 });
@@ -328,7 +328,7 @@ $unread = (int) $notif['unread_count'];
         showConfirm('Reject this station? A rejection reason is required.', function() {
             var reason = prompt('Reason for rejection:');
             if (reason) {
-                fetch(`../api/stations.php?action=reject&id=${sid}`, {
+                fetch(`/EE/api/stations.php?action=reject&id=${sid}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reason: reason })

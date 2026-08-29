@@ -65,7 +65,26 @@ if (!$txn) {
                 SET status = 'booked', payment_status = 'completed'
                 WHERE id = ? AND status = 'pending_payment'");
             $stmt->execute([$txn['booking_id']]);
+            $booked = ($stmt->rowCount() === 1);   // first completion only - keeps the owner bell exactly-once
             $db->commit();
+
+            if ($booked) {
+                $stmt = $db->prepare("SELECT b.id, c.charger_number, c.charger_type, c.wattage_kw,
+                    s.name AS station_name, s.owner_id, u.name AS driver_name
+                    FROM bookings b JOIN chargers c ON b.charger_id = c.id
+                    JOIN stations s ON c.station_id = s.id JOIN users u ON b.user_id = u.id
+                    WHERE b.id = ?");
+                $stmt->execute([$txn['booking_id']]);
+                if ($b = $stmt->fetch()) {
+                    // ponytail: same single-row pattern as station approve/reject - audit + owner bell in one insert
+                    $stmt = $db->prepare("INSERT INTO activity_logs (owner_id, action, resource_type, resource_id, details)
+                        VALUES (?, 'booking_created', 'booking', ?, ?)");
+                    $stmt->execute([$b['owner_id'], $b['id'],
+                        "New booking for your station \"" . $b['station_name'] . "\" - " . $b['driver_name']
+                        . " reserved charger #" . $b['charger_number'] . " ("
+                        . $b['charger_type'] . ", " . $b['wattage_kw'] . " kW)."]);
+                }
+            }
 
             header('Location: ' . $dashboard);
             exit;

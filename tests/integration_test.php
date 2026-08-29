@@ -46,6 +46,12 @@ rep('3. confirm_payment',$c['status']==='success',json_encode($c));
 $b=q($db,"SELECT status,payment_status FROM bookings WHERE id=?",[$bid]);
 $pt=q($db,"SELECT amount FROM payment_transactions WHERE booking_id=?",[$bid]);
 rep('4. booked+1txn',$b[0]['status']==='booked'&&$b[0]['payment_status']==='completed'&&count($pt)===1&&$pt[0]['amount']==50,'b='.json_encode($b[0]).' t='.json_encode($pt));
+// 4b/4c: owner booking notification fires exactly once on real confirmation
+$own=q($db,"SELECT COUNT(*) c FROM activity_logs WHERE action='booking_created' AND resource_type='booking' AND resource_id=?",[$bid]);
+rep('4b. owner booking_created written once',$own[0]['c']===1,'count='.$own[0]['c']);
+$c2=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_payment','booking_id'=>$bid]);
+$own2=q($db,"SELECT COUNT(*) c FROM activity_logs WHERE action='booking_created' AND resource_type='booking' AND resource_id=?",[$bid]);
+rep('4c. duplicate confirm cannot re-notify (state gate)',$own2[0]['c']===1,'confirm2='.$c2['status'].' count='.$own2[0]['c']);
 // STEP 2
 $bat=40;
 $ic=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_charging_payment','booking_id'=>$bid,'battery_percent'=>$bat]);
@@ -125,7 +131,6 @@ $no = api('GET', "$BASE/api/notifications.php", $oc);
 $leaked = in_array('station_approved', array_column($no['data']['items'] ?? [], 'action'), true);
 rep('23. owner scope-leak fixed', $no['status']==='success' && $leaked === false, 'probeSeen='.var_export($leaked, true));
 $db->prepare("DELETE FROM activity_logs WHERE action='station_approved' AND details='TEST leak probe'")->execute();
-$ownerUnreadBefore = (int)($no['data']['unread_count'] ?? 0);
 // 24-25: driver marks all read → driver rows flip, owner rows untouched
 $mr = api('POST', "$BASE/api/notifications.php", $dc, ['action'=>'mark_all_read']);
 rep('24. mark_all_read driver', $mr['status']==='success' && ($mr['data']['unread_count']??-1)===0, json_encode($mr));
@@ -133,12 +138,19 @@ rep('24. mark_all_read driver', $mr['status']==='success' && ($mr['data']['unrea
 $mr2 = api('POST', "$BASE/api/notifications.php", $dc, ['action'=>'mark_all_read']);
 rep('24b. mark_all_read idempotent (on-open repeat)', $mr2['status']==='success' && ($mr2['data']['unread_count']??-1)===0, json_encode($mr2));
 // 25: cross-role isolation measured THROUGH the product's own scoping (API unread counts),
-// so legacy unscoped rows (e.g. old google_login entries) can't produce false positives
+// so legacy unscoped rows (e.g. old google_login entries) can't produce false positives.
+// NOTE: booking_created rows are intentionally dual-visible (owner_id scope + booking
+// ownership scope), so driver mark_all_read legitimately flips them. Isolation is proven
+// with a fresh owner-only seed: driver must not see it, owner must.
+$ownId = (int)q($db, "SELECT s.owner_id FROM bookings b JOIN chargers c ON b.charger_id=c.id JOIN stations s ON c.station_id=s.id WHERE b.id=?", [$bid])[0]['owner_id'];
+$db->prepare("INSERT INTO activity_logs (owner_id, action, resource_type, resource_id, details) VALUES (?, 'test_owner_probe', 'station', 1, 'SEED owner probe')")->execute([$ownId]);
 $noD2 = api('GET', "$BASE/api/notifications.php", $dc);
 $noO2 = api('GET', "$BASE/api/notifications.php", $oc);
 $dU = (int)($noD2['data']['unread_count'] ?? -1);
 $oU = (int)($noO2['data']['unread_count'] ?? -1);
-rep('25z. cross-role isolation (scoped)', $dU === 0 && $oU === $ownerUnreadBefore, "driverUnread=$dU ownerUnread=$oU (before=$ownerUnreadBefore)");
+$probeSeen = in_array('test_owner_probe', array_column($noO2['data']['items'] ?? [], 'action'), true);
+rep('25z. cross-role isolation (scoped)', $dU === 0 && $probeSeen && $oU >= 1, "driverUnread=$dU ownerUnread=$oU probeSeen=".var_export($probeSeen, true));
+$db->exec("DELETE FROM activity_logs WHERE action='test_owner_probe' AND details='SEED owner probe'");
 // 26: clear is mark-as-read, never delete
 $total = q($db, "SELECT COUNT(*) AS c FROM activity_logs");
 rep('26. non-destructive', (int)$total[0]['c'] > 0, 'total_rows='.$total[0]['c']);

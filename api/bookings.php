@@ -191,7 +191,11 @@ try {
             }
             
             // Verify the booking belongs to this driver and is in pending_payment state
-            $stmt = $db->prepare("SELECT b.*, c.wattage_kw FROM bookings b JOIN chargers c ON b.charger_id = c.id WHERE b.id = ? AND b.user_id = ?");
+            $stmt = $db->prepare("SELECT b.*, c.wattage_kw, c.charger_number, c.charger_type,
+                s.name AS station_name, s.owner_id, u.name AS driver_name
+                FROM bookings b JOIN chargers c ON b.charger_id = c.id
+                JOIN stations s ON c.station_id = s.id JOIN users u ON b.user_id = u.id
+                WHERE b.id = ? AND b.user_id = ?");
             $stmt->execute([$booking_id, $user_id]);
             $booking = $stmt->fetch();
             
@@ -227,6 +231,14 @@ try {
             $stmt->execute([$booking_id, $transaction_id, $booking['estimated_total_cost']]);
             
             $db->commit();
+            
+            // ponytail: same single-row pattern as station approve/reject - audit + owner bell in one insert
+            $stmt = $db->prepare("INSERT INTO activity_logs (owner_id, action, resource_type, resource_id, details)
+                VALUES (?, 'booking_created', 'booking', ?, ?)");
+            $stmt->execute([$booking['owner_id'], $booking_id,
+                "New booking for your station \"" . $booking['station_name'] . "\" - " . $booking['driver_name']
+                . " reserved charger #" . $booking['charger_number'] . " ("
+                . $booking['charger_type'] . ", " . $booking['wattage_kw'] . " kW)."]);
             
             // Re-fetch to return the updated status
             $stmt = $db->prepare("SELECT id, status, estimated_total_cost FROM bookings WHERE id = ?");

@@ -182,6 +182,19 @@ function log_message($level, $message) {
         mkdir(LOGS_PATH, 0755, true);
     }
     
+    // Standing issue #22: enforce LOG_MAX_SIZE. Rename to a timestamped archive
+    // (forensic history kept, newest 5 archived files retained, older pruned).
+    // PHP error_log() writes to the same file bypass this gate and are swept up
+    // by the next log_message() call. Windows rename races: on failure we simply
+    // keep appending and rotate on a later call - no data loss either way.
+    if (file_exists(LOG_PATH) && filesize(LOG_PATH) >= LOG_MAX_SIZE) {
+        @rename(LOG_PATH, LOGS_PATH . '/app-' . date('Ymd-His') . '.log');
+        $archives = glob(LOGS_PATH . '/app-*.log');
+        if (is_array($archives) && count($archives) > 5) {
+            sort($archives);
+            foreach (array_slice($archives, 0, count($archives) - 5) as $old) @unlink($old);
+        }
+    }
     file_put_contents(LOG_PATH, $log_message, FILE_APPEND);
 }
 

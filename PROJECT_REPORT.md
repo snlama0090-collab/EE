@@ -993,6 +993,7 @@ All database queries in `api/stations.php` and `api/bookings.php` must enforce s
 >
 > **Known fragility (2026-08-24, pre-existing): intermittent `.htaccess` internal-redirect loops (`AH00124`).** Apache's error log records `Request exceeded the limit of 10 internal redirects due to probable configuration error` episodes — at least once on 2026-08-23 (referer: `driver.php`) and again 2026-08-24 during integration-test runs, i.e. the fragility **predates the CSRF work**. During such episodes affected requests fail unpredictably (observed as empty/null response bodies under rapid sequential requests). Suspected cause: recursion between the rewrite rules and the relative-path redirects described in the first TODO above. Backlog: audit `.htaccess` recursion paths (review `[L]`/`END` flags and rewrite conditions), or eliminate the dependency entirely by migrating remaining client-side fetches to root-absolute URLs.
 >
+> **RESOLVED 2026-08-29: `api/auth/logout.php` open redirect - endpoint DELETED, not whitelist-patched.** Rationale: repo-wide sweep found ZERO callers (all four UI logout links target `public/logout.php`, which hardcodes `Location: index.php` and never carried the parameter in any committed version). Deleting dead code removes the vector outright; no validation logic was added to keep an unlinked endpoint alive. Suite guards: 30c (deleted endpoint must never reappear as a redirect) and 30d (public logout redirects in-app only). Original 2026-08-24 finding below, kept for the record.
 > **Security backlog (2026-08-24): `api/auth/logout.php` open redirect.** The endpoint feeds `$_GET['redirect']` straight into `header('Location: …')` with no validation, allowing attacker-crafted post-logout redirects (phishing vector). Low severity, trivial fix: allowlist relative paths only (e.g. reject values starting with a scheme or `//`). Related context: the logout-CSRF exemption rationale lives in §13.
 
 ---
@@ -1043,6 +1044,7 @@ Every authenticated state-changing endpoint now requires a per-session token:
 | Surface | Status | Reasoning |
 |---|---|---|
 | `api/auth/login.php`, `register.php`, `otp.php` | **Accepted exemption** | No session exists pre-auth to bind a token to. Login-CSRF (forced-login attacks) is a distinct, lower-severity class — deferred until a need is demonstrated. |
+| `api/auth/logout.php` | **RESOLVED 2026-08-29 - DELETED** | Endpoint removed (`git rm`): zero callers found repo-wide, open redirect eliminated by deletion. Supersedes the Deferred row below. Suite guards: 30c/30d. |
 | `api/auth/google.php` | **Accepted exemption** | Google OAuth carries its own upstream credential; consistent with rate-limiting scope precedent. |
 | `api/auth/logout.php` | **Deferred** | Currently a plain GET-able link; enforcing tokens breaks the UI affordance. Logout-CSRF is nuisance-grade. NOTE: this file also takes `$_GET['redirect']` into `header('Location:')` — open redirect flagged for backlog. |
 | GET endpoints (`stats.php`, `nearby-stations.php`, all reads) | Out of scope by definition | CSRF targets state changes. |

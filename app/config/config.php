@@ -199,6 +199,45 @@ function log_message($level, $message) {
 }
 
 /**
+ * Resize + re-encode an uploaded image to a real JPEG profile picture.
+ * Scales to fit $maxDim x $maxDim (never upscales), flattens transparency
+ * onto white (JPEG has no alpha), quality 82. GIF animation is dropped by
+ * design (accepted tradeoff for a profile picture).
+ * Returns true when $targetPath now holds the compressed JPEG; false on any
+ * GD failure so callers can fall back to storing the raw upload.
+ */
+function resize_profile_image($sourcePath, $targetPath, $maxDim = 512) {
+    $info = @getimagesize($sourcePath);
+    if ($info === false) return false;
+    [$w, $h] = $info;
+    switch ($info[2]) {
+        case IMAGETYPE_JPEG: $src = @imagecreatefromjpeg($sourcePath); break;
+        case IMAGETYPE_PNG:  $src = @imagecreatefrompng($sourcePath);  break;
+        case IMAGETYPE_GIF:  $src = @imagecreatefromgif($sourcePath);  break;
+        default: return false;
+    }
+    if (!$src) return false;
+
+    $scale = min($maxDim / $w, $maxDim / $h, 1);
+    $nw = max(1, (int) round($w * $scale));
+    $nh = max(1, (int) round($h * $scale));
+    $dst = imagecreatetruecolor($nw, $nh);
+    if (!$dst) { imagedestroy($src); return false; }
+
+    $white = imagecolorallocate($dst, 255, 255, 255);
+    imagefill($dst, 0, 0, $white);
+    if (!imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h)) {
+        imagedestroy($src);
+        imagedestroy($dst);
+        return false;
+    }
+    $ok = imagejpeg($dst, $targetPath, 82);
+    imagedestroy($src);
+    imagedestroy($dst);
+    return (bool) $ok;
+}
+
+/**
  * Hash a password
  */
 function hash_password($password) {

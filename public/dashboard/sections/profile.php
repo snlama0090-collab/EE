@@ -1,8 +1,10 @@
 <?php
 require_once dirname(__DIR__, 3) . '/app/config/config.php';
 require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
+require_once dirname(__DIR__, 3) . '/app/helpers/Csrf.php';
 
 Auth::requireUserType('driver');
+Csrf::validate();
 $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
@@ -57,9 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $targetPath = $pfpDir . "/{$user_id}.jpg";
 
-            if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            // Compression: re-encode to a real JPEG (max 512px, q82). On any GD
+            // failure fall back to the raw move so uploads never regress.
+            if (resize_profile_image($file['tmp_name'], $targetPath)) {
+                // compressed image written directly to the target
+            } elseif (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                log_message('WARNING', "Avatar: GD compression unavailable/failed - raw upload stored for user {$user_id}");
+            } else {
                 $db->rollBack();
-                log_message('ERROR', "Avatar: move_uploaded_file failed for user {$user_id} -> $targetPath");
+                log_message('ERROR', "Avatar: could not store image for user {$user_id} -> $targetPath");
                 echo json_encode(['status' => 'error', 'error_code' => 'upload_failed', 'message' => 'Profile update failed: image could not be saved on the server.']);
                 exit;
             }

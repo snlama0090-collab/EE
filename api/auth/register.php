@@ -14,7 +14,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Login-CSRF guard: token minted by public/register.php's guest session.
 Csrf::validate();
 
-$input = json_decode(file_get_contents('php://input'), true);
+// Dual-mode input: browsers uploading a signup picture send multipart FormData;
+// every existing caller (auth.js without a file, the suite) sends JSON — the
+// JSON path is byte-for-byte the historical one.
+if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false) {
+    $input = $_POST;
+    $pfp_file = $_FILES['pfp'] ?? null;
+} else {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $pfp_file = null;
+}
 
 $user_type = $input['user_type'] ?? '';
 $email = sanitize($input['email'] ?? '');
@@ -138,6 +147,35 @@ try {
         ");
 
         $stmt->execute([$email, $hashed_password, $name, $company, $phone, $bank]);
+    }
+
+    $new_id = (int) $db->lastInsertId();
+
+    // Optional signup-time profile picture (driver avatar / owner logo).
+    // Written inside the transaction: any failure rolls the whole account back
+    // so no orphan user or half-registered state exists. Unlike the dashboard
+    // (raw-move fallback), a brand-new account simply aborts - the user can
+    // retry registration with a valid image.
+    if ($pfp_file !== null && $pfp_file['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($pfp_file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif']) || @getimagesize($pfp_file['tmp_name']) === false || $pfp_file['size'] > MAX_UPLOAD_SIZE) {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'error_code' => 'invalid_image', 'message' => 'Invalid image. Only JPG, PNG or GIF images under 5MB are allowed.']);
+            exit;
+        }
+        $pfpDir = PUBLIC_PATH . "/assets/uploads/pfp";
+        if (!is_dir($pfpDir) && !mkdir($pfpDir, 0755, true)) {
+            $db->rollBack();
+            log_message('ERROR', "Signup pfp: could not create dir $pfpDir");
+            echo json_encode(['status' => 'error', 'error_code' => 'upload_failed', 'message' => 'Could not save the profile picture. Registration aborted.']);
+            exit;
+        }
+        $pfpName = ($user_type === 'owner') ? "owner_{$new_id}.jpg" : "{$new_id}.jpg";
+        if (!resize_profile_image($pfp_file['tmp_name'], $pfpDir . '/' . $pfpName)) {
+            $db->rollBack();
+            echo json_encode(['status' => 'error', 'error_code' => 'upload_failed', 'message' => 'Could not process the image. Registration aborted.']);
+            exit;
+        }
     }
 
     // INSERT succeeded — only now consume the verified OTP row.

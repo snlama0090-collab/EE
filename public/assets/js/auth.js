@@ -11,6 +11,7 @@
     var pendingEmail = '';
     var pendingUserType = 'driver';
     var pendingFormData = null;
+    var pendingPfpFile = null;
 
     // ── DOM refs (null-safe) ──
     var $ = function (id) { var el = document.getElementById(id); return el; };
@@ -194,11 +195,16 @@
 
     // ── final registration call ──
     function completeRegistration(data) {
-        return fetch('/EE/api/auth/register.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).then(parseJson);
+        var opts;
+        if (pendingPfpFile) {
+            var fd = new FormData();
+            Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
+            fd.append('pfp', pendingPfpFile);
+            opts = { method: 'POST', body: fd };
+        } else {
+            opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
+        }
+        return fetch('/EE/api/auth/register.php', opts).then(parseJson);
     }
 
     // ── declarative rule tables + bindings ──
@@ -298,6 +304,8 @@
 
             // store for later
             pendingFormData = data;
+            var pi = $('pfp-input');
+            pendingPfpFile = (pi && pi.files && pi.files[0]) ? pi.files[0] : null;
             pendingEmail = data.email;
             pendingUserType = data.user_type || 'driver';
 

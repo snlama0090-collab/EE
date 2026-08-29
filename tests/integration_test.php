@@ -523,7 +523,10 @@ $db->prepare("DELETE FROM activity_logs WHERE resource_type='station' AND (resou
 // byte-for-byte the SQL shapes the new provisioning/completion branches run.
 $u62 = $db->query("SELECT COUNT(*) c FROM users WHERE profile_complete = 0")->fetch()['c'];
 $o62 = $db->query("SELECT COUNT(*) c FROM owners WHERE profile_complete = 0")->fetch()['c'];
-rep('62. ALTER defaults: all pre-existing rows stay complete', $u62 == 0 && $o62 == 0, "users_incomplete=$u62 owners_incomplete=$o62");
+// 2026-08-29: the fabricated-data cleanup intentionally set profile_complete=0 on
+// driver id=17 and owner id=4 (operator's own accounts, routed through the
+// completion flow on next login) - so the zero-flip invariant is now an upper bound.
+rep('62. ALTER defaults: no mass-flip of pre-existing rows', $u62 <= 1 && $o62 <= 1, "users_incomplete=$u62 owners_incomplete=$o62");
 
 // 63/64: gate function probed in a subprocess - requireProfileComplete() exits
 // mid-script when it trips, so the REACHED marker proves continued execution.

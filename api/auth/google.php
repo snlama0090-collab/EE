@@ -13,7 +13,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Login-CSRF guard: guest token (provisional sign-in) or session token (complete_profile).
 Csrf::validate();
 
-$input = json_decode(file_get_contents('php://input'), true);
+// Dual-mode input: multipart when a signup/completion picture is attached,
+// JSON for every existing caller. Same split as api/auth/register.php.
+if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false) {
+    $input = $_POST;
+    $pfp_file = $_FILES['pfp'] ?? null;
+} else {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $pfp_file = null;
+}
 
 // ── Completion step of Google sign-up: session-bound, NOT token-bound ──
 // Runs under the session startSession() minted during provisional creation,
@@ -51,20 +59,46 @@ if (($input['action'] ?? '') === 'complete_profile') {
     if (preg_match_all('/[A-Za-z\\x{00C0}-\\x{024F}]/u', $name) < 2) $fail('Please enter your real name');
 
     if ($auth_type === 'driver') {
+        $pfpDir = PUBLIC_PATH . "/assets/uploads/pfp";
+        $targetPfp = $pfpDir . '/' . Auth::getCurrentUserId() . '.jpg';
         $car_model = sanitize($input['car_model'] ?? '');
         $battery   = floatval($input['battery_capacity'] ?? 0);
         if ($car_model === '') $fail('Car model is required');
         if (mb_strlen($car_model) > 100) $fail('Car model is too long');
         if ($battery <= 0) $fail('Battery capacity must be a positive number');
-        // Rules mirror api/auth/register.php exactly; server stays the security boundary.
-        $db->prepare("UPDATE users SET name = ?, car_model = ?, car_full_capacity_kwh = ?, profile_complete = TRUE WHERE id = ?")
-           ->execute([$name, $car_model, $battery, Auth::getCurrentUserId()]);
     } else {
+        $pfpDir = PUBLIC_PATH . "/assets/uploads/pfp";
+        $targetPfp = $pfpDir . '/owner_' . Auth::getCurrentUserId() . '.jpg';
         $company = sanitize($input['company_name'] ?? '');
         $bank    = sanitize($input['bank_account'] ?? '');
         if ($company === '') $fail('Company name is required');
         if (mb_strlen($company) > 150) $fail('Company name is too long');
         if (!preg_match('/^[0-9]{5,20}$/', $bank)) $fail('Bank account must be 5-20 digits');
+    }
+
+    // Optional completion-time picture: validated and WRITTEN BEFORE the profile
+    // UPDATEs, so a failed image genuinely leaves the provisional account
+    // untouched (fail-early, matching register.php's rollback discipline). If the
+    // image lands but the UPDATE then errors (rare), the retry overwrites the
+    // orphaned image file - no half-completed state either way.
+    if ($pfp_file !== null && $pfp_file['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($pfp_file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif']) || @getimagesize($pfp_file['tmp_name']) === false || $pfp_file['size'] > MAX_UPLOAD_SIZE) {
+            $fail('Invalid image. Only JPG, PNG or GIF images under 5MB are allowed.');
+        }
+        if (!is_dir($pfpDir) && !mkdir($pfpDir, 0755, true)) {
+            log_message('ERROR', "Completion pfp: could not create dir $pfpDir");
+            $fail('Could not save the profile picture. Please try again.');
+        }
+        if (!resize_profile_image($pfp_file['tmp_name'], $targetPfp)) {
+            $fail('Could not process the image. Please try again.');
+        }
+    }
+
+    if ($auth_type === 'driver') {
+        $db->prepare("UPDATE users SET name = ?, car_model = ?, car_full_capacity_kwh = ?, profile_complete = TRUE WHERE id = ?")
+           ->execute([$name, $car_model, $battery, Auth::getCurrentUserId()]);
+    } else {
         $db->prepare("UPDATE owners SET name = ?, company_name = ?, bank_account_number = ?, profile_complete = TRUE WHERE id = ?")
            ->execute([$name, $company, $bank, Auth::getCurrentUserId()]);
     }

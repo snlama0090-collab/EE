@@ -500,6 +500,12 @@ $project_name = 'WattPulse';
                     <label for="terms" style="margin:0;font-size:13px;">I agree to the <a href="../docs/terms.php" target="_blank" style="color:var(--foreground);">Terms &amp; Conditions</a> and <a href="../docs/privacy.php" target="_blank" style="color:var(--foreground);">Privacy Policy</a></label>
                 </div>
 
+                <!-- Profile picture (optional): driver avatar / owner logo, resized server-side -->
+                <div class="checkbox-group" style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+                    <input type="file" id="pfp-input" name="pfp" accept="image/*" style="width:auto;">
+                    <label for="pfp-input" style="margin:0;font-size:13px;color:var(--muted-foreground);">Profile picture (optional) — your avatar or company logo</label>
+                </div>
+
                 <div class="button-group">
                     <button type="button" class="back-btn" onclick="goToStep(1)">Back</button>
                     <button type="submit" class="auth-btn" id="submit-btn">Create Account</button>

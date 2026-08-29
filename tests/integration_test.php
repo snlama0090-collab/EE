@@ -212,7 +212,9 @@ rep('30b. logout wipes remembered devices', $cntBefore >= 1 && $cntAfter === 0, 
 // 30c/30d: the legacy open-redirect endpoint api/auth/logout.php was DELETED (zero callers).
 // 30c asserts the security essence: the URL must never produce a redirect again. (Missing
 // paths under /EE currently 500 via the pre-existing AH00124 rewrite fragility - that is
-// ledgered separately; what matters here is NO 3xx and NO attacker-controlled Location.)
+// ledgered separately - see PROJECT_REPORT §16 backlog cross-reference; do NOT change this
+// check to expect 404 until that fragility is fixed. What matters here is NO 3xx and NO
+// attacker-controlled Location.)
 $ch = curl_init("$BASE/api/auth/logout.php?redirect=https://evil.example.com");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true]);
 curl_exec($ch);

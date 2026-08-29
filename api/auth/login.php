@@ -2,6 +2,7 @@
 header('Content-Type: application/json');
 require_once '../../app/config/config.php';
 require_once '../../app/helpers/Auth.php';
+require_once '../../app/helpers/Csrf.php';
 require_once '../../app/helpers/LoginThrottle.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -9,6 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
     exit;
 }
+
+// Login-CSRF guard: pre-session synchronizer token minted by public/login.php.
+Csrf::validate();
 
 $input = json_decode(file_get_contents('php://input'), true);
 

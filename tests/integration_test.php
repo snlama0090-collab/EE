@@ -22,8 +22,8 @@ error_reporting(E_ALL); ini_set('display_errors', 1);
 $BASE='http://localhost/EE';
 $db=new PDO('mysql:host=localhost;dbname=ev_charging_db;charset=utf8mb4','root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 $CSRF_TOKENS=[];
-function csrfFor($BASE,$jar,$dash){global $CSRF_TOKENS;if(isset($CSRF_TOKENS[$jar]))return $CSRF_TOKENS[$jar];$ch=curl_init("$BASE/$dash");curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$jar,CURLOPT_USERAGENT=>'IntegrationTest/1.0']);$h=(string)curl_exec($ch);curl_close($ch);preg_match('/name="csrf-token" content="([0-9a-f]{64})"/',$h,$m);return $CSRF_TOKENS[$jar]=($m[1]??'');}
-function api($m,$u,$c,$p=null){global $CSRF_TOKENS;$hdrs=['Content-Type: application/json'];if(strtoupper($m)!=='GET'&&isset($CSRF_TOKENS[$c]))$hdrs[]='X-CSRF-Token: '.$CSRF_TOKENS[$c];$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$m,CURLOPT_HTTPHEADER=>$hdrs,CURLOPT_COOKIEJAR=>$c,CURLOPT_COOKIEFILE=>$c,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];if($p!==null)$o[CURLOPT_POSTFIELDS]=json_encode($p);curl_setopt_array($ch,$o);$r=curl_exec($ch);curl_close($ch);return json_decode($r,true);}
+function csrfFor($BASE,$jar,$dash,$force=false){global $CSRF_TOKENS;if(!$force&&isset($CSRF_TOKENS[$jar]))return $CSRF_TOKENS[$jar];$ch=curl_init("$BASE/$dash");curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_COOKIEFILE=>$jar,CURLOPT_COOKIEJAR=>$jar,CURLOPT_USERAGENT=>'IntegrationTest/1.0',CURLOPT_FOLLOWLOCATION=>true]);$h=(string)curl_exec($ch);curl_close($ch);preg_match('/name="csrf-token" content="([0-9a-f]{64})"/',$h,$m);return $CSRF_TOKENS[$jar]=($m[1]??'');}
+function api($m,$u,$c,$p=null){global $CSRF_TOKENS,$BASE;$hdrs=['Content-Type: application/json'];if(strtoupper($m)!=='GET'&&strpos($u,'/api/auth/')!==false){$t=csrfFor($BASE,$c,'public/login.php',true);if($t===''){$dash2=($c===$GLOBALS['oc'])?'public/dashboard/owner.php':'public/dashboard/driver.php';$t=csrfFor($BASE,$c,$dash2,true);}if($t!=='')$hdrs[]='X-CSRF-Token: '.$t;}elseif(strtoupper($m)!=='GET'&&isset($CSRF_TOKENS[$c])){$hdrs[]='X-CSRF-Token: '.$CSRF_TOKENS[$c];}$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>$m,CURLOPT_HTTPHEADER=>$hdrs,CURLOPT_COOKIEJAR=>$c,CURLOPT_COOKIEFILE=>$c,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];if($p!==null)$o[CURLOPT_POSTFIELDS]=json_encode($p);curl_setopt_array($ch,$o);$r=curl_exec($ch);curl_close($ch);return json_decode($r,true);}
 function q($db,$s,$p=[]){$st=$db->prepare($s);$st->execute($p);return $st->fetchAll();}
 // Minimal authed-POST helper shaped exactly like the verified standalone probe
 function tpost($u,$p,$tok,$jar){$ch=curl_init($u);$o=[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>'POST',CURLOPT_HTTPHEADER=>$tok===null?['Content-Type: application/json']:['Content-Type: application/json',"X-CSRF-Token: $tok"],CURLOPT_POSTFIELDS=>json_encode($p),CURLOPT_COOKIEJAR=>$jar,CURLOPT_COOKIEFILE=>$jar,CURLOPT_USERAGENT=>'IntegrationTest/1.0'];curl_setopt_array($ch,$o);$r=curl_exec($ch);$c=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);return[$c,json_decode((string)$r,true)];}
@@ -33,8 +33,8 @@ $l=api('POST',"$BASE/api/auth/login.php",$dc,['email'=>'driver1@example.com','pa
 rep('Login driver',$l['status']==='success',json_encode($l));
 $lo=api('POST',"$BASE/api/auth/login.php",$oc,['email'=>'owner1@example.com','password'=>'Test@123','user_type'=>'owner']);
 rep('Login owner',$lo['status']==='success',json_encode($lo));
-csrfFor($BASE,$dc,'public/dashboard/driver.php'); // prime per-session CSRF tokens for all later POSTs
-csrfFor($BASE,$oc,'public/dashboard/owner.php');
+csrfFor($BASE,$dc,'public/dashboard/driver.php',true); // prime per-session CSRF tokens for all later POSTs (force: login rotated the session id)
+csrfFor($BASE,$oc,'public/dashboard/owner.php',true);
 // STEP 1
 $i=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_payment','charger_id'=>1]);
 rep('1. initiate_payment',$i['status']==='success'&&$i['data']['estimated_cost']==50,json_encode($i));
@@ -174,9 +174,10 @@ rep('27b. expired-variant login lands 200', $http === 200 && strpos($body, 'logi
 // tamper fail-closed, logout wipes all devices)
 $hdrs = [];
 $rt = tempnam(sys_get_temp_dir(), 'rt');
+$tok28 = csrfFor($BASE, $rt, 'public/login.php', true);
 $ch = curl_init("$BASE/api/auth/login.php");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true, CURLOPT_POST=>true,
-    CURLOPT_HTTPHEADER=>['Content-Type: application/json'],
+    CURLOPT_HTTPHEADER=>['Content-Type: application/json', "X-CSRF-Token: $tok28"],
     CURLOPT_POSTFIELDS=>json_encode(['email'=>'driver1@example.com','password'=>'Test@123','user_type'=>'driver','remember'=>true]),
     CURLOPT_COOKIEJAR=>$rt, CURLOPT_COOKIEFILE=>$rt,
     CURLOPT_USERAGENT=>'IntegrationTest/1.0',
@@ -229,6 +230,22 @@ $c30d = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $l30d = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
 curl_close($ch);
 rep('30d. public logout redirects in-app only', $c30d === 302 && $l30d === "$BASE/public/index.php", 'code='.$c30d.' loc='.var_export($l30d, true));
+// 30e-30i: login-CSRF guard live on all four auth POST endpoints (negative checks ride
+// direct tpost with tok=null so api()'s auto-primer cannot mask them; positive pass-through
+// for register/google is proven by 44b/65/67 reaching their own handler errors).
+$ej=__DIR__.'/ej.txt';@unlink($ej);
+list($cE,) = tpost("$BASE/api/auth/login.php", ['email'=>'driver1@example.com','password'=>'Test@123'], null, $ej);
+rep('30e. login without token -> 403', $cE === 403, 'code='.$cE);
+$tE = csrfFor($BASE,$ej,'public/login.php',true);
+list($cF,$jF) = tpost("$BASE/api/auth/login.php", ['email'=>'driver1@example.com','password'=>'Test@123','user_type'=>'driver'], $tE, $ej);
+rep('30f. login with page token -> success', $cF === 200 && ($jF['status'] ?? '') === 'success', 'code='.$cF.' resp='.json_encode($jF));
+list($cG,) = tpost("$BASE/api/auth/register.php", ['email'=>'x@gmail.com'], null, $ej);
+rep('30g. register without token -> 403', $cG === 403, 'code='.$cG);
+list($cH,) = tpost("$BASE/api/auth/otp.php", ['action'=>'send_otp','email'=>'x@gmail.com'], null, $ej);
+rep('30h. otp without token -> 403', $cH === 403, 'code='.$cH);
+list($cI,) = tpost("$BASE/api/auth/google.php", ['token'=>'x'], null, $ej);
+rep('30i. google without token -> 403', $cI === 403, 'code='.$cI);
+@unlink($ej);
 if (is_file($rt)) @unlink($rt);
 
 // ===== 31-37: LOGIN THROTTLING (two-layer brute-force protection) =====
@@ -240,7 +257,14 @@ if (is_file($rt)) @unlink($rt);
 // runtime-tested; that genuinely different IPs stay unaffected follows from the
 // `ip_address = ?` WHERE clauses (verified by code review), not an executed case.
 function treq($u, $p, $extraHeaders = [], $jar = null) {
+    global $BASE;
     $h = [];
+    $tmpJar = null;
+    if ($jar === null) { $tmpJar = tempnam(sys_get_temp_dir(), 'tj'); $jar = $tmpJar; }
+    // login-CSRF: mint a guest token from the login page for this request's jar
+    // (follows expiry redirects; throttle semantics unchanged - counting is by email+IP)
+    $tok = csrfFor($BASE, $jar, 'public/login.php', true);
+    $extraHeaders[] = "X-CSRF-Token: $tok";
     $ch = curl_init($u);
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => 'POST',
         CURLOPT_HTTPHEADER => array_merge(['Content-Type: application/json'], $extraHeaders),
@@ -252,6 +276,7 @@ function treq($u, $p, $extraHeaders = [], $jar = null) {
     $reqOut = curl_getinfo($ch, CURLINFO_HEADER_OUT);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    if ($tmpJar !== null) @unlink($tmpJar);
     $ra = null;
     foreach ($h as $x) { if (preg_match('/^Retry-After:\s*(\d+)/i', $x, $m)) $ra = (int)$m[1]; }
     return [$code, json_decode((string)$b, true), $ra, $h, $reqOut];
@@ -313,8 +338,8 @@ rep('37. coarse IP net overrides valid creds (pure Layer 2)', $r[0] === 429,
 
 // ===== 38-43: CSRF PROTECTION (session-bound token via X-CSRF-Token header) =====
 q($db, 'DELETE FROM login_attempts'); // keep throttle state from checks 32-37 out of this section
-// 42: every login in this suite sent no CSRF header and succeeded (see line-28 login result $lr)
-rep('42. login works without any CSRF token', ($lr['status'] ?? '') === 'success', json_encode($lr));
+// (check 42 removed 2026-08-29: it asserted login succeeds WITHOUT a CSRF token - the exact
+// behavior the login-CSRF fix now forbids. Superseded by 30e/30f.)
 // 38a: delivery path — token must appear as meta in the rendered dashboard shell HTML
 $ch = curl_init("$BASE/public/dashboard/driver.php");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
@@ -382,7 +407,7 @@ $db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 
 $ac = __DIR__ . '/ac.txt';
 @unlink($ac);
 api('POST', "$BASE/api/auth/login.php", $ac, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
-csrfFor($BASE, $ac, 'public/dashboard/admin.php');
+csrfFor($BASE, $ac, 'public/dashboard/admin.php', true);
 
 $r49 = api('POST', "$BASE/api/support.php", $dc, ['action' => 'create', 'category' => 'booking', 'subject' => 'Integration ticket A', 'message' => 'Driver needs help']);
 $tidA = intval($r49['data']['ticket_id'] ?? 0);
@@ -445,7 +470,7 @@ $db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 
 $ac2 = __DIR__ . '/ac2.txt';
 @unlink($ac2);
 api('POST', "$BASE/api/auth/login.php", $ac2, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
-csrfFor($BASE, $ac2, 'public/dashboard/admin.php');
+csrfFor($BASE, $ac2, 'public/dashboard/admin.php', true);
 
 $db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status)
               VALUES (1, 'Notif Test Station A', 27.70, 85.32, 'Kathmandu', 'Kathmandu', 1, 'pending')")->execute();
@@ -524,7 +549,7 @@ rep('64. gate leaves normal sessions untouched', strpos(implode('', $out64), 'RE
 // Fresh authenticated jars for the completion-API guard matrix.
 $gg = __DIR__ . '/gs_driver.txt'; @unlink($gg);
 api('POST', "$BASE/api/auth/login.php", $gg, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
-csrfFor($BASE, $gg, 'public/dashboard/driver.php');
+csrfFor($BASE, $gg, 'public/dashboard/driver.php', true);
 // Unprimed sibling jar for the SAME seed account: separate cookie jar = separate
 // server-side session (profile_complete unset), but api() attaches no CSRF token
 // because csrfFor() was never called against this jar.
@@ -533,13 +558,14 @@ api('POST', "$BASE/api/auth/login.php", $gn, ['email' => 'driver1@example.com', 
 $ga2 = __DIR__ . '/gs_admin.txt'; @unlink($ga2);
 api('POST', "$BASE/api/auth/login.php", $ga2, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
 
-$r65 = api('POST', "$BASE/api/auth/google.php", $gn, ['action' => 'complete_profile', 'name' => 'Test Driver One', 'car_model' => 'Nexon EV', 'battery_capacity' => 40]);
-rep('65. completion without CSRF -> distinct 403', ($r65['status'] ?? '') === 'error'
-    && strpos($r65['message'] ?? '', 'security token') !== false, json_encode($r65));
+$r65 = tpost("$BASE/api/auth/google.php", ['action' => 'complete_profile', 'name' => 'Test Driver One', 'car_model' => 'Nexon EV', 'battery_capacity' => 40], null, $gn);
+rep('65. completion without CSRF -> distinct 403', ($r65[0] ?? 0) === 403
+    && strpos($r65[1]['message'] ?? '', 'security token') !== false, json_encode($r65));
 
-$r66 = api('POST', "$BASE/api/auth/google.php", $ga2, ['action' => 'complete_profile', 'name' => 'Admin Person']);
-rep('66. completion refused for admin sessions', ($r66['status'] ?? '') === 'error'
-    && strpos($r66['message'] ?? '', 'driver and owner') !== false, json_encode($r66));
+$admTok = csrfFor($BASE, $ga2, 'public/dashboard/admin.php', true);
+$r66 = tpost("$BASE/api/auth/google.php", ['action' => 'complete_profile', 'name' => 'Admin Person'], $admTok, $ga2);
+rep('66. completion refused for admin sessions', ($r66[0] ?? 0) === 403
+    && strpos($r66[1]['message'] ?? '', 'driver and owner') !== false, json_encode($r66));
 
 $r67 = api('POST', "$BASE/api/auth/google.php", $gg, ['action' => 'complete_profile', 'name' => 'Test Driver One', 'car_model' => 'Nexon EV', 'battery_capacity' => 40]);
 rep('67. already-complete session cannot rewrite via this endpoint (409)', ($r67['status'] ?? '') === 'error'

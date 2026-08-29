@@ -12,6 +12,11 @@ class Auth {
      * Start a new session for user
      */
     public static function startSession($user_id, $user_type, $remember = false, $profile_complete = true) {
+        // OWASP Session Management: "Renew the Session ID After Any Privilege
+        // Level Change". Defeats fixation of a pre-auth session id; $_SESSION
+        // data survives the regeneration (only the id changes), and the fresh
+        // CSRF token is minted into the new session by the lines below.
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $user_id;
         $_SESSION['user_type'] = $user_type;
         $_SESSION['login_time'] = time();

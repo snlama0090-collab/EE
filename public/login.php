@@ -1,6 +1,7 @@
 <?php
 require_once '../app/config/config.php';
 require_once '../app/helpers/Auth.php';
+require_once '../app/helpers/Csrf.php';
 
 // Redirect already-logged-in users to their dashboard
 if (Auth::isLoggedIn()) {
@@ -19,6 +20,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — <?php echo htmlspecialchars($project_name); ?></title>
+<meta name="csrf-token" content="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="assets/css/dashboard.css">
@@ -189,6 +191,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
     </style>
     <script>window.PW_CONFIG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?> };</script>
     <script src="assets/js/auth.js" defer></script>
+<script src="/EE/public/assets/js/csrf.js"></script>
 </head>
 <body>
     <div class="auth-card">

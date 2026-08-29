@@ -2,12 +2,16 @@
 header('Content-Type: application/json');
 require_once '../../app/config/config.php';
 require_once '../../app/helpers/Auth.php';
+require_once '../../app/helpers/Csrf.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
     exit;
 }
+
+// Login-CSRF guard: guest token (provisional sign-in) or session token (complete_profile).
+Csrf::validate();
 
 $input = json_decode(file_get_contents('php://input'), true);
 
@@ -26,8 +30,6 @@ if (($input['action'] ?? '') === 'complete_profile') {
         echo json_encode(['status' => 'error', 'message' => 'Profile completion is for driver and owner accounts only']);
         exit;
     }
-    require_once '../../app/helpers/Csrf.php';
-    Csrf::validate();
 
     // Matrix row 6 parity: finished profiles don't rewrite through this endpoint
     // (name/vehicle/company edits belong to a future settings surface, not here).

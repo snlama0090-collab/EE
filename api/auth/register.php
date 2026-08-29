@@ -2,12 +2,17 @@
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../app/config/config.php';
+require_once __DIR__ . '/../../app/helpers/Auth.php';
+require_once __DIR__ . '/../../app/helpers/Csrf.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
     exit;
 }
+
+// Login-CSRF guard: token minted by public/register.php's guest session.
+Csrf::validate();
 
 $input = json_decode(file_get_contents('php://input'), true);
 

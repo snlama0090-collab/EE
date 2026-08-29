@@ -425,7 +425,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             var timeout = setTimeout(function() { controller.abort(); }, 15000);
 
             try {
-                var response = await fetch('<?php echo APP_URL; ?>/api/auth/login.php', {
+                var response = await fetch('/EE/api/auth/login.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password, user_type: userType, remember }),
@@ -505,7 +505,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             wrapper.innerHTML = '<div style="text-align:center; padding:10px; color:var(--muted-foreground); font-size:14px;"><span class="spinner"></span> Signing in with Google...</div>';
 
             try {
-                const res = await fetch('<?php echo APP_URL; ?>/api/auth/google.php', {
+                const res = await fetch('/EE/api/auth/google.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: idToken, user_type: userType })

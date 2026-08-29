@@ -22,3 +22,8 @@ app/logs/
 
 # Integration-test curl cookie jars — regenerated per run, never commit
 tests/*.txt
+
+# Preset avatar images — user-provided, unlicensed source, never commit.
+# NOTE: absent in fresh clones by design; apply_preset()/picker must
+# exist-check on disk and hide missing presets (see PROJECT_REPORT §13).
+public/assets/img/presets/

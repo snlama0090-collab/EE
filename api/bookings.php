@@ -285,7 +285,11 @@ try {
 
             $capacity = floatval($booking['car_full_capacity_kwh']);
             $wattage = floatval($booking['wattage_kw']);
-            // TODO: Known limitation — billing assumes session charges to 100% (no end-battery-% capture). See audit #8.
+            // Estimated kWh/cost for the UPFRONT CHARGE (captured at session start). This assumes
+            // a full charge to 100% because the end-battery % is not yet known — the driver
+            // reports the actual end % at stop_session, which recalculates charging_sessions
+            // for record-accuracy (audit #8 fix, 2026-08-31). The already-captured payment is
+            // NOT adjusted — this estimate is what the driver agreed to pay up front.
             $kwh_needed = (100 - $battery_percent) / 100 * $capacity;
             $charge_time_minutes = ceil($kwh_needed / $wattage * 60);
             $charging_cost = $kwh_needed * ELECTRICITY_RATE_PER_KWH;
@@ -400,6 +404,7 @@ try {
         // Action: stop_session — driver stops their own active charging session early
         if ($action === 'stop_session') {
             $booking_id = intval($input['booking_id'] ?? 0);
+            $end_battery_percent = intval($input['end_battery_percent'] ?? 0);
 
             // Ownership + state check: driver's own booking, must be charging
             $stmt = $db->prepare("
@@ -416,16 +421,49 @@ try {
                 exit;
             }
 
+            // Fetch the charging session to get the start battery %
+            $ss = $db->prepare("SELECT id, battery_start_percent FROM charging_sessions WHERE booking_id = ?");
+            $ss->execute([$booking_id]);
+            $charging_session = $ss->fetch();
+
+            // Validate end-battery % (1-100 and not less than start). This is the kWh-billing
+            // fix (audit #8, 2026-08-31): capture actual end state instead of assuming 100%.
+            if ($end_battery_percent < 1 || $end_battery_percent > 100) {
+                echo json_encode(['status' => 'error', 'message' => 'End battery percentage must be between 1 and 100.']);
+                exit;
+            }
+            $start_pct = intval($charging_session['battery_start_percent'] ?? 0);
+            if ($end_battery_percent < $start_pct) {
+                echo json_encode(['status' => 'error', 'message' => 'End battery percentage cannot be less than the start percentage (' . $start_pct . '%).']);
+                exit;
+            }
+
+            // Recalculate kWh on the actual delta (end - start), not the assumed-full-charge.
+            $capacity = floatval($booking['car_full_capacity_kwh']);
+            $kwh_actual = ($end_battery_percent - $start_pct) / 100 * $capacity;
+            $electricity_cost_actual = $kwh_actual * ELECTRICITY_RATE_PER_KWH;
+
             $db->beginTransaction();
 
             // Mark booking as 'stopped' (distinct from 'completed' for reporting).
             // payment_status = 'completed' so it still appears in receipts/invoices.
+            // payment_amount stays at the original estimated_total_cost — no refund (existing policy).
             $stmt = $db->prepare("UPDATE bookings SET status = 'stopped', payment_amount = estimated_total_cost, payment_status = 'completed' WHERE id = ?");
             $stmt->execute([$booking_id]);
 
-            // End the charging session now
-            $stmt = $db->prepare("UPDATE charging_sessions SET end_time = NOW(), payment_status = 'completed' WHERE booking_id = ?");
-            $stmt->execute([$booking_id]);
+            // End the charging session now, recording the ACTUAL end-battery and recalculated kWh.
+            // ponytail: record-accuracy only — the already-captured payment_transactions row is NOT modified.
+            $stmt = $db->prepare("
+                UPDATE charging_sessions SET
+                    end_time = NOW(),
+                    battery_end_percent = ?,
+                    kwh_consumed = ?,
+                    electricity_cost = ?,
+                    actual_charge_time_minutes = TIMESTAMPDIFF(MINUTE, start_time, NOW()),
+                    payment_status = 'completed'
+                WHERE booking_id = ?
+            ");
+            $stmt->execute([$end_battery_percent, round($kwh_actual, 2), round($electricity_cost_actual, 2), $booking_id]);
 
             // Release the charger
             $stmt = $db->prepare("UPDATE chargers SET status = 'available' WHERE id = ?");
@@ -439,7 +477,7 @@ try {
             $stmt->execute([
                 $user_id,
                 $booking_id,
-                "Charging stopped early. Payment already made is NOT refunded."
+                "Charging stopped at {$end_battery_percent}%. Payment already made is NOT refunded."
             ]);
 
             $db->commit();

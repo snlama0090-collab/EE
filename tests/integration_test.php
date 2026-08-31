@@ -90,7 +90,7 @@ $i2=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_payment','charg
 $bid2=$i2['data']['booking_id']??null;
 api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_payment','booking_id'=>$bid2]);
 api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_charging_payment','booking_id'=>$bid2,'battery_percent'=>40]);
-$stop=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'stop_session','booking_id'=>$bid2]);
+$stop=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'stop_session','booking_id'=>$bid2,'end_battery_percent'=>75]);
 rep('18. stop_session',$stop['status']==='success',json_encode($stop));
 $b=q($db,"SELECT status,payment_status,payment_amount FROM bookings WHERE id=?",[$bid2]);
 rep('19. stopped status',$b[0]['status']==='stopped'&&$b[0]['payment_status']==='completed'&&$b[0]['payment_amount']==500,json_encode($b[0]));
@@ -98,6 +98,26 @@ $ch=q($db,"SELECT status FROM chargers WHERE id=1");
 rep('20. charger released',$ch[0]['status']==='available','status='.$ch[0]['status']);
 $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='session_stopped' AND resource_id=?",[$bid2]);
 rep('21. session_stopped log',count($al)===1&&strpos($al[0]['details'],'NOT refunded')!==false,json_encode($al[0]));
+// 21b-21e: kWh-billing fix (audit #8, 2026-08-31) — stop_session captures end-battery % and
+// recalculates kWh on the actual delta (record-accuracy only; payment_amount unchanged).
+$cs=q($db,"SELECT battery_start_percent,battery_end_percent,kwh_consumed,electricity_cost,per_kwh_rate FROM charging_sessions WHERE booking_id=?",[$bid2]);
+$expectedKwh=round((75-40)/100*75,2);
+rep('21b. end-battery + kWh recorded', $cs[0]['battery_start_percent']==40&&$cs[0]['battery_end_percent']==75&&$cs[0]['kwh_consumed']==$expectedKwh&&$cs[0]['electricity_cost']==round($expectedKwh*$cs[0]['per_kwh_rate'],2), 'start='.$cs[0]['battery_start_percent'].' end='.$cs[0]['battery_end_percent'].' kwh='.$cs[0]['kwh_consumed'].' cost='.$cs[0]['electricity_cost']);
+rep('21c. payment_amount unchanged (no refund)', $b[0]['payment_amount']==500, 'payment_amount='.$b[0]['payment_amount']);
+// 21d-21e: validation rejects invalid end% — use a FRESH booking (bid2 is already stopped above)
+$i3=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_payment','charger_id'=>1]);
+$bid3=intval($i3['data']['booking_id']??0);
+api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_payment','booking_id'=>$bid3]);
+api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_charging_payment','booking_id'=>$bid3,'battery_percent'=>40]);
+// 21d: end% < start% must be rejected
+$stopBad=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'stop_session','booking_id'=>$bid3,'end_battery_percent'=>30]);
+rep('21d. end% < start% rejected', ($stopBad['status']??'')==='error'&&strpos($stopBad['message']??'','cannot be less')!==false,json_encode($stopBad));
+// 21e: out-of-range end% must be rejected
+$stopRange=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'stop_session','booking_id'=>$bid3,'end_battery_percent'=>0]);
+rep('21e. out-of-range end% rejected', ($stopRange['status']??'')==='error'&&strpos($stopRange['message']??'','1 and 100')!==false,json_encode($stopRange));
+q($db,"DELETE FROM payment_transactions WHERE booking_id=?",[$bid3]);
+q($db,"DELETE FROM charging_sessions WHERE booking_id=?",[$bid3]);
+q($db,"DELETE FROM bookings WHERE id=?",[$bid3]);
 // 19b-19g: PHASE 1 REVIEWS — create/read/average/duplicate/ineligible/XSS-raw contract
 // (booking $bid2 is 'stopped' = finished; token force-refreshed: session rotated at the re-login)
 $st_id = q($db, "SELECT c.station_id FROM bookings b JOIN chargers c ON b.charger_id=c.id WHERE b.id=?", [$bid2])[0]['station_id'];

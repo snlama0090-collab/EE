@@ -612,7 +612,7 @@ All driver receipts, owner invoices, and admin financial reports must filter str
 | Charging cost | `ELECTRICITY_RATE_PER_KWH` × kWh needed | `(100 - battery_percent) / 100 * car_full_capacity_kwh * rate` |
 | Total session cost | `base_fee + charging_cost` | Stored in `estimated_total_cost` after `confirm_charging_payment` |
 
-**Known limitation:** kWh billing assumes every session charges to 100% (no end-battery-% capture). See audit item #8.
+**Resolved 2026-08-31 (audit #8):** `stop_session` now captures the driver's actual `end_battery_percent` and recalculates `charging_sessions.kwh_consumed` / `electricity_cost` on the real delta (record-accuracy only — the already-captured `payment_transactions` row is NOT modified; no refunds, matching existing policy). `complete_session` and `SessionTicker` are untouched — for sessions that run to full timer expiry, the 100%-end approximation remains reasonable.
 
 ## 9. Architectural Observations & Recommendations
 
@@ -840,7 +840,7 @@ The following table summarizes all findings from the combined audit, ranked by s
 | 5 | File upload validation trusts client-supplied `$_FILES['type']` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 🔴 Critical | ✅ Resolved 2026-08-22 (`getimagesize()` validation + move failure checks implemented) |
 | 6 | Owner can start charging sessions without payment (legacy `booked`-status path) | `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-22 (`start_session` removed entirely; charging exclusively driver-initiated and payment-gated) |
 | 7 | Buffer/arrival timing inconsistent with config (`BOOKING_ARRIVAL_DEADLINE_MINUTES` vs hardcoded 5 min) | `api/bookings.php` | 🟠 High | Unresolved |
-| 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | Unresolved |
+| 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-31 (`stop_session` captures `end_battery_percent`, recalculates `charging_sessions` kWh/cost on actual delta; record-accuracy only — already-captured `payment_transactions` unchanged, no refunds. `complete_session`/`SessionTicker` untouched — 100% is a reasonable approximation for full-duration sessions) |
 | 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | Unresolved |
 | 10 | AJAX session-expiry breaks silently — login page HTML injected into dashboard | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 🟠 High | Unresolved |
 | 11 | Cascade-delete destroys financial history (no soft-delete on stations) | `database/schema.sql`, `api/stations.php` | 🟠 High | Unresolved |
@@ -916,7 +916,7 @@ This avoids blocking UI paint on network requests while still providing cross-de
 |---|---|---|
 | ~~Require payment before session start~~ ✅ Done 2026-08-22 (`start_session` removed; driver-initiated flow) | `api/bookings.php` | 1-2 hours |
 | Fix buffer/arrival timing drift | `api/bookings.php` | 1 hour |
-| Real end-battery kWh billing | `api/bookings.php`, `app/helpers/SessionTicker.php` | 2-3 hours |
+| ~~Real end-battery kWh billing~~ ✅ Done 2026-08-31 (`stop_session` captures end-battery %, recalculates charging_sessions; payment unchanged) | `api/bookings.php`, `public/dashboard/driver.php` | 2-3 hours |
 | Owner stations default to `pending` regardless of signup method | `api/auth/google.php` | 30 min |
 | Fix AJAX session-expiry redirect | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 1-2 hours |
 | Soft-delete stations instead of cascading | `database/schema.sql`, `api/stations.php` | 2-3 hours |

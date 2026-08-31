@@ -679,29 +679,62 @@ if (file_exists($profilePicAbsolute)) {
 
         // --- stop charging (no refund) ---
         function stopCharging(bookingId) {
-            showConfirm(
-                'Stop Charging?\n\nMoney already paid will NOT be refunded.\nCharging will stop immediately.\n\nContinue?',
-                function() { doStopCharging(bookingId); },
-                { confirmLabel: 'Stop & No Refund', confirmClass: 'btn-danger' }
-            );
+            // kWh-billing fix (audit #8, 2026-08-31): capture actual end-battery % so the
+            // charging_sessions record reflects real kWh consumed (record-accuracy only —
+            // the already-captured payment is NOT refunded/changed).
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            const box = document.createElement('div');
+            box.className = 'modal-box';
+            box.style.textAlign = 'left';
+            box.innerHTML = `
+                <div style="margin-bottom:20px;">
+                    <h3 style="margin-bottom:4px;"><i class="fas fa-stop-circle" style="color:#FF3B30;"></i> Stop Charging</h3>
+                    <p style="color:var(--gray); font-size:13px;">Money already paid will NOT be refunded. Enter your current battery % for accurate session records.</p>
+                </div>
+                <div style="margin-bottom:24px;">
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">End Battery % (when you stop)</label>
+                    <input type="number" id="stop-battery-input" class="location-input" style="width:100%;" min="1" max="100" placeholder="Enter your current battery %" value="">
+                </div>
+                <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid var(--border); padding-top:16px;">
+                    <button class="btn btn-secondary" id="stop-cancel-btn">Cancel</button>
+                    <button class="btn btn-danger" id="stop-confirm-btn">Stop & No Refund</button>
+                </div>
+            `;
+            overlay.appendChild(box);
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => overlay.classList.add('show'));
+
+            const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); };
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            box.querySelector('#stop-cancel-btn').onclick = close;
+            box.querySelector('#stop-confirm-btn').onclick = function() {
+                const endPct = parseInt(box.querySelector('#stop-battery-input').value, 10);
+                if (!endPct || endPct < 1 || endPct > 100) {
+                    showToast('Please enter a valid battery percentage (1–100).', 'error');
+                    return;
+                }
+                close();
+                doStopCharging(bookingId, endPct);
+            };
         }
 
-        async function doStopCharging(bookingId) {
+        async function doStopCharging(bookingId, endBatteryPercent) {
             try {
                 const response = await fetch('/EE/api/bookings.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'stop_session', booking_id: bookingId })
+                    body: JSON.stringify({ action: 'stop_session', booking_id: bookingId, end_battery_percent: endBatteryPercent })
                 });
                 const result = await response.json();
                 if (result.status === 'success') {
-                    showAlert('Charging stopped. No refund issued.', 'info');
+                    showToast('Charging stopped. No refund issued.', 'info');
                     loadSection('bookings', true);
                 } else {
-                    showAlert(result.message || 'Failed to stop charging.', 'error');
+                    showToast(result.message || 'Failed to stop charging.', 'error');
                 }
             } catch (e) {
-                showAlert('Network error. Try again.', 'error');
+                showToast('Network error. Try again.', 'error');
             }
         }
 

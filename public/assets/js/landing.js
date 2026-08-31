@@ -263,10 +263,14 @@ function createStationCard(station) {
                         `<i class="fas fa-star" style="color:${i < Math.floor(station.rating) ? '#FFD700' : '#DDD'};font-size:12px;"></i>`
                     ).join('')}
                     <span style="font-size:12px;color:var(--muted-foreground);margin-left:4px;">${station.rating}</span>
+                    <span style="font-size:11px;color:var(--muted-foreground);margin-left:6px;">(${station.review_count} reviews)</span>
                 </div>
-                <button class="btn btn-primary btn-sm station-book-btn" onclick="bookStation(${station.id}, '${station.name}')">
-                    <i class="fas fa-plug"></i> Book Now
-                </button>
+                <div style="display:flex;gap:6px;">
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();viewStationReviews(${station.id}, '${station.name.replace(/'/g, "\\'")}')" title="View reviews"><i class="fas fa-comments"></i></button>
+                    <button class="btn btn-primary btn-sm station-book-btn" onclick="bookStation(${station.id}, '${station.name}')">
+                        <i class="fas fa-plug"></i> Book Now
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -327,6 +331,51 @@ function bookStation(stationId, stationName) {
     window.location.href = loginUrl;
 }
 
+// ===== VIEW PUBLIC STATION REVIEWS (no auth) =====
+function viewStationReviews(stationId, stationName) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+    box.style.textAlign = 'left';
+    box.style.maxWidth = '520px';
+    box.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;"><i class="fas fa-comments"></i> ${stationName}</h3>
+            <button id="reviews-close-btn" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted-foreground);">&times;</button>
+        </div>
+        <div id="public-reviews-list" style="max-height:350px;overflow-y:auto;">
+            <div style="text-align:center;padding:24px;color:var(--muted-foreground);"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+        </div>
+    `;
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+    const close = () => { overlay.classList.remove('show'); setTimeout(() => overlay.remove(), 200); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    box.querySelector('#reviews-close-btn').onclick = close;
+
+    fetch(`/EE/api/reviews.php?public=1&station_id=${stationId}&per_page=5`)
+        .then(r => r.json())
+        .then(res => {
+            const list = box.querySelector('#public-reviews-list');
+            if (res.status !== 'success') { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted-foreground);">Could not load reviews.</div>'; return; }
+            const reviews = res.data.reviews || [];
+            const avg = res.data.average_rating || 0;
+            const total = res.data.review_count || 0;
+            let html = `<div style="margin-bottom:12px;font-size:14px;color:var(--foreground);"><strong>${avg.toFixed(1)}</strong> <span style="color:#FFD700;">${'★'.repeat(Math.round(avg))}</span> <span style="color:var(--muted-foreground);font-size:12px;">(${total} reviews)</span></div>`;
+            if (reviews.length === 0) { html += '<div style="padding:16px;text-align:center;color:var(--muted-foreground);">No reviews yet.</div>'; } else {
+                reviews.forEach(rv => {
+                    const stars = '★'.repeat(Number(rv.rating)) + '☆'.repeat(5 - Number(rv.rating));
+                    const dt = new Date(rv.created_at).toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'});
+                    html += `<div style="border-bottom:1px solid var(--border);padding:10px 0;"><div style="display:flex;justify-content:space-between;font-size:12px;"><strong>${rv.user_name}</strong><span style="color:#FFD700;">${stars}</span></div><div style="font-size:13px;color:var(--foreground);margin-top:4px;">${(rv.comment || '').substring(0,200)}</div><div style="font-size:11px;color:var(--muted-foreground);margin-top:4px;">${dt}</div></div>`;
+                });
+            }
+            list.innerHTML = html;
+        })
+        .catch(() => { box.querySelector('#public-reviews-list').innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted-foreground);">Network error.</div>'; });
+}
+
 // ===== MAP API STATION → CARD/MARKER SHAPE =====
 function mapApiStation(s) {
     // charger_details example: "DC Fast (50kW), AC 22kW (22kW)"
@@ -342,6 +391,7 @@ function mapApiStation(s) {
         available: Number(s.available_chargers || 0),
         distance: Number(s.distance || 0),
         rating: Number(s.average_rating || 0),
+        review_count: Number(s.review_count || 0),
         lat: parseFloat(s.latitude),
         lng: parseFloat(s.longitude)
     };

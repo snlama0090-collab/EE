@@ -42,7 +42,8 @@ try {
                ) = 1 THEN 1
                ELSE 0 END) AS available_chargers,
                GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)')
-                            ORDER BY c.wattage_kw DESC SEPARATOR ', ') AS charger_details
+                            ORDER BY c.wattage_kw DESC SEPARATOR ', ') AS charger_details,
+               (SELECT COUNT(*) FROM ratings_reviews rr WHERE rr.station_id = s.id AND rr.is_deleted = FALSE) AS review_count
         FROM stations s
         LEFT JOIN chargers c ON s.id = c.station_id
         WHERE s.approval_status = 'approved' AND s.is_active = TRUE

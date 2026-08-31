@@ -34,12 +34,17 @@ try {
     $stmt = $db->query("SELECT COUNT(*) AS count FROM owners WHERE status = 'active' AND approval_status = 'approved'");
     $owners = (int) $stmt->fetch()['count'];
 
+    // Total published reviews (public-facing count)
+    $stmt = $db->query("SELECT COUNT(*) AS count FROM ratings_reviews WHERE is_deleted = FALSE");
+    $reviews = (int) $stmt->fetch()['count'];
+
     echo json_encode([
         'status' => 'success',
         'data' => [
             'stations' => $stations,
             'drivers'  => $drivers,
-            'owners'   => $owners
+            'owners'   => $owners,
+            'reviews'  => $reviews,
         ]
     ]);
 

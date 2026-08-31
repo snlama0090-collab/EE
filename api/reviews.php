@@ -26,31 +26,100 @@ $user_id   = Auth::getCurrentUserId();
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // Read-only GETs: deliberately NOT CSRF-gated (design decision above).
     $db = getDB();
-    if ($user_type === 'driver') {
-        // Station review list for the booking modal (Phase 1).
+
+    // ── Public review access (no auth) — landing page visitors ──
+    // Token-free by design, same pattern as nearby-stations.php. Public-safe
+    // fields only: rating, comment, created_at, user_name (display name, not email).
+    // No user_id, flag internals, or email exposed.
+    if (isset($_GET['public'])) {
         $station_id = intval($_GET['station_id'] ?? 0);
         if ($station_id <= 0) {
             echo json_encode(['status' => 'error', 'message' => 'station_id required']);
             exit;
         }
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $per_page = min(50, max(1, intval($_GET['per_page'] ?? 5)));
+        $offset = ($page - 1) * $per_page;
+
+        $totalStmt = $db->prepare("SELECT COUNT(*) AS c FROM ratings_reviews WHERE station_id = ? AND is_deleted = FALSE");
+        $totalStmt->execute([$station_id]);
+        $total = (int) $totalStmt->fetch()['c'];
+
         $stmt = $db->prepare("
             SELECT rr.id, rr.rating, rr.comment, rr.created_at, u.name AS user_name
             FROM ratings_reviews rr
             JOIN users u ON rr.user_id = u.id
             WHERE rr.station_id = ? AND rr.is_deleted = FALSE
             ORDER BY rr.created_at DESC
+            LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$station_id]);
+        $stmt->bindValue(1, $station_id, PDO::PARAM_INT);
+        $stmt->bindValue(2, $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+        $stmt->execute();
         $avg = $db->prepare("SELECT average_rating FROM stations WHERE id = ?");
         $avg->execute([$station_id]);
         echo json_encode([
             'status' => 'success',
-            'data' => ['reviews' => $stmt->fetchAll(), 'average_rating' => (float) ($avg->fetch()['average_rating'] ?? 0)],
+            'data' => [
+                'reviews' => $stmt->fetchAll(),
+                'average_rating' => (float) ($avg->fetch()['average_rating'] ?? 0),
+                'review_count' => $total,
+                'pagination' => ['page' => $page, 'per_page' => $per_page, 'total' => $total, 'total_pages' => (int) ceil($total / $per_page)],
+            ],
+        ]);
+        exit;
+    }
+
+    if ($user_type === 'driver') {
+        // Station review list for the booking modal (Phase 1). Paginated.
+        $station_id = intval($_GET['station_id'] ?? 0);
+        if ($station_id <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'station_id required']);
+            exit;
+        }
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $per_page = min(50, max(1, intval($_GET['per_page'] ?? 10)));
+        $offset = ($page - 1) * $per_page;
+
+        $totalStmt = $db->prepare("SELECT COUNT(*) AS c FROM ratings_reviews WHERE station_id = ? AND is_deleted = FALSE");
+        $totalStmt->execute([$station_id]);
+        $total = (int) $totalStmt->fetch()['c'];
+
+        $stmt = $db->prepare("
+            SELECT rr.id, rr.rating, rr.comment, rr.created_at, u.name AS user_name
+            FROM ratings_reviews rr
+            JOIN users u ON rr.user_id = u.id
+            WHERE rr.station_id = ? AND rr.is_deleted = FALSE
+            ORDER BY rr.created_at DESC
+            LIMIT ? OFFSET ?
+        ");
+        $stmt->bindValue(1, $station_id, PDO::PARAM_INT);
+        $stmt->bindValue(2, $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $avg = $db->prepare("SELECT average_rating FROM stations WHERE id = ?");
+        $avg->execute([$station_id]);
+        echo json_encode([
+            'status' => 'success',
+            'data' => [
+                'reviews' => $stmt->fetchAll(),
+                'average_rating' => (float) ($avg->fetch()['average_rating'] ?? 0),
+                'pagination' => ['page' => $page, 'per_page' => $per_page, 'total' => $total, 'total_pages' => (int) ceil($total / $per_page)],
+            ],
         ]);
         exit;
     }
     if ($user_type === 'owner') {
-        // Phase 2: reviews on this owner's stations (flagged first).
+        // Phase 2: reviews on this owner's stations (flagged first). Paginated.
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $per_page = min(50, max(1, intval($_GET['per_page'] ?? 10)));
+        $offset = ($page - 1) * $per_page;
+
+        $totalStmt = $db->prepare("SELECT COUNT(*) AS c FROM ratings_reviews rr JOIN stations s ON rr.station_id = s.id WHERE s.owner_id = ? AND rr.is_deleted = FALSE");
+        $totalStmt->execute([$user_id]);
+        $total = (int) $totalStmt->fetch()['c'];
+
         $stmt = $db->prepare("
             SELECT rr.id, rr.rating, rr.comment, rr.created_at, rr.is_flagged, rr.flag_reason,
                    u.name AS user_name, s.name AS station_name
@@ -59,9 +128,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             JOIN users u ON rr.user_id = u.id
             WHERE s.owner_id = ? AND rr.is_deleted = FALSE
             ORDER BY rr.is_flagged DESC, rr.created_at DESC
+            LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$user_id]);
-        echo json_encode(['status' => 'success', 'data' => ['reviews' => $stmt->fetchAll()]]);
+        $stmt->bindValue(1, $user_id, PDO::PARAM_INT);
+        $stmt->bindValue(2, $per_page, PDO::PARAM_INT);
+        $stmt->bindValue(3, $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        echo json_encode([
+            'status' => 'success',
+            'data' => [
+                'reviews' => $stmt->fetchAll(),
+                'pagination' => ['page' => $page, 'per_page' => $per_page, 'total' => $total, 'total_pages' => (int) ceil($total / $per_page)],
+            ],
+        ]);
         exit;
     }
     echo json_encode(['status' => 'error', 'message' => 'Not authorized']);

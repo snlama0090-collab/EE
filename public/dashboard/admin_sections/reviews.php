@@ -5,6 +5,15 @@ require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
 Auth::requireUserType('admin');
 $db = getDB();
 
+// Pagination: page (1-based) + per_page (default 10, max 50)
+$page = max(1, intval($_GET['page'] ?? 1));
+$per_page = min(50, max(1, intval($_GET['per_page'] ?? 10)));
+$offset = ($page - 1) * $per_page;
+
+// Total for pagination controls
+$total = (int) $db->query("SELECT COUNT(*) AS c FROM ratings_reviews WHERE is_deleted = FALSE")->fetch()['c'];
+$total_pages = (int) ceil($total / $per_page);
+
 $stmt = $db->prepare("
     SELECT rr.*, u.name as user_name, s.name as station_name, o.company_name
     FROM ratings_reviews rr
@@ -13,8 +22,10 @@ $stmt = $db->prepare("
     JOIN owners o ON s.owner_id = o.id
     WHERE rr.is_deleted = FALSE
     ORDER BY rr.is_flagged DESC, rr.created_at DESC
-    LIMIT 50
+    LIMIT ? OFFSET ?
 ");
+$stmt->bindValue(1, $per_page, PDO::PARAM_INT);
+$stmt->bindValue(2, $offset, PDO::PARAM_INT);
 $stmt->execute();
 $reviews = $stmt->fetchAll();
 ?>
@@ -79,16 +90,30 @@ $reviews = $stmt->fetchAll();
         </tbody>
     </table>
     <div class="listing-footer">
-        <div class="rows-select">Showing <select><option>10</option><option>25</option><option>50</option></select> of <?php echo count($reviews); ?> results</div>
+        <div class="rows-select">Page <?php echo $page; ?> of <?php echo $total_pages; ?> (<?php echo $total; ?> reviews)</div>
         <div class="pagination">
-            <button disabled><i class="fas fa-chevron-left"></i> Previous</button>
-            <button class="active">1</button>
-            <button disabled>Next <i class="fas fa-chevron-right"></i></button>
+            <button <?php echo $page <= 1 ? 'disabled' : ''; ?> onclick="goToReviewPage(<?php echo $page - 1; ?>)"><i class="fas fa-chevron-left"></i> Previous</button>
+            <?php for ($p = max(1, $page - 2); $p <= min($total_pages, $page + 2); $p++): ?>
+                <button <?php echo $p === $page ? 'class="active"' : ''; ?> onclick="goToReviewPage(<?php echo $p; ?>)"><?php echo $p; ?></button>
+            <?php endfor; ?>
+            <button <?php echo $page >= $total_pages ? 'disabled' : ''; ?> onclick="goToReviewPage(<?php echo $page + 1; ?>)">Next <i class="fas fa-chevron-right"></i></button>
         </div>
     </div>
 </div>
 
 <script>
+// Pagination: fetch the reviews fragment for a new page and swap content-area.
+// We can't use ?page=N in the URL because admin.php routes ?page= as the SECTION name,
+// so this stays within the reviews section and fetches the paginated fragment via AJAX.
+function goToReviewPage(page) {
+    const contentArea = document.getElementById('content-area');
+    contentArea.innerHTML = '<div style="padding:32px;text-align:center;color:#8E8E93;"><i class="fas fa-spinner fa-spin" style="font-size:48px;display:block;margin-bottom:16px;"></i><p>Loading...</p></div>';
+    fetch(`admin_sections/reviews.php?page=${page}&per_page=<?php echo $per_page; ?>`)
+        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+        .then(html => { contentArea.innerHTML = html; })
+        .catch(() => { contentArea.innerHTML = '<div style="padding:32px;text-align:center;color:#FF3B30;">Failed to load page.</div>'; });
+}
+
 function moderateReview(reviewId, decision) {
     var verb = decision === 'remove' ? 'remove this review' : 'dismiss this flag';
     // window.showConfirm (modal.js:87) is the house confirmation pattern —

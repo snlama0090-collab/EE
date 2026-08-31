@@ -182,6 +182,27 @@ rep('20e. remove favorite', ($favRem['status'] ?? '') === 'success', json_encode
 $favRow3 = q($db, "SELECT id FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]);
 rep('20f. favorite removed', count($favRow3) === 0, json_encode($favRow3));
 q($db, "DELETE FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]); // cleanup
+// 22a-22f: REVIEWS PHASE 4 — public exposure + pagination
+// 22a: public endpoint returns reviews WITHOUT auth (no driver/owner session)
+$pubJar = __DIR__ . '/pub.txt'; @unlink($pubJar);
+$pub = api('GET', "$BASE/api/reviews.php?public=1&station_id=$st_id&per_page=5", $pubJar);
+rep('22a. public reviews no auth', ($pub['status'] ?? '') === 'success' && isset($pub['data']['reviews']) && isset($pub['data']['review_count']), 'status=' . ($pub['status'] ?? 'null') . ' has_reviews=' . (isset($pub['data']['reviews']) ? 'Y' : 'N') . ' count=' . ($pub['data']['review_count'] ?? 'NULL'));
+// 22b: public response does NOT leak user email or user_id
+$pubHasEmail = false;
+foreach ($pub['data']['reviews'] as $rv) { if (isset($rv['user_email']) || isset($rv['user_id'])) { $pubHasEmail = true; break; } }
+rep('22b. public no email/user_id leak', $pubHasEmail === false, 'leak=' . ($pubHasEmail ? 'Y' : 'N'));
+// 22c: pagination metadata present
+rep('22c. pagination metadata', isset($pub['data']['pagination']) && ($pub['data']['pagination']['per_page'] ?? 0) === 5, json_encode($pub['data']['pagination'] ?? 'NULL'));
+// 22d: per_page caps at 50 (request 100 → capped)
+$pubCap = api('GET', "$BASE/api/reviews.php?public=1&station_id=$st_id&per_page=100", $pubJar);
+rep('22d. per_page capped at 50', ($pubCap['data']['pagination']['per_page'] ?? 0) === 50, 'per_page=' . ($pubCap['data']['pagination']['per_page'] ?? 'NULL'));
+@unlink($pubJar);
+// 22e: driver GET is paginated (Phase 1 endpoint now returns pagination)
+$driList = api('GET', "$BASE/api/reviews.php?station_id=$st_id&per_page=3", $dc);
+rep('22e. driver GET paginated', ($driList['status'] ?? '') === 'success' && isset($driList['data']['pagination']) && count($driList['data']['reviews']) <= 3, 'count=' . count($driList['data']['reviews'] ?? []) . ' has_pag=' . (isset($driList['data']['pagination']) ? 'Y' : 'N'));
+// 22f: stats.php now includes review_count
+$st = api('GET', "$BASE/api/stats.php", $pubJar = __DIR__ . '/st.txt'); @unlink($pubJar);
+rep('22f. stats has review_count', ($st['status'] ?? '') === 'success' && isset($st['data']['reviews']) && $st['data']['reviews'] >= 1, 'reviews=' . ($st['data']['reviews'] ?? 'NULL'));
 // STEP 6: NOTIFICATION BELL — seeded-delta assertions, owner scope-leak regression, isolation
 $drvId = q($db, "SELECT id FROM users WHERE email='driver1@example.com'")[0]['id'];
 // 22: seed exactly 3 known driver notifications, assert unread rises by EXACTLY 3

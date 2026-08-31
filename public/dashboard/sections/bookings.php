@@ -21,6 +21,16 @@ $stmt = $db->prepare("
 ");
 $stmt->execute([$user_id]);
 $bookings = $stmt->fetchAll();
+
+// Phase 1 reviews: finished, not-yet-reviewed bookings get a Rate button
+$rv = $db->prepare("
+    SELECT b.id FROM bookings b
+    LEFT JOIN ratings_reviews rr ON rr.booking_id = b.id
+    WHERE b.user_id = ? AND b.status IN ('completed', 'stopped') AND rr.id IS NULL
+");
+$rv->execute([$user_id]);
+$reviewable = [];
+foreach ($rv->fetchAll() as $r) $reviewable[$r['id']] = true;
 ?>
 <div class="listing-header">
     <div class="listing-title">
@@ -125,7 +135,13 @@ $bookings = $stmt->fetchAll();
                             <i class="fas fa-stop"></i> Stop Charging
                         </button>
                     <?php else: ?>
+                        <?php if (!empty($reviewable[$booking['id']])): ?>
+                        <button class="btn btn-primary btn-sm" onclick="rateBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['station_name']); ?>')">
+                            <i class="fas fa-star"></i> Rate
+                        </button>
+                        <?php else: ?>
                         <span style="font-size:12px;color:var(--muted-foreground);">-</span>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </td>
             </tr>
@@ -153,3 +169,21 @@ $bookings = $stmt->fetchAll();
         </div>
     </div>
 <?php endif; ?>
+
+<!-- Review modal (Phase 1) — JS lives in the shell (fragment scripts don't run via loadSection) -->
+<div id="review-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:var(--card,#fff);border-radius:12px;padding:24px;width:340px;max-width:92%;">
+    <h3 style="margin:0 0 4px 0;">Rate this session</h3>
+    <div id="review-station" style="font-size:13px;color:var(--muted-foreground);margin-bottom:12px;"></div>
+    <div id="review-stars" style="display:flex;gap:6px;font-size:26px;cursor:pointer;margin-bottom:12px;">
+      <?php for ($i = 1; $i <= 5; $i++): ?>
+        <span data-star="<?php echo $i; ?>" onclick="setStars(<?php echo $i; ?>)" style="color:#d1d5db;">★</span>
+      <?php endfor; ?>
+    </div>
+    <textarea id="review-comment" rows="4" maxlength="1000" placeholder="How was the charging session?" style="width:100%;box-sizing:border-box;margin-bottom:12px;"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-sm" onclick="closeReviewModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="review-submit" onclick="submitReview()">Submit</button>
+    </div>
+  </div>
+</div>

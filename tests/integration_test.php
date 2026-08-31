@@ -98,6 +98,27 @@ $ch=q($db,"SELECT status FROM chargers WHERE id=1");
 rep('20. charger released',$ch[0]['status']==='available','status='.$ch[0]['status']);
 $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='session_stopped' AND resource_id=?",[$bid2]);
 rep('21. session_stopped log',count($al)===1&&strpos($al[0]['details'],'NOT refunded')!==false,json_encode($al[0]));
+// 19b-19g: PHASE 1 REVIEWS — create/read/average/duplicate/ineligible/XSS-raw contract
+// (booking $bid2 is 'stopped' = finished; token force-refreshed: session rotated at the re-login)
+csrfFor($BASE,$dc,'public/dashboard/driver.php',true);
+$st_id = q($db, "SELECT c.station_id FROM bookings b JOIN chargers c ON b.charger_id=c.id WHERE b.id=?", [$bid2])[0]['station_id'];
+$rr = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bid2, 'rating'=>4, 'comment'=>'Charging worked well <script>alert(1)</script>']);
+rep('19b. review create', $rr['status']==='success', json_encode($rr));
+$rrRow = q($db, "SELECT station_id, rating, comment FROM ratings_reviews WHERE booking_id=?", [$bid2]);
+rep('19c. review row + raw XSS payload stored (render escapes client-side)', count($rrRow)===1 && $rrRow[0]['station_id']==$st_id && $rrRow[0]['rating']==4 && strpos($rrRow[0]['comment'], '<script>')!==false, json_encode($rrRow));
+$avg62 = q($db, "SELECT average_rating FROM stations WHERE id=?", [$st_id])[0]['average_rating'];
+rep('19d. average_rating recalculated in-transaction', floatval($avg62)===4.0, 'avg='.$avg62);
+$dup = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bid2, 'rating'=>5, 'comment'=>'again']);
+rep('19e. duplicate review blocked', $dup['status']==='error' && strpos($dup['message'],'already reviewed')!==false, json_encode($dup));
+$i19 = api('POST', "$BASE/api/bookings.php", $dc, ['action'=>'initiate_payment','charger_id'=>1]);
+$bid19 = $i19['data']['booking_id'] ?? 0;
+$inel = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bid19, 'rating'=>5, 'comment'=>'x']);
+rep('19f. ineligible (pending_payment) review blocked', $inel['status']==='error', json_encode($inel));
+$list = api('GET', "$BASE/api/reviews.php?station_id=$st_id", $dc);
+rep('19g. station review list + average', $list['status']==='success' && count($list['data']['reviews'])>=1 && floatval($list['data']['average_rating'])===4.0, json_encode($list['data']));
+// fixture cleanup for the ineligible-probe booking (keep suite drift minimal)
+q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid19]);
+q($db, "DELETE FROM bookings WHERE id=?", [$bid19]);
 // STEP 6: NOTIFICATION BELL — seeded-delta assertions, owner scope-leak regression, isolation
 $drvId = q($db, "SELECT id FROM users WHERE email='driver1@example.com'")[0]['id'];
 // 22: seed exactly 3 known driver notifications, assert unread rises by EXACTLY 3

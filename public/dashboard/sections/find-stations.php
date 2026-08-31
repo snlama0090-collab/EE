@@ -25,7 +25,7 @@ $stmt = $db->prepare("
         ELSE 0 END) as available_chargers,
         GROUP_CONCAT(DISTINCT c.charger_type ORDER BY c.charger_type) as charger_types,
         GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)') ORDER BY c.wattage_kw DESC SEPARATOR ', ') as charger_details,
-        5.0 as average_rating
+        s.average_rating
     FROM stations s
     LEFT JOIN chargers c ON s.id = c.station_id
     WHERE s.approval_status = 'approved'

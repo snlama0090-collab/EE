@@ -426,10 +426,27 @@ if (file_exists($profilePicAbsolute)) {
                         return `<option value="${c.id}" ${disabled}>${label}</option>`;
                     }).join('');
 
+                    const reviews = station.reviews || [];
+                    const reviewsHtml = reviews.length ? reviews.map(rv => `
+                        <div style="border-bottom:1px solid var(--border); padding:8px 0;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px;">
+                                <strong>${escapeHtml(rv.user_name)}</strong>
+                                <span style="color:#f5b301;">${'★'.repeat(Number(rv.rating))}${'☆'.repeat(5 - Number(rv.rating))}</span>
+                            </div>
+                            <div style="font-size:13px; color:var(--gray); margin-top:2px;">${escapeHtml(rv.comment || '')}</div>
+                        </div>`).join('') : '<div style="font-size:12px; color:var(--muted-foreground);">No reviews yet — be the first after your session.</div>';
+
                     box.innerHTML = `
                         <div style="margin-bottom:20px;">
                             <h3 style="margin-bottom:4px;"><i class="fas fa-plug"></i> ${station.name}</h3>
                             <p style="color:var(--gray); font-size:13px;">Pay a flat reservation fee of NPR 50. Battery % and charging cost will be calculated when you start the session.</p>
+                            <div style="font-size:12px; color:#f5b301; margin-top:6px;">
+                                ★ ${Number(station.average_rating || 0).toFixed(1)} / 5 · ${reviews.length} review${reviews.length === 1 ? '' : 's'}
+                            </div>
+                        </div>
+                        <div style="margin-bottom:16px; max-height:150px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:8px 12px;">
+                            <div style="font-size:12px; font-weight:600; margin-bottom:4px;">Reviews</div>
+                            ${reviewsHtml}
                         </div>
                         <div style="margin-bottom:16px;">
                             <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Charger</label>
@@ -842,6 +859,54 @@ if (file_exists($profilePicAbsolute)) {
         function bookFavorite(stationId) {
             history.pushState(null, '', '#find-stations');
             loadSection('find-stations');
+        }
+
+        // --- reviews (Phase 1): rate a finished session from booking history ---
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+        var reviewRating = 0;
+        var reviewBookingId = 0;
+        function rateBooking(bookingId, stationName) {
+            reviewBookingId = bookingId;
+            reviewRating = 0;
+            document.getElementById('review-station').textContent = 'Station: ' + stationName;
+            setStars(0);
+            document.getElementById('review-comment').value = '';
+            document.getElementById('review-modal').style.display = 'flex';
+        }
+        function setStars(n) {
+            reviewRating = n;
+            var stars = document.querySelectorAll('#review-stars span');
+            for (var i = 0; i < stars.length; i++) {
+                stars[i].style.color = (i < n) ? '#f5b301' : '#d1d5db';
+            }
+        }
+        function closeReviewModal() {
+            document.getElementById('review-modal').style.display = 'none';
+        }
+        function submitReview() {
+            if (!reviewRating) { showToast('Please choose a star rating.', 'error'); return; }
+            var comment = document.getElementById('review-comment').value.trim();
+            if (!comment) { showToast('Please write a short review.', 'error'); return; }
+            var btn = document.getElementById('review-submit');
+            btn.disabled = true;
+            fetch('/EE/api/reviews.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ booking_id: reviewBookingId, rating: reviewRating, comment: comment })
+            }).then(function (r) { return r.json(); }).then(function (res) {
+                btn.disabled = false;
+                if (res.status === 'success') {
+                    closeReviewModal();
+                    showToast('Review submitted — thank you!', 'success');
+                    loadSection('bookings', true);
+                } else {
+                    showToast(res.message || 'Could not submit review.', 'error');
+                }
+            }).catch(function () { btn.disabled = false; showToast('Network error — try again.', 'error'); });
         }
 
         // --- preset avatar picker (profile form) ---

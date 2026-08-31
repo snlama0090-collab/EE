@@ -339,6 +339,37 @@ $unread = (int) $notif['unread_count'];
         }, { confirmLabel: 'Reject Station', confirmClass: 'btn-danger' });
     }
 
+    // --- owner warnings (Users section; modal markup lives in the users fragment) ---
+    function openWarnModal(ownerId, ownerName) {
+        document.getElementById('warn-owner-id').value = ownerId;
+        document.getElementById('warn-owner-label').textContent = 'Owner: ' + ownerName + ' — this warning is logged on their account.';
+        document.getElementById('warn-reason').value = '';
+        document.getElementById('warn-modal').style.display = 'flex';
+    }
+
+    function closeWarnModal() {
+        document.getElementById('warn-modal').style.display = 'none';
+    }
+
+    function submitWarn() {
+        var ownerId = parseInt(document.getElementById('warn-owner-id').value, 10);
+        var reason = document.getElementById('warn-reason').value.trim();
+        if (!reason) { showToast('A reason is required.', 'error'); return; }
+        fetch('/EE/api/reviews.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'warn', owner_id: ownerId, reason: reason })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+            if (res.status === 'success') {
+                showToast(res.message || 'Warning issued.', 'success');
+                closeWarnModal();
+                loadSection('users', true);
+            } else {
+                showToast(res.message || 'Failed to issue warning.', 'error');
+            }
+        }).catch(function () { showToast('Network error — try again.', 'error'); });
+    }
+
     function logout() {
         window.location.href = '../logout.php';
     }

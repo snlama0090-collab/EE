@@ -8,7 +8,7 @@ $db = getDB();
 $stmt = $db->query("SELECT id, email, name, phone, car_model, status, created_at, 'driver' as role FROM users ORDER BY created_at DESC LIMIT 50");
 $drivers = $stmt->fetchAll();
 
-$stmt = $db->query("SELECT id, email, company_name as name, phone, status, created_at, 'owner' as role FROM owners ORDER BY created_at DESC LIMIT 50");
+$stmt = $db->query("SELECT id, email, company_name as name, phone, status, warning_count, created_at, 'owner' as role FROM owners ORDER BY created_at DESC LIMIT 50");
 $owners = $stmt->fetchAll();
 
 $users = array_merge($drivers, $owners);
@@ -53,7 +53,7 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
 <div class="listing-table">
     <table>
         <thead>
-            <tr><th>Name <i class="fas fa-sort"></i></th><th>Email</th><th>Role</th><th>Phone</th><th>Status</th><th>Joined</th></tr>
+            <tr><th>Name <i class="fas fa-sort"></i></th><th>Email</th><th>Role</th><th>Phone</th><th>Warnings</th><th>Status</th><th>Joined</th><th>Action</th></tr>
         </thead>
         <tbody>
             <?php foreach ($users as $u): ?>
@@ -62,8 +62,10 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
                 <td><?php echo htmlspecialchars($u['email']); ?></td>
                 <td><span class="badge <?php echo $u['role'] === 'driver' ? 'badge-info' : 'badge-owner'; ?>" style="<?php echo $u['role'] === 'owner' ? 'background:#fef3c7;color:#92400e;border-color:#fde68a;' : ''; ?>"><?php echo $u['role']; ?></span></td>
                 <td><?php echo htmlspecialchars($u['phone'] ?? '-'); ?></td>
+                <td><?php if ($u['role'] === 'owner'): ?><span class="badge <?php echo ($u['warning_count'] > 0) ? 'badge-danger' : 'badge-success'; ?>"><?php echo (int) $u['warning_count']; ?></span><?php else: ?><span style="color:var(--muted-foreground);">—</span><?php endif; ?></td>
                 <td><span class="badge badge-<?php echo $u['status'] === 'active' ? 'success' : 'danger'; ?>"><?php echo $u['status']; ?></span></td>
                 <td><?php echo date('M d, Y', strtotime($u['created_at'])); ?></td>
+                <td><?php if ($u['role'] === 'owner'): ?><button type="button" class="btn btn-secondary btn-sm" onclick="openWarnModal(<?php echo (int) $u['id']; ?>, '<?php echo htmlspecialchars($u['name'], ENT_QUOTES); ?>')"><i class="fas fa-exclamation-triangle"></i> Warn</button><?php endif; ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
@@ -74,6 +76,20 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
             <button disabled><i class="fas fa-chevron-left"></i> Previous</button>
             <button class="active">1</button>
             <button disabled>Next <i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Warn modal (markup here; openWarnModal/submitWarn live in the admin shell) -->
+<div id="warn-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
+    <div style="background:var(--background, #fff); border-radius:12px; padding:24px; width:min(440px, 92vw);">
+        <h3 style="margin:0 0 6px;"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> Issue formal warning</h3>
+        <p id="warn-owner-label" style="color:var(--muted-foreground); font-size:13px; margin:0 0 12px;"></p>
+        <input type="hidden" id="warn-owner-id">
+        <textarea id="warn-reason" rows="3" maxlength="255" placeholder="Reason (required, max 255 chars) — logged on the owner's account" style="width:100%; box-sizing:border-box; margin-bottom:10px;"></textarea>
+        <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeWarnModal()">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="submitWarn()">Issue warning</button>
         </div>
     </div>
 </div>

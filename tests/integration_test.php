@@ -100,8 +100,9 @@ $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='
 rep('21. session_stopped log',count($al)===1&&strpos($al[0]['details'],'NOT refunded')!==false,json_encode($al[0]));
 // 19b-19g: PHASE 1 REVIEWS — create/read/average/duplicate/ineligible/XSS-raw contract
 // (booking $bid2 is 'stopped' = finished; token force-refreshed: session rotated at the re-login)
-csrfFor($BASE,$dc,'public/dashboard/driver.php',true);
 $st_id = q($db, "SELECT c.station_id FROM bookings b JOIN chargers c ON b.charger_id=c.id WHERE b.id=?", [$bid2])[0]['station_id'];
+q($db, "DELETE FROM ratings_reviews WHERE station_id=?", [$st_id]); // suite owns the target station's review state: deterministic average/list (cross-run accumulation otherwise breaks 19d/19g)
+csrfFor($BASE,$dc,'public/dashboard/driver.php',true);
 $rr = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bid2, 'rating'=>4, 'comment'=>'Charging worked well <script>alert(1)</script>']);
 rep('19b. review create', $rr['status']==='success', json_encode($rr));
 $rrRow = q($db, "SELECT station_id, rating, comment FROM ratings_reviews WHERE booking_id=?", [$bid2]);
@@ -444,6 +445,35 @@ $ac = __DIR__ . '/ac.txt';
 @unlink($ac);
 api('POST', "$BASE/api/auth/login.php", $ac, ['email' => 'supporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
 csrfFor($BASE, $ac, 'public/dashboard/admin.php', true);
+
+// ===== 19h-19k: REVIEWS PHASE 2 — owner flag, admin moderation, owner warnings =====
+$revId = intval(q($db, "SELECT id FROM ratings_reviews WHERE booking_id=?", [$bid2])[0]['id'] ?? 0);
+$ownId = intval(q($db, "SELECT owner_id FROM stations WHERE id=?", [$st_id])[0]['owner_id'] ?? 0);
+$rrF = api('POST', "$BASE/api/reviews.php", $oc, ['action' => 'flag', 'review_id' => $revId, 'reason' => 'Suite: fabricated complaint']);
+rep('19h. owner flags review', ($rrF['status'] ?? '') === 'success', json_encode($rrF));
+$fl = q($db, "SELECT is_flagged, flag_reason FROM ratings_reviews WHERE id=?", [$revId])[0] ?? [];
+$flNotified = count(q($db, "SELECT id FROM activity_logs WHERE action='review_flagged' AND resource_id=?", [$revId])) === 1;
+rep('19h2. flag persisted + author notified', ($fl['is_flagged'] ?? 0) == 1 && strpos($fl['flag_reason'] ?? '', 'fabricated') !== false && $flNotified, json_encode($fl));
+$md = api('POST', "$BASE/api/reviews.php", $ac, ['action' => 'moderate', 'review_id' => $revId, 'decision' => 'dismiss']);
+rep('19i. admin dismisses flag', ($md['status'] ?? '') === 'success', json_encode($md));
+$fl2 = q($db, "SELECT is_flagged, is_deleted FROM ratings_reviews WHERE id=?", [$revId])[0] ?? [];
+rep('19i2. dismissed = visible again', ($fl2['is_flagged'] ?? 1) == 0 && ($fl2['is_deleted'] ?? 1) == 0, json_encode($fl2));
+q($db, "UPDATE owners SET warning_count=0 WHERE id=?", [$ownId]); // deterministic 0->1 for 19j2 regardless of prior warnings
+$wn = api('POST', "$BASE/api/reviews.php", $ac, ['action' => 'warn', 'owner_id' => $ownId, 'reason' => 'Suite: formal warning test']);
+rep('19j. admin warns owner', ($wn['status'] ?? '') === 'success', json_encode($wn));
+$wc = intval(q($db, "SELECT warning_count FROM owners WHERE id=?", [$ownId])[0]['warning_count'] ?? -1);
+rep('19j2. warning_count incremented', $wc === 1, 'wc=' . $wc);
+// 19k: capability gate — an admin WITHOUT can_moderate_reviews cannot warn (or moderate)
+$db->prepare("INSERT INTO admins (email, password, name, role, can_moderate_reviews) VALUES (?, ?, ?, 'super_admin', 0)")
+   ->execute(['nomod-admin@evcharge.com', password_hash('AdminTest@123', PASSWORD_BCRYPT), 'No-Mod Admin']);
+$nm = __DIR__ . '/nm.txt'; @unlink($nm);
+api('POST', "$BASE/api/auth/login.php", $nm, ['email' => 'nomod-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+csrfFor($BASE, $nm, 'public/dashboard/admin.php', true); // prime the fresh admin session's token before the warn attempt
+$nmr = api('POST', "$BASE/api/reviews.php", $nm, ['action' => 'warn', 'owner_id' => $ownId, 'reason' => 'Suite: should be blocked']);
+rep('19k. non-moderator admin blocked', ($nmr['status'] ?? '') === 'error' && strpos($nmr['message'] ?? '', 'cannot moderate') !== false, json_encode($nmr));
+q($db, "DELETE FROM admins WHERE email='nomod-admin@evcharge.com'"); @unlink($nm);
+q($db, "UPDATE owners SET warning_count=0 WHERE id=?", [$ownId]);
+q($db, "DELETE FROM activity_logs WHERE action IN ('review_flagged','review_dismissed','owner_warning') AND details LIKE '%Suite%'");
 
 $r49 = api('POST', "$BASE/api/support.php", $dc, ['action' => 'create', 'category' => 'booking', 'subject' => 'Integration ticket A', 'message' => 'Driver needs help']);
 $tidA = intval($r49['data']['ticket_id'] ?? 0);

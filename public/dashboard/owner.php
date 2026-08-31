@@ -225,6 +225,9 @@ if (file_exists($profilePicAbsolute)) {
                 <button type="button" class="nav-btn<?php echo $page === 'bookings' ? ' active' : ''; ?>" data-section="bookings" onclick="loadSection('bookings')">
                     <i class="fas fa-receipt"></i> <span>Bookings</span>
                 </button>
+                <button type="button" class="nav-btn<?php echo $page === 'reviews' ? ' active' : ''; ?>" data-section="reviews" onclick="loadSection('reviews')">
+                    <i class="fas fa-star"></i> <span>Reviews</span>
+                </button>
                 <button type="button" class="nav-btn<?php echo $page === 'team' ? ' active' : ''; ?>" data-section="team" onclick="loadSection('team')">
                     <i class="fas fa-users"></i> <span>Team</span>
                 </button>
@@ -698,6 +701,37 @@ if (file_exists($profilePicAbsolute)) {
             var imgs = document.querySelectorAll('.preset-picker img');
             for (var i = 0; i < imgs.length; i++) imgs[i].style.borderColor = 'transparent';
             el.style.borderColor = 'var(--primary)';
+        }
+
+        // --- reviews (Phase 2): flag a review on own stations ---
+        var flagReviewId = 0;
+        function flagReview(reviewId) {
+            flagReviewId = reviewId;
+            document.getElementById('flag-reason').value = '';
+            document.getElementById('flag-modal').style.display = 'flex';
+        }
+        function closeFlagModal() {
+            document.getElementById('flag-modal').style.display = 'none';
+        }
+        function submitFlag() {
+            var reason = document.getElementById('flag-reason').value.trim();
+            if (!reason) { showToast('A reason is required to flag a review.', 'error'); return; }
+            var btn = document.getElementById('flag-submit');
+            btn.disabled = true;
+            fetch('/EE/api/reviews.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'flag', review_id: flagReviewId, reason: reason })
+            }).then(function (r) { return r.json(); }).then(function (res) {
+                btn.disabled = false;
+                if (res.status === 'success') {
+                    closeFlagModal();
+                    showToast('Review flagged for moderation.', 'success');
+                    loadSection('reviews', true);
+                } else {
+                    showToast(res.message || 'Could not flag review.', 'error');
+                }
+            }).catch(function () { btn.disabled = false; showToast('Network error — try again.', 'error'); });
         }
 
         // --- profile.php (owner profile form) ---

@@ -59,7 +59,8 @@ CREATE TABLE owners (
     status ENUM('active', 'inactive', 'banned') DEFAULT 'active',
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     profile_complete BOOLEAN NOT NULL DEFAULT 1, -- Google sign-up: 0 = provisional row awaiting role-specific profile completion
-    
+    warning_count TINYINT UNSIGNED NOT NULL DEFAULT 0, -- formal moderation warnings (Reviews Phase 2); incremented via api/reviews.php action=warn, reasons logged in activity_logs as owner_warning
+
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

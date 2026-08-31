@@ -6,12 +6,13 @@ Auth::requireUserType('admin');
 $db = getDB();
 
 $stmt = $db->prepare("
-    SELECT rr.*, u.name as user_name, s.name as station_name
+    SELECT rr.*, u.name as user_name, s.name as station_name, o.company_name
     FROM ratings_reviews rr
     JOIN users u ON rr.user_id = u.id
     JOIN stations s ON rr.station_id = s.id
+    JOIN owners o ON s.owner_id = o.id
     WHERE rr.is_deleted = FALSE
-    ORDER BY rr.created_at DESC
+    ORDER BY rr.is_flagged DESC, rr.created_at DESC
     LIMIT 50
 ");
 $stmt->execute();
@@ -56,17 +57,23 @@ $reviews = $stmt->fetchAll();
 <div class="listing-table">
     <table>
         <thead>
-            <tr><th>User <i class="fas fa-sort"></i></th><th>Station</th><th>Rating</th><th>Comment</th><th>Status</th><th>Date</th></tr>
+            <tr><th>User <i class="fas fa-sort"></i></th><th>Station</th><th>Owner</th><th>Rating</th><th>Comment</th><th>Flag Reason</th><th>Status</th><th>Date</th><th>Action</th></tr>
         </thead>
         <tbody>
             <?php foreach ($reviews as $r): ?>
             <tr>
                 <td><div class="cell-avatar"><div class="avatar"><?php echo strtoupper(substr($r['user_name'], 0, 2)); ?></div><div class="info"><div class="name"><?php echo htmlspecialchars($r['user_name']); ?></div></div></div></td>
                 <td><?php echo htmlspecialchars($r['station_name']); ?></td>
+                <td><?php echo htmlspecialchars($r['company_name'] ?? '-'); ?></td>
                 <td><?php for($i=0;$i<$r['rating'];$i++){echo '<span class="star" style="color:var(--warning);font-size:14px;">★</span>';} ?></td>
                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo htmlspecialchars(mb_substr($r['comment'] ?? '', 0, 60)) . (mb_strlen($r['comment'] ?? '') > 60 ? '...' : ''); ?></td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;"><?php echo $r['is_flagged'] ? htmlspecialchars($r['flag_reason'] ?? '') : '—'; ?></td>
                 <td><?php echo $r['is_flagged'] ? '<span class="badge badge-danger">Flagged</span>' : '<span class="badge badge-success">Clean</span>'; ?></td>
                 <td><?php echo date('M d, Y', strtotime($r['created_at'])); ?></td>
+                <td><?php if ($r['is_flagged']): ?>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="moderateReview(<?php echo (int) $r['id']; ?>, 'remove')"><i class="fas fa-trash"></i> Remove</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="moderateReview(<?php echo (int) $r['id']; ?>, 'dismiss')"><i class="fas fa-check"></i> Dismiss</button>
+                <?php else: ?><span style="color:var(--muted-foreground);font-size:12px;">—</span><?php endif; ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>
@@ -80,3 +87,26 @@ $reviews = $stmt->fetchAll();
         </div>
     </div>
 </div>
+
+<script>
+function moderateReview(reviewId, decision) {
+    var verb = decision === 'remove' ? 'remove this review' : 'dismiss this flag';
+    // window.showConfirm (modal.js:87) is the house confirmation pattern —
+    // same as approveStation/rejectStation. Live-verified 2026-08-29:
+    // modal opens, Confirm fires the action, DB updates.
+    showConfirm('Are you sure you want to ' + verb + '?', function () {
+        fetch('/EE/api/reviews.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'moderate', review_id: reviewId, decision: decision })
+        }).then(function (r) { return r.json(); }).then(function (res) {
+            if (res.status === 'success') {
+                showToast(res.message || 'Done.', 'success');
+                loadSection('reviews', true);
+            } else {
+                showToast(res.message || 'Moderation action failed.', 'error');
+            }
+        }).catch(function () { showToast('Network error — try again.', 'error'); });
+    });
+}
+</script>

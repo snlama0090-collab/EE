@@ -419,6 +419,7 @@ if (file_exists($profilePicAbsolute)) {
                     const box = document.createElement('div');
                     box.className = 'modal-box';
                     box.style.textAlign = 'left';
+                    box.style.position = 'relative';
 
                     let chargerOptions = station.chargers.map(c => {
                         const label = `#${c.charger_number} — ${c.charger_type} (${c.wattage_kw}kW) — ${c.display_status}`;
@@ -459,6 +460,15 @@ if (file_exists($profilePicAbsolute)) {
                             <button class="btn btn-primary" id="modal-confirm-btn">Reserve — NPR 50</button>
                         </div>
                     `;
+
+                    // Favorite toggle (top-right of modal)
+                    const favBtn = document.createElement('button');
+                    favBtn.className = 'fav-btn';
+                    favBtn.dataset.favorite = station.is_favorite ? '1' : '0';
+                    favBtn.style.cssText = 'position: absolute; top: 16px; right: 16px; background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px; line-height: 1;';
+                    favBtn.innerHTML = `<i class="fa${station.is_favorite ? 's' : 'r'} fa-heart" style="color:${station.is_favorite ? '#FF3B30' : 'var(--muted-foreground)'}"></i>`;
+                    favBtn.onclick = function() { toggleFavorite(this, station.id); };
+                    box.appendChild(favBtn);
 
                     overlay.appendChild(box);
                     document.body.appendChild(overlay);
@@ -830,6 +840,51 @@ if (file_exists($profilePicAbsolute)) {
         }
 
         // --- favorites.php ---
+        // Toggle favorite on/off (used by find-stations cards + detail modal)
+        async function toggleFavorite(btn, stationId) {
+            const isFav = btn.dataset.favorite === '1';
+            const action = isFav ? 'remove' : 'add';
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('station_id', stationId);
+            try {
+                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    btn.dataset.favorite = isFav ? '0' : '1';
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = isFav ? 'far fa-heart' : 'fas fa-heart';
+                        icon.style.color = isFav ? 'var(--muted-foreground)' : '#FF3B30';
+                    }
+                } else {
+                    showToast(result.message || 'Failed to update favorite.', 'error');
+                }
+            } catch (e) {
+                showToast('Error updating favorites.', 'error');
+            }
+        }
+
+        // Explicit add (standalone contexts)
+        async function addFavorite(btn, stationId) {
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('station_id', stationId);
+            try {
+                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    btn.dataset.favorite = '1';
+                    const icon = btn.querySelector('i');
+                    if (icon) { icon.className = 'fas fa-heart'; icon.style.color = '#FF3B30'; }
+                } else {
+                    showToast(result.message || 'Failed to add favorite.', 'error');
+                }
+            } catch (e) {
+                showToast('Error updating favorites.', 'error');
+            }
+        }
+
         function removeFavorite(stationId) {
             showConfirm('Remove this station from your favorites?', function() {
                 doRemoveFavorite(stationId);
@@ -838,21 +893,18 @@ if (file_exists($profilePicAbsolute)) {
 
         async function doRemoveFavorite(stationId) {
             const formData = new FormData();
+            formData.append('action', 'remove');
             formData.append('station_id', stationId);
-
             try {
-                const response = await fetch('sections/favorites.php', {
-                    method: 'POST',
-                    body: formData
-                });
+                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (result.status === 'success') {
                     loadSection('favorites');
                 } else {
-                    showAlert(result.message || 'Failed to remove.', 'error');
+                    showToast(result.message || 'Failed to remove.', 'error');
                 }
             } catch (e) {
-                showAlert('Error updating favorites list.', 'error');
+                showToast('Error updating favorites list.', 'error');
             }
         }
 

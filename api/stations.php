@@ -79,7 +79,16 @@ try {
             $stmt->execute([$station_id]);
             $reviews = $stmt->fetchAll();
             $station['reviews'] = $reviews;
-            
+
+            // Favorite status for the logged-in driver (if any)
+            $station['is_favorite'] = false;
+            $favUserId = Auth::getCurrentUserId();
+            if ($favUserId) {
+                $favStmt = $db->prepare("SELECT 1 FROM favorites WHERE user_id = ? AND station_id = ? LIMIT 1");
+                $favStmt->execute([$favUserId, $station_id]);
+                $station['is_favorite'] = (bool) $favStmt->fetch();
+            }
+
             echo json_encode([
                 'status' => 'success',
                 'data' => $station

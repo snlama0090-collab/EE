@@ -134,6 +134,34 @@ q($db, "DELETE FROM bookings WHERE id=?", [$bidQ]);
 // fixture cleanup for the ineligible-probe booking (keep suite drift minimal)
 q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid19]);
 q($db, "DELETE FROM bookings WHERE id=?", [$bid19]);
+// 20: FAVORITES — add favorite, confirm persisted, idempotent duplicate, remove, confirm gone.
+// Exercises the new add branch + method-scoped CSRF gate (action=add/remove, form-encoded POST).
+$tok = csrfFor($BASE, $dc, 'public/dashboard/driver.php', true);
+function favPost($BASE, $dc, $tok, $action, $stationId) {
+    $ch = curl_init("$BASE/public/dashboard/sections/favorites.php");
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(['action'=>$action, 'station_id'=>$stationId]),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/x-www-form-urlencoded', "X-CSRF-Token: $tok"],
+        CURLOPT_COOKIEJAR => $dc, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0',
+    ]);
+    $r = curl_exec($ch); curl_close($ch);
+    return json_decode((string)$r, true);
+}
+q($db, "DELETE FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]); // clean state
+$favAdd = favPost($BASE, $dc, $tok, 'add', $st_id);
+rep('20a. add favorite', ($favAdd['status'] ?? '') === 'success', json_encode($favAdd));
+$favRow = q($db, "SELECT id FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]);
+rep('20b. favorite persisted', count($favRow) === 1, json_encode($favRow));
+$favDup = favPost($BASE, $dc, $tok, 'add', $st_id); // INSERT IGNORE: must succeed, not error
+rep('20c. duplicate add idempotent', ($favDup['status'] ?? '') === 'success', json_encode($favDup));
+$favRow2 = q($db, "SELECT COUNT(*) c FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]);
+rep('20d. no duplicate row', (int)$favRow2[0]['c'] === 1, json_encode($favRow2));
+$favRem = favPost($BASE, $dc, $tok, 'remove', $st_id);
+rep('20e. remove favorite', ($favRem['status'] ?? '') === 'success', json_encode($favRem));
+$favRow3 = q($db, "SELECT id FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]);
+rep('20f. favorite removed', count($favRow3) === 0, json_encode($favRow3));
+q($db, "DELETE FROM favorites WHERE user_id=? AND station_id=?", [$drvId, $st_id]); // cleanup
 // STEP 6: NOTIFICATION BELL — seeded-delta assertions, owner scope-leak regression, isolation
 $drvId = q($db, "SELECT id FROM users WHERE email='driver1@example.com'")[0]['id'];
 // 22: seed exactly 3 known driver notifications, assert unread rises by EXACTLY 3

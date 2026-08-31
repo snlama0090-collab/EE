@@ -7,6 +7,7 @@ require_once dirname(__DIR__, 3) . '/app/helpers/Auth.php';
 
 // Require driver login
 Auth::requireUserType('driver');
+$user_id = Auth::getCurrentUserId();
 
 $db = getDB();
 
@@ -25,15 +26,17 @@ $stmt = $db->prepare("
         ELSE 0 END) as available_chargers,
         GROUP_CONCAT(DISTINCT c.charger_type ORDER BY c.charger_type) as charger_types,
         GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)') ORDER BY c.wattage_kw DESC SEPARATOR ', ') as charger_details,
-        s.average_rating
+        s.average_rating,
+        f.user_id IS NOT NULL AS is_favorite
     FROM stations s
     LEFT JOIN chargers c ON s.id = c.station_id
+    LEFT JOIN favorites f ON f.station_id = s.id AND f.user_id = ?
     WHERE s.approval_status = 'approved'
     GROUP BY s.id
     ORDER BY s.created_at DESC
     LIMIT 20
 ");
-$stmt->execute();
+$stmt->execute([$user_id]);
 $stations = $stmt->fetchAll();
 ?>
 
@@ -85,14 +88,21 @@ $stations = $stmt->fetchAll();
 <!-- STATIONS LIST -->
 <div class="stations-section" id="stations-section" style="display: none;">
     <?php foreach ($stations as $station): ?>
-    <div class="station-card" 
-         data-station-id="<?php echo $station['id']; ?>" 
-         data-distance="0" 
+    <div class="station-card" style="position: relative;"
+         data-station-id="<?php echo $station['id']; ?>"
+         data-distance="0"
          data-latitude="<?php echo $station['latitude']; ?>"
          data-longitude="<?php echo $station['longitude']; ?>"
          data-charger-type="<?php echo htmlspecialchars($station['charger_types'] ?? 'AC'); ?>"
          data-available="<?php echo $station['available_chargers'] ?? 0; ?>"
          data-charger-count="<?php echo $station['charger_count']; ?>">
+        <button class="fav-btn" data-favorite="<?php echo $station['is_favorite'] ? '1' : '0'; ?>"
+                data-station-id="<?php echo $station['id']; ?>"
+                onclick="toggleFavorite(this, <?php echo $station['id']; ?>)"
+                style="position: absolute; top: 8px; right: 8px; background: none; border: none; cursor: pointer; font-size: 18px; padding: 4px; z-index: 2; line-height: 1;">
+            <i class="fa<?php echo $station['is_favorite'] ? 's' : 'r'; ?> fa-heart"
+               style="color: <?php echo $station['is_favorite'] ? '#FF3B30' : 'var(--muted-foreground)'; ?>;"></i>
+        </button>
         <div class="station-info">
             <div class="station-name"><?php echo htmlspecialchars($station['name']); ?></div>
             <div class="station-city"><?php echo htmlspecialchars($station['city'] ?? 'Unknown'); ?></div>

@@ -6,17 +6,35 @@ Auth::requireUserType('driver');
 $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
-// Handle remove favorite via POST
+// Handle add/remove favorite via POST (CSRF-gated, method-scoped — same
+// precedent as reviews.php: POST state-changing, GET token-free. The existing
+// remove branch was missing this gate — closed here.)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
+    require_once dirname(__DIR__, 3) . '/app/helpers/Csrf.php';
+    Csrf::validate();
+
+    $action = $_POST['action'] ?? 'add';
     $station_id = intval($_POST['station_id'] ?? 0);
-    
+
+    if ($station_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid station.']);
+        exit;
+    }
+
     try {
-        $stmt = $db->prepare("DELETE FROM favorites WHERE user_id = ? AND station_id = ?");
-        $stmt->execute([$user_id, $station_id]);
-        echo json_encode(['status' => 'success', 'message' => 'Removed from favorites.']);
+        if ($action === 'remove') {
+            $stmt = $db->prepare("DELETE FROM favorites WHERE user_id = ? AND station_id = ?");
+            $stmt->execute([$user_id, $station_id]);
+            echo json_encode(['status' => 'success', 'message' => 'Removed from favorites.']);
+        } else {
+            // INSERT IGNORE: UNIQUE(user_id, station_id) is the duplicate backstop
+            $stmt = $db->prepare("INSERT IGNORE INTO favorites (user_id, station_id) VALUES (?, ?)");
+            $stmt->execute([$user_id, $station_id]);
+            echo json_encode(['status' => 'success', 'message' => 'Added to favorites.']);
+        }
     } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to remove favorite.']);
+        echo json_encode(['status' => 'error', 'message' => 'Failed to update favorites.']);
     }
     exit;
 }

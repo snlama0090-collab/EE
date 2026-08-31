@@ -9,6 +9,8 @@
     Options -Indexes
     
     # Allow direct access to files and folders
+    # Prevent rewrite loop: don't rewrite if already pointing into public/
+    RewriteCond %{REQUEST_URI} !^/EE/public/
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     

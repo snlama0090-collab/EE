@@ -275,18 +275,17 @@ api('GET', "$BASE/public/logout.php", $rt);
 $cntAfter = (int)q($db, "SELECT COUNT(*) c FROM remember_tokens WHERE user_id=? AND user_type='driver'", [$drvId])[0]['c'];
 rep('30b. logout wipes remembered devices', $cntBefore >= 1 && $cntAfter === 0, "rows_before=$cntBefore rows_after=$cntAfter");
 // 30c/30d: the legacy open-redirect endpoint api/auth/logout.php was DELETED (zero callers).
-// 30c asserts the security essence: the URL must never produce a redirect again. (Missing
-// paths under /EE currently 500 via the pre-existing AH00124 rewrite fragility - that is
-// ledgered separately - see PROJECT_REPORT §16 backlog cross-reference; do NOT change this
-// check to expect 404 until that fragility is fixed. What matters here is NO 3xx and NO
-// attacker-controlled Location.)
+// 30c asserts the security essence: the URL must never produce a redirect again. With the
+// AH00124 rewrite-loop fix in place (.htaccess RewriteCond %{REQUEST_URI} !^/EE/public/),
+// the deleted endpoint now returns a clean 404 instead of looping to a 500. What matters here
+// is NO 3xx and NO attacker-controlled Location — 404 is the correct, safe response.
 $ch = curl_init("$BASE/api/auth/logout.php?redirect=https://evil.example.com");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true]);
 curl_exec($ch);
 $c30c = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $l30c = curl_getinfo($ch, CURLINFO_REDIRECT_URL);
 curl_close($ch);
-rep('30c. deleted open-redirect endpoint cannot redirect', $c30c !== 302 && empty($l30c), 'code='.$c30c.' loc='.var_export($l30c, true));
+rep('30c. deleted open-redirect endpoint returns 404', $c30c === 404 && empty($l30c), 'code='.$c30c.' loc='.var_export($l30c, true));
 $ch = curl_init("$BASE/public/logout.php");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true]);
 curl_exec($ch);

@@ -22,11 +22,14 @@ $stmt = $db->prepare("
 $stmt->execute([$user_id]);
 $bookings = $stmt->fetchAll();
 
-// Phase 1 reviews: finished, not-yet-reviewed bookings get a Rate button
+// Phase 1 reviews: finished, not-yet-reviewed bookings get a Rate button.
+// 24-hour window — matches api/reviews.php's create eligibility (updated_at is the
+// terminal-state timestamp for both 'completed' and 'stopped').
 $rv = $db->prepare("
     SELECT b.id FROM bookings b
     LEFT JOIN ratings_reviews rr ON rr.booking_id = b.id
     WHERE b.user_id = ? AND b.status IN ('completed', 'stopped') AND rr.id IS NULL
+      AND b.updated_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
 ");
 $rv->execute([$user_id]);
 $reviewable = [];
@@ -171,8 +174,8 @@ foreach ($rv->fetchAll() as $r) $reviewable[$r['id']] = true;
 <?php endif; ?>
 
 <!-- Review modal (Phase 1) — JS lives in the shell (fragment scripts don't run via loadSection) -->
-<div id="review-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:var(--card,#fff);border-radius:12px;padding:24px;width:340px;max-width:92%;">
+<div id="review-modal" class="modal-overlay">
+  <div class="modal-box">
     <h3 style="margin:0 0 4px 0;">Rate this session</h3>
     <div id="review-station" style="font-size:13px;color:var(--muted-foreground);margin-bottom:12px;"></div>
     <div id="review-stars" style="display:flex;gap:6px;font-size:26px;cursor:pointer;margin-bottom:12px;">

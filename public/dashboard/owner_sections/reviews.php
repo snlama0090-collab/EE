@@ -77,8 +77,8 @@ $reviews = $stmt->fetchAll();
 </div>
 
 <!-- Flag reason modal — JS lives in the owner shell -->
-<div id="flag-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
-  <div style="background:var(--card,#fff);border-radius:12px;padding:24px;width:340px;max-width:92%;">
+<div id="flag-modal" class="modal-overlay">
+  <div class="modal-box">
     <h3 style="margin:0 0 4px 0;">Flag this review</h3>
     <p style="font-size:12px;color:var(--muted-foreground);margin:0 0 12px 0;">The review stays visible until an admin reviews your flag.</p>
     <textarea id="flag-reason" rows="3" maxlength="255" placeholder="Why are you flagging this review?" style="width:100%;box-sizing:border-box;margin-bottom:12px;"></textarea>

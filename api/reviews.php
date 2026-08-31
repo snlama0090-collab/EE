@@ -107,19 +107,30 @@ try {
 
     // Eligibility: this driver's booking, finished charging (completed or
     // stopped — both billed, neither cancelled), mapped to its station.
+    // updated_at is the terminal-state timestamp for both: SessionTicker's
+    // status='completed' UPDATE and stop_session's status='stopped' UPDATE
+    // both fire ON UPDATE CURRENT_TIMESTAMP. (session_ends_at is NOT reliable
+    // for 'stopped' — stop_session never updates it.)
     $stmt = $db->prepare("
-        SELECT b.id, c.station_id
+        SELECT b.id, b.status, b.updated_at, c.station_id
         FROM bookings b
         JOIN chargers c ON b.charger_id = c.id
-        WHERE b.id = ? AND b.user_id = ? AND b.status IN ('completed', 'stopped')
+        WHERE b.id = ? AND b.user_id = ?
         FOR UPDATE
     ");
     $stmt->execute([$booking_id, $user_id]);
     $booking = $stmt->fetch();
 
-    if (!$booking) {
+    if (!$booking || !in_array($booking['status'], ['completed', 'stopped'])) {
         $db->rollBack();
         echo json_encode(['status' => 'error', 'message' => 'Booking not found, not finished, or not yours.']);
+        exit;
+    }
+
+    // 24-hour review window — driver must review within 24h of the session ending.
+    if (strtotime($booking['updated_at']) < time() - 86400) {
+        $db->rollBack();
+        echo json_encode(['status' => 'error', 'message' => 'The 24-hour review window for this session has closed.']);
         exit;
     }
 

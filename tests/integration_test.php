@@ -117,6 +117,20 @@ $inel = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bid19, 'rating
 rep('19f. ineligible (pending_payment) review blocked', $inel['status']==='error', json_encode($inel));
 $list = api('GET', "$BASE/api/reviews.php?station_id=$st_id", $dc);
 rep('19g. station review list + average', $list['status']==='success' && count($list['data']['reviews'])>=1 && floatval($list['data']['average_rating'])===4.0, json_encode($list['data']));
+// 19l: 24-hour review window — a finished booking whose updated_at is >24h old must be ineligible.
+// Fixture inserted directly (not via the multi-step flow) so the test depends only on the
+// window logic, not on charger queue state left by earlier tests. Backdated updated_at
+// simulates a session that ended >24h ago; the API must reject with the window-closed message.
+$drvId = intval(q($db, "SELECT id FROM users WHERE email='driver1@example.com'")[0]['id'] ?? 0);
+$chId = intval(q($db, "SELECT id FROM chargers WHERE station_id=? LIMIT 1", [$st_id])[0]['id'] ?? 0);
+$winComment = 'Window-expiry probe ' . uniqid();
+$db->prepare("INSERT INTO bookings (user_id, charger_id, status, payment_status, updated_at) VALUES (?, ?, 'stopped', 'completed', DATE_SUB(NOW(), INTERVAL 25 HOUR))")
+   ->execute([$drvId, $chId]);
+$bidQ = intval($db->lastInsertId());
+$winExpired = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id'=>$bidQ, 'rating'=>3, 'comment'=>$winComment]);
+rep('19l. review blocked after 24h window', ($winExpired['status'] ?? '') === 'error' && strpos($winExpired['message'] ?? '', '24-hour review window') !== false, json_encode($winExpired));
+// cleanup the window-probe booking
+q($db, "DELETE FROM bookings WHERE id=?", [$bidQ]);
 // fixture cleanup for the ineligible-probe booking (keep suite drift minimal)
 q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid19]);
 q($db, "DELETE FROM bookings WHERE id=?", [$bid19]);

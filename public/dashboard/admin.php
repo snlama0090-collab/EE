@@ -344,11 +344,11 @@ $unread = (int) $notif['unread_count'];
         document.getElementById('warn-owner-id').value = ownerId;
         document.getElementById('warn-owner-label').textContent = 'Owner: ' + ownerName + ' — this warning is logged on their account.';
         document.getElementById('warn-reason').value = '';
-        document.getElementById('warn-modal').style.display = 'flex';
+        document.getElementById('warn-modal').classList.add('show');
     }
 
     function closeWarnModal() {
-        document.getElementById('warn-modal').style.display = 'none';
+        document.getElementById('warn-modal').classList.remove('show');
     }
 
     function submitWarn() {

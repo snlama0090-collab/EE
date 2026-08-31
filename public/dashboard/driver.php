@@ -875,7 +875,7 @@ if (file_exists($profilePicAbsolute)) {
             document.getElementById('review-station').textContent = 'Station: ' + stationName;
             setStars(0);
             document.getElementById('review-comment').value = '';
-            document.getElementById('review-modal').style.display = 'flex';
+            document.getElementById('review-modal').classList.add('show');
         }
         function setStars(n) {
             reviewRating = n;
@@ -885,7 +885,7 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
         function closeReviewModal() {
-            document.getElementById('review-modal').style.display = 'none';
+            document.getElementById('review-modal').classList.remove('show');
         }
         function submitReview() {
             if (!reviewRating) { showToast('Please choose a star rating.', 'error'); return; }

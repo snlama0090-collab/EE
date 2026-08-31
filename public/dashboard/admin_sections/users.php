@@ -81,8 +81,8 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
 </div>
 
 <!-- Warn modal (markup here; openWarnModal/submitWarn live in the admin shell) -->
-<div id="warn-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; align-items:center; justify-content:center;">
-    <div style="background:var(--background, #fff); border-radius:12px; padding:24px; width:min(440px, 92vw);">
+<div id="warn-modal" class="modal-overlay">
+    <div class="modal-box">
         <h3 style="margin:0 0 6px;"><i class="fas fa-exclamation-triangle" style="color:#dc2626;"></i> Issue formal warning</h3>
         <p id="warn-owner-label" style="color:var(--muted-foreground); font-size:13px; margin:0 0 12px;"></p>
         <input type="hidden" id="warn-owner-id">

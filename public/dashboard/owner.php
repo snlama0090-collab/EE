@@ -708,10 +708,10 @@ if (file_exists($profilePicAbsolute)) {
         function flagReview(reviewId) {
             flagReviewId = reviewId;
             document.getElementById('flag-reason').value = '';
-            document.getElementById('flag-modal').style.display = 'flex';
+            document.getElementById('flag-modal').classList.add('show');
         }
         function closeFlagModal() {
-            document.getElementById('flag-modal').style.display = 'none';
+            document.getElementById('flag-modal').classList.remove('show');
         }
         function submitFlag() {
             var reason = document.getElementById('flag-reason').value.trim();

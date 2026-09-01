@@ -195,16 +195,15 @@ try {
 
     $db->commit();
 
-    // Registration now establishes the session (mirrors the Google flow, where
-    // startSession runs at provisional creation): the email was OTP-verified in
-    // this same request, so auto-login is safe. startSession regenerates the
-    // session id and mints a fresh CSRF token.
-    Auth::startSession($new_id, $user_type);
-
+    // 2026-09-01 REVERT (owner decision): registration does NOT establish a
+    // session - auto-login shipped without explicit authorization (a task-
+    // resumption prompt was treated as approval) and is rolled back. The client
+    // is sent to login.php with a forward param so the post-registration picture
+    // step still runs - but only after a real password-verified login.
     echo json_encode([
         'status' => 'success',
         'message' => 'Registration successful',
-        'redirect' => APP_URL . '/public/profile-picture.php'
+        'redirect' => APP_URL . '/public/login.php?type=' . urlencode($user_type) . '&next=profile-picture.php'
     ]);
 
     log_message('INFO', "New $user_type registered: $email");

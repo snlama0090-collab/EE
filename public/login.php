@@ -367,6 +367,13 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         const initialType = urlParams.get('type') || 'driver';
         switchUserType(initialType);
 
+        // Post-registration forward (register.php ?next=...): only an exact
+        // allowlisted value is honored - anything else falls through to the
+        // role dashboard. Prevents the param becoming an open redirect.
+        const PFP_FORWARD_ALLOWLIST = ['profile-picture.php'];
+        const nextParam = urlParams.get('next');
+        const forwardTo = PFP_FORWARD_ALLOWLIST.includes(nextParam) ? nextParam : null;
+
         function switchUserType(type) {
             userTypeInput.value = type;
             tabButtons.forEach(btn => {
@@ -449,7 +456,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
 
                 if (data.status === 'success') {
                     // Fade out body before navigating
-                    var redirectUrl = { 'driver': 'dashboard/driver.php', 'owner': 'dashboard/owner.php', 'admin': 'dashboard/admin.php' }[userType];
+                    var redirectUrl = forwardTo || { 'driver': 'dashboard/driver.php', 'owner': 'dashboard/owner.php', 'admin': 'dashboard/admin.php' }[userType];
                     document.body.classList.add('page-transitioning');
                     setTimeout(function () { window.location.href = redirectUrl; }, 250);
                 } else {

@@ -751,8 +751,8 @@ rep('69. owner: provisional empty-string company -> completion UPDATE flips clea
 $db->prepare("DELETE FROM owners WHERE id=?")->execute([$p69]);
 
 // ===== 70: POST-REGISTRATION PROFILE-PICTURE STEP (shared by both flows) =====
-// Endpoint guards, preset write, multipart upload, and the register flow's new
-// auto-login + picture-step redirect. CSRF-first ordering (codebase convention):
+// Endpoint guards, preset write, multipart upload, and the register flow's
+// login-forward redirect. CSRF-first ordering (codebase convention):
 // no-token request -> 403; valid guest token + no auth session -> 401.
 $pcJ = __DIR__ . '/pc.txt'; @unlink($pcJ);
 $pcTok0 = csrfFor($BASE, $pcJ, 'public/login.php', true); // guest-session token
@@ -761,26 +761,46 @@ rep('70a. picture endpoint unauthenticated -> 401', $pc1 === 401, 'code=' . $pc1
 @unlink($pcJ);
 list($pc2, $j2) = tpost("$BASE/api/auth/profile-picture.php", ['preset' => 'preset_01'], null, $dc);
 rep('70b. picture POST without token -> 403', $pc2 === 403, 'code=' . $pc2 . ' body=' . json_encode($j2));
-$tP = csrfFor($BASE, $dc, 'public/dashboard/driver.php', true);
+// 70c/70d run under a CRAFTED DISPOSABLE session (user_id 999002, no DB row
+// needed - the endpoint trusts the session's user_id by design) so the seed
+// driver's real picture slot (1.jpg) is NEVER touched. 2026-09-01 audit: the
+// first cut wrote to driver 1's slot on every suite run - live data-corruption
+// risk on a real account. The written file is removed in the cleanup below.
 $pfpDir = dirname(__DIR__) . '/public/assets/uploads/pfp';
-$drvId = intval($l['data']['user_id'] ?? 0);
-list($pc3, $j3) = tpost("$BASE/api/auth/profile-picture.php", ['preset' => 'preset_01'], $tP, $dc);
-rep('70c. driver preset apply -> file written at slot', ($pc3 === 200) && ($j3['status'] ?? '') === 'success' && is_file($pfpDir . '/' . $drvId . '.jpg'), 'code=' . $pc3 . ' resp=' . json_encode($j3));
-// multipart upload: real 2x2 JPEG built inline (GD), through the real endpoint
+$ppW = __DIR__ . '/_pp_writer.tmp.php';
+file_put_contents($ppW, '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999002; $_SESSION["user_type"] = "driver";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "SuitePfpGate/1.0";
+$_SESSION["csrf_token"] = "suite-pfp-write";
+session_write_close(); echo session_id();
+');
+$sidW = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ppW) . ' 2>&1'));
+$ch = curl_init("$BASE/api/auth/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-CSRF-Token: suite-pfp-write'],
+    CURLOPT_POSTFIELDS => json_encode(['preset' => 'preset_01']),
+    CURLOPT_COOKIE => "PHPSESSID=$sidW", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$pr3 = (string) curl_exec($ch); $pc3 = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+$j3 = json_decode($pr3, true);
+rep('70c. preset apply -> disposable slot written (seed 1.jpg untouched)', ($pc3 === 200) && ($j3['status'] ?? '') === 'success' && is_file($pfpDir . '/999002.jpg'), 'code=' . $pc3 . ' resp=' . $pr3);
+// multipart upload: real 2x2 JPEG built inline (GD), same disposable session
 $im = imagecreatetruecolor(2, 2);
 $upJ = __DIR__ . '/_up.jpg'; imagejpeg($im, $upJ); imagedestroy($im);
 $ch = curl_init("$BASE/api/auth/profile-picture.php");
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-    CURLOPT_HTTPHEADER => ["X-CSRF-Token: $tP"],
+    CURLOPT_HTTPHEADER => ['X-CSRF-Token: suite-pfp-write'],
     CURLOPT_POSTFIELDS => ['pfp' => new CURLFile($upJ, 'image/jpeg', 'up.jpg')],
-    CURLOPT_COOKIEJAR => $dc, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
-$upResp = json_decode((string) curl_exec($ch), true);
-curl_close($ch);
-$gi = @getimagesize($pfpDir . '/' . $drvId . '.jpg');
-rep('70d. multipart upload -> valid image written', ($upResp['status'] ?? '') === 'success' && is_array($gi) && $gi[0] >= 1, 'resp=' . json_encode($upResp) . ' dims=' . json_encode($gi));
+    CURLOPT_COOKIE => "PHPSESSID=$sidW", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$pr4 = (string) curl_exec($ch); $pc4 = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+$upResp = json_decode($pr4, true);
+$gi = @getimagesize($pfpDir . '/999002.jpg');
+rep('70d. multipart upload -> valid image written', ($pc4 === 200) && ($upResp['status'] ?? '') === 'success' && is_array($gi) && $gi[0] >= 1, 'resp=' . $pr4 . ' dims=' . json_encode($gi));
 @unlink($upJ);
-// 70e: successful registration now establishes a session (auto-login) and
-// returns the picture-step redirect. OTP row planted directly (SMTP out of scope).
+@unlink($pfpDir . '/999002.jpg'); // disposable slot removed - nothing left behind
+unlink($ppW);
+// 70e: successful registration returns the login-forward redirect (NO session
+// established - auto-login reverted). OTP row planted directly (SMTP out of scope).
 $regEmail = 'ppic-reg-' . time() . '@gmail.com';
 $db->prepare("INSERT INTO registration_otps (email, otp_hash, expires_at, verified) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), TRUE)")
    ->execute([$regEmail, password_hash('000000', PASSWORD_DEFAULT)]);
@@ -791,12 +811,42 @@ $j4 = api('POST', "$BASE/api/auth/register.php", $rr, [
     'car_model' => 'Nissan Leaf', 'battery_capacity' => '39'
 ]);
 $newId = intval(q($db, "SELECT id FROM users WHERE email=?", [$regEmail])[0]['id'] ?? 0);
-rep('70e. register success -> auto-login session + picture-step redirect', ($j4['status'] ?? '') === 'success'
-    && strpos($j4['redirect'] ?? '', 'profile-picture.php') !== false && $newId > 0,
+rep('70e. register success -> login redirect carrying picture-step forward', ($j4['status'] ?? '') === 'success'
+    && strpos($j4['redirect'] ?? '', 'login.php') !== false
+    && strpos($j4['redirect'] ?? '', 'next=profile-picture.php') !== false && $newId > 0,
     'resp=' . json_encode($j4) . ' new_id=' . $newId);
 $db->prepare("DELETE FROM users WHERE id=?")->execute([$newId]);
 $db->prepare("DELETE FROM registration_otps WHERE email=?")->execute([$regEmail]);
 @unlink($rr);
+
+// 70f/70g: Skip-gate on profile-picture.php, over real HTTP. A provisional
+// session (profile_complete=false) must be bounced to complete-profile.php -
+// otherwise the page's Skip would hand provisional accounts a dashboard the
+// completion gate still blocks. Session crafted via subprocess into the shared
+// save_path (same php.ini as Apache - verified in the 2026-09-01 audit), page
+// fetched with the matching User-Agent. A split save_path would make these
+// FAIL loudly, never false-pass.
+$ppProbe = __DIR__ . '/_pp_session.tmp.php';
+$ppBase = '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999001; $_SESSION["user_type"] = "driver";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "SuitePfpGate/1.0";
+$_SESSION["csrf_token"] = "suite"; __FLAG__
+session_write_close(); echo session_id();
+';
+file_put_contents($ppProbe, str_replace('__FLAG__', '$_SESSION["profile_complete"] = false;', $ppBase));
+$sidF = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ppProbe) . ' 2>&1'));
+$ch = curl_init("$BASE/public/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIE => "PHPSESSID=$sidF", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$rF = (string) curl_exec($ch); $cF = curl_getinfo($ch, CURLINFO_HTTP_CODE); $uF = curl_getinfo($ch, CURLINFO_REDIRECT_URL); curl_close($ch);
+rep('70f. Skip-gate bounces provisional session -> complete-profile', $cF === 302 && strpos($uF, 'complete-profile.php') !== false, "code=$cF loc=" . var_export($uF, true));
+file_put_contents($ppProbe, str_replace('__FLAG__', '$_SESSION["profile_complete"] = true;', $ppBase));
+$sidT = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ppProbe) . ' 2>&1'));
+$ch = curl_init("$BASE/public/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIE => "PHPSESSID=$sidT", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$rT = (string) curl_exec($ch); $cT = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+rep('70g. completed session renders picture form (gate control)', $cT === 200 && strpos($rT, 'Set your profile picture') !== false, "code=$cT");
+unlink($ppProbe);
 
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");

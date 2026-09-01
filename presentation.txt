@@ -24,7 +24,7 @@ Who it's for:
 
 Tech stack (as actually implemented):
   - Backend:  PHP 8.x (vanilla, no framework) with PDO
-  - Database: MySQL 8.x (14 tables)
+  - Database: MySQL 8.x (17 tables)
   - Frontend: HTML5, CSS3, Vanilla JavaScript (no SPA framework)
   - Maps:     Leaflet.js 1.9.4 + OpenStreetMap / Nominatim reverse geocoding
   - Distance: Haversine formula (custom Location helper)
@@ -155,7 +155,7 @@ than a prototype but not yet production-ready.
   │   ├── nearby-stations.php      # Public, no-auth station discovery
   │   └── stats.php                # Platform statistics
   │
-  ├── database/schema.sql          # 14 tables + sample data
+  ├── database/schema.sql          # 17 tables + sample data
   │
   ├── public/
   │   ├── index.php                # Landing page (role cards, map)

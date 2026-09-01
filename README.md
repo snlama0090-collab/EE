@@ -11,7 +11,7 @@ Drivers search an interactive map for nearby chargers, reserve one with a flat f
 ## Tech Stack
 
 - **Backend:** PHP 8.x (vanilla, PDO) — no framework
-- **Database:** MySQL 8.x (`ev_charging_db`, 14 tables)
+- **Database:** MySQL 8.x (`ev_charging_db`, 17 tables)
 - **Frontend:** HTML5, CSS3, vanilla JavaScript (AJAX partial loads)
 - **Maps:** Leaflet.js 1.9.4 + OpenStreetMap / Nominatim reverse geocoding
 - **Charts:** Chart.js 4.4.7 (owner/admin analytics)
@@ -69,8 +69,8 @@ Honest "next steps" — the app is beyond prototype stage but not production-rea
 
 - 💳 **Payments are simulated** — `PAYMENT_DRIVER=simulated` default; Khalti sandbox integration underway (gateway columns `gateway_*` in schema; legacy Razorpay names retired — no NPR settlement). #1 production blocker until live
 - 🏁 **Booking queue race condition** — double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
-- 🔒 ~~No CSRF protection or login rate limiting~~ — **both shipped 2026-08-24**: two-layer login throttle (LOGIN_MAX_ATTEMPTS/IP spray net) + session-bound CSRF tokens (`app/helpers/Csrf.php`) enforced on all state-changing endpoints. Remaining security backlog: file-upload content validation.
-- 🔋 **kWh billing assumes 100% charge** — no end-battery-% capture
+- 🔒 ~~No CSRF protection or login rate limiting~~ — **both shipped 2026-08-24**: two-layer login throttle (LOGIN_MAX_ATTEMPTS/IP spray net) + session-bound CSRF tokens (`app/helpers/Csrf.php`) enforced on all state-changing endpoints. ~~Remaining security backlog: file-upload content validation~~ — **shipped 2026-08-22**: `getimagesize()` content checks + move-failure handling on every upload; server-side GD re-encode since 2026-08-29.
+- 🔋 ~~kWh billing assumes 100% charge~~ — **early-stop billing fixed 2026-08-31** (audit #8): `stop_session` captures the driver's actual end-battery % and recalculates kWh/cost on the real delta. The 100% approximation remains only for sessions that run to full timer expiry (`complete_session`/`SessionTicker`), where no end reading exists.
 - ⚠️ **Google OAuth auto-approves new owner accounts**, bypassing admin moderation
 - 🗑️ **Cascade-delete on stations** destroys financial history (no soft-delete)
 
@@ -79,7 +79,7 @@ See [PROJECT_REPORT.md §11](PROJECT_REPORT.md) for the full audit matrix and ro
 ## Documentation
 
 - [PROJECT_REPORT.md](PROJECT_REPORT.md) — architecture, file-by-file breakdown, critical workflows, schema notes, financial logic, audit matrix & roadmap
-- [database/schema.sql](database/schema.sql) — full DDL for all 14 tables + sample data
+- [database/schema.sql](database/schema.sql) — full DDL for all 17 tables + sample data
 
 ## License
 

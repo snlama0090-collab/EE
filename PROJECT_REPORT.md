@@ -36,7 +36,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 |---|---|---|
 | **Backend** | PHP 8.x (procedural + OOP) | No framework — vanilla PHP with simple autoload via `require_once` |
 | **Frontend** | HTML5, CSS3, Vanilla JavaScript | No SPA framework — server-rendered PHP pages with AJAX partial loads |
-| **Database** | MySQL 8.x via PDO | `ev_charging_db` with 14 tables |
+| **Database** | MySQL 8.x via PDO | `ev_charging_db` with 17 tables |
 | **Server** | Apache / XAMPP | `.htaccess` rewrite at root |
 
 ### Key Dependencies
@@ -102,7 +102,7 @@ d:/Xampp/htdocs/EE/
 │   └── stats.php             # GET: platform-wide statistics
 │
 ├── database/
-│   └── schema.sql            # Full DDL for all 14 tables + sample data
+│   └── schema.sql            # Full DDL for all 17 tables + sample data
 │
 ├── public/
 │   ├── index.php             # Landing page (role cards, map)

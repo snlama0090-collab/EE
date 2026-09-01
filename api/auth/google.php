@@ -118,7 +118,7 @@ if (($input['action'] ?? '') === 'complete_profile') {
     echo json_encode([
         'status'   => 'success',
         'message'  => 'Profile completed',
-        'redirect' => ($auth_type === 'driver') ? 'dashboard/driver.php' : 'dashboard/owner.php'
+        'redirect' => APP_URL . '/public/profile-picture.php'
     ]);
     exit;
 }

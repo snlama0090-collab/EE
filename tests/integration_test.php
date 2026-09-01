@@ -750,6 +750,54 @@ rep('69. owner: provisional empty-string company -> completion UPDATE flips clea
     json_encode([$pre69, $post69]));
 $db->prepare("DELETE FROM owners WHERE id=?")->execute([$p69]);
 
+// ===== 70: POST-REGISTRATION PROFILE-PICTURE STEP (shared by both flows) =====
+// Endpoint guards, preset write, multipart upload, and the register flow's new
+// auto-login + picture-step redirect. CSRF-first ordering (codebase convention):
+// no-token request -> 403; valid guest token + no auth session -> 401.
+$pcJ = __DIR__ . '/pc.txt'; @unlink($pcJ);
+$pcTok0 = csrfFor($BASE, $pcJ, 'public/login.php', true); // guest-session token
+list($pc1, $j1) = tpost("$BASE/api/auth/profile-picture.php", ['preset' => 'preset_01'], $pcTok0, $pcJ);
+rep('70a. picture endpoint unauthenticated -> 401', $pc1 === 401, 'code=' . $pc1 . ' body=' . json_encode($j1));
+@unlink($pcJ);
+list($pc2, $j2) = tpost("$BASE/api/auth/profile-picture.php", ['preset' => 'preset_01'], null, $dc);
+rep('70b. picture POST without token -> 403', $pc2 === 403, 'code=' . $pc2 . ' body=' . json_encode($j2));
+$tP = csrfFor($BASE, $dc, 'public/dashboard/driver.php', true);
+$pfpDir = dirname(__DIR__) . '/public/assets/uploads/pfp';
+$drvId = intval($l['data']['user_id'] ?? 0);
+list($pc3, $j3) = tpost("$BASE/api/auth/profile-picture.php", ['preset' => 'preset_01'], $tP, $dc);
+rep('70c. driver preset apply -> file written at slot', ($pc3 === 200) && ($j3['status'] ?? '') === 'success' && is_file($pfpDir . '/' . $drvId . '.jpg'), 'code=' . $pc3 . ' resp=' . json_encode($j3));
+// multipart upload: real 2x2 JPEG built inline (GD), through the real endpoint
+$im = imagecreatetruecolor(2, 2);
+$upJ = __DIR__ . '/_up.jpg'; imagejpeg($im, $upJ); imagedestroy($im);
+$ch = curl_init("$BASE/api/auth/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => ["X-CSRF-Token: $tP"],
+    CURLOPT_POSTFIELDS => ['pfp' => new CURLFile($upJ, 'image/jpeg', 'up.jpg')],
+    CURLOPT_COOKIEJAR => $dc, CURLOPT_COOKIEFILE => $dc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$upResp = json_decode((string) curl_exec($ch), true);
+curl_close($ch);
+$gi = @getimagesize($pfpDir . '/' . $drvId . '.jpg');
+rep('70d. multipart upload -> valid image written', ($upResp['status'] ?? '') === 'success' && is_array($gi) && $gi[0] >= 1, 'resp=' . json_encode($upResp) . ' dims=' . json_encode($gi));
+@unlink($upJ);
+// 70e: successful registration now establishes a session (auto-login) and
+// returns the picture-step redirect. OTP row planted directly (SMTP out of scope).
+$regEmail = 'ppic-reg-' . time() . '@gmail.com';
+$db->prepare("INSERT INTO registration_otps (email, otp_hash, expires_at, verified) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), TRUE)")
+   ->execute([$regEmail, password_hash('000000', PASSWORD_DEFAULT)]);
+$rr = __DIR__ . '/rr.txt'; @unlink($rr);
+$j4 = api('POST', "$BASE/api/auth/register.php", $rr, [
+    'user_type' => 'driver', 'email' => $regEmail, 'password' => 'Valid1Pass',
+    'name' => 'Pic Step Tester', 'phone' => '+977 9812345678',
+    'car_model' => 'Nissan Leaf', 'battery_capacity' => '39'
+]);
+$newId = intval(q($db, "SELECT id FROM users WHERE email=?", [$regEmail])[0]['id'] ?? 0);
+rep('70e. register success -> auto-login session + picture-step redirect', ($j4['status'] ?? '') === 'success'
+    && strpos($j4['redirect'] ?? '', 'profile-picture.php') !== false && $newId > 0,
+    'resp=' . json_encode($j4) . ' new_id=' . $newId);
+$db->prepare("DELETE FROM users WHERE id=?")->execute([$newId]);
+$db->prepare("DELETE FROM registration_otps WHERE email=?")->execute([$regEmail]);
+@unlink($rr);
+
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");

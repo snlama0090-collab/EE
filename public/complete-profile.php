@@ -92,29 +92,12 @@ button:disabled{opacity:.6;cursor:default}
     </div>
     <div class="field-error" id="err-terms"></div>
 
-    <!-- Profile picture (optional): driver avatar / owner logo, resized server-side -->
-    <div style="margin:0 0 16px 0;">
-      <label for="pfp-input" style="display:block;font-size:13px;color:var(--muted-foreground);margin-bottom:6px;">Profile picture (optional) — your avatar or company logo</label>
-      <input type="file" id="pfp-input" name="pfp" accept="image/*">
-    </div>
-
     <button type="submit" id="submit-btn"><?php echo ucfirst($role); ?> profile — finish setup</button>
   </form>
 </div>
 
 <script src="<?php echo APP_URL; ?>/public/assets/js/csrf.js"></script>
 <script>
-    // preset picker
-    function selectPreset(key, el) {
-        var inp = document.getElementById('preset-input');
-        if (!inp) return;
-        if (inp.value === key) { inp.value = ''; el.style.borderColor = 'transparent'; return; } // click again = deselect
-        inp.value = key;
-        var imgs = document.querySelectorAll('.preset-picker img');
-        for (var i = 0; i < imgs.length; i++) imgs[i].style.borderColor = 'transparent';
-        el.style.borderColor = 'var(--primary)';
-    }
-
 (function () {
   // A11y: inline errors get announced by screen readers (roles assigned before any message fires).
   document.querySelectorAll('.field-error').forEach(function (el) {
@@ -174,13 +157,12 @@ button:disabled{opacity:.6;cursor:default}
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       // csrf.js wrapper auto-injects X-CSRF-Token on same-origin POSTs.
-      var fd = new FormData();
-      Object.keys(payload).forEach(function (k) { fd.append(k, payload[k]); });
-      var fi = document.getElementById('pfp-input');
-      if (fi && fi.files && fi.files[0]) fd.append('pfp', fi.files[0]);
-      var pe = document.getElementById('preset-input');
-      if (pe && pe.value) fd.append('preset', pe.value);
-      var res = await fetch('/EE/api/auth/google.php', { method: 'POST', body: fd });
+      // Picture selection moved to the post-registration profile-picture.php step.
+      var res = await fetch('/EE/api/auth/google.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+      });
       var data = await res.json();
       if (data.status === 'success') { window.location.href = data.redirect; return; }
       btn.disabled = false; btn.textContent = 'Try again';

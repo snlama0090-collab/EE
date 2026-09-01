@@ -11,7 +11,6 @@
     var pendingEmail = '';
     var pendingUserType = 'driver';
     var pendingFormData = null;
-    var pendingPfpFile = null;
 
     // ── DOM refs (null-safe) ──
     var $ = function (id) { var el = document.getElementById(id); return el; };
@@ -193,18 +192,14 @@
         }).then(parseJson);
     }
 
-    // ── final registration call ──
+    // ── final registration call (JSON only - picture selection moved to the
+    // post-registration profile-picture.php step for both signup flows) ──
     function completeRegistration(data) {
-        var opts;
-        if (pendingPfpFile) {
-            var fd = new FormData();
-            Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
-            fd.append('pfp', pendingPfpFile);
-            opts = { method: 'POST', body: fd };
-        } else {
-            opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) };
-        }
-        return fetch('/EE/api/auth/register.php', opts).then(parseJson);
+        return fetch('/EE/api/auth/register.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).then(parseJson);
     }
 
     // ── declarative rule tables + bindings ──
@@ -304,8 +299,6 @@
 
             // store for later
             pendingFormData = data;
-            var pi = $('pfp-input');
-            pendingPfpFile = (pi && pi.files && pi.files[0]) ? pi.files[0] : null;
             pendingEmail = data.email;
             pendingUserType = data.user_type || 'driver';
 
@@ -352,7 +345,9 @@
                                 showToast('Account created successfully! Redirecting...', 'success');
                             }
                             setTimeout(function () {
-                                window.location.href = 'login.php?type=' + pendingUserType;
+                                // Server sends the post-registration picture step; the
+                                // login fallback covers any path where no redirect came.
+                                window.location.href = regResult.redirect || ('login.php?type=' + pendingUserType);
                             }, 2000);
                         } else {
                             // Registration failed (e.g. duplicate email). The OTP is still

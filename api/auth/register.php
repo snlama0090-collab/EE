@@ -195,9 +195,16 @@ try {
 
     $db->commit();
 
+    // Registration now establishes the session (mirrors the Google flow, where
+    // startSession runs at provisional creation): the email was OTP-verified in
+    // this same request, so auto-login is safe. startSession regenerates the
+    // session id and mints a fresh CSRF token.
+    Auth::startSession($new_id, $user_type);
+
     echo json_encode([
         'status' => 'success',
-        'message' => 'Registration successful'
+        'message' => 'Registration successful',
+        'redirect' => APP_URL . '/public/profile-picture.php'
     ]);
 
     log_message('INFO', "New $user_type registered: $email");

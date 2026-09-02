@@ -68,7 +68,7 @@ Requires [XAMPP](https://www.apachefriends.org/) (Apache + MySQL + PHP 8.x) and 
 Honest "next steps" — the app is beyond prototype stage but not production-ready:
 
 - 💳 **Payments are simulated** — `PAYMENT_DRIVER=simulated` default; Khalti sandbox integration underway (gateway columns `gateway_*` in schema; legacy Razorpay names retired — no NPR settlement). #1 production blocker until live
-- 🏁 **Booking queue race condition** — double-booking check isn't row-locked (`SELECT ... FOR UPDATE`)
+- 🏁 ~~Booking queue race condition~~ — **fixed 2026-09-01**: `initiate_payment` count query now uses `SELECT ... FOR UPDATE` inside the existing transaction, serializing concurrent bookings per charger. The 2-booking cap can no longer be exceeded under load.
 - 🔒 ~~No CSRF protection or login rate limiting~~ — **both shipped 2026-08-24**: two-layer login throttle (LOGIN_MAX_ATTEMPTS/IP spray net) + session-bound CSRF tokens (`app/helpers/Csrf.php`) enforced on all state-changing endpoints. ~~Remaining security backlog: file-upload content validation~~ — **shipped 2026-08-22**: `getimagesize()` content checks + move-failure handling on every upload; server-side GD re-encode since 2026-08-29.
 - 🔋 ~~kWh billing assumes 100% charge~~ — **early-stop billing fixed 2026-08-31** (audit #8): `stop_session` captures the driver's actual end-battery % and recalculates kWh/cost on the real delta. The 100% approximation remains only for sessions that run to full timer expiry (`complete_session`/`SessionTicker`), where no end reading exists.
 - ⚠️ **Google OAuth auto-approves new owner accounts**, bypassing admin moderation

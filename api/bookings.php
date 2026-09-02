@@ -83,7 +83,7 @@ try {
             $db->beginTransaction();
             
             // Re-check bookable rule immediately before insert
-            $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'pending_payment', 'charging')");
+            $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM bookings WHERE charger_id = ? AND status IN ('booked', 'pending_payment', 'charging') FOR UPDATE");
             $stmt->execute([$charger_id]);
             $active_count = intval($stmt->fetch()['cnt']);
             

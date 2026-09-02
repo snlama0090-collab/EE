@@ -834,7 +834,7 @@ The following table summarizes all findings from the combined audit, ranked by s
 | # | Issue | Affected Files / Roles | Severity | Status |
 |---|---|---|---|---|
 | 1 | Payment system is entirely simulated — no real gateway integration | `api/bookings.php` | 🔴 Critical | Unresolved |
-| 2 | Booking queue race condition (charger double-booking via missing `FOR UPDATE`) | `api/bookings.php` | 🔴 Critical | Unresolved |
+| 2 | Booking queue race condition (charger double-booking via missing `FOR UPDATE`) | `api/bookings.php` | 🔴 Critical | ✅ Resolved 2026-09-01 (FOR UPDATE added to the count query inside the existing transaction) |
 | 3 | No brute-force / rate limiting on login despite config constants existing | `api/auth/login.php`, `app/config/config.php` | 🔴 Critical | Unresolved |
 | 4 | No CSRF protection on any state-changing endpoint | All `api/*.php` endpoints | 🔴 Critical | Unresolved |
 | 5 | File upload validation trusts client-supplied `$_FILES['type']` | `dashboard/sections/profile.php`, `dashboard/owner_sections/profile.php` | 🔴 Critical | ✅ Resolved 2026-08-22 (`getimagesize()` validation + move failure checks implemented) |

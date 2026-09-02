@@ -848,6 +848,46 @@ $rT = (string) curl_exec($ch); $cT = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl
 rep('70g. completed session renders picture form (gate control)', $cT === 200 && strpos($rT, 'Set your profile picture') !== false, "code=$cT");
 unlink($ppProbe);
 
+// 70h-70k: guided-flow UI restructure (2026-09-01). HTTP-level structural checks
+// (single-threaded suite cannot exercise JS modal interactions or the blank->skip
+// redirect — see note in the session report). These assert the page serves the new
+// layout; modal open/close/selection and file-preview rendering need a headless
+// browser harness not present in this suite.
+$ppUIFile = __DIR__ . '/_pp_ui.tmp.php';
+file_put_contents($ppUIFile, '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999001; $_SESSION["user_type"] = "driver";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "SuitePfpGate/1.0";
+$_SESSION["csrf_token"] = "suite"; $_SESSION["profile_complete"] = true;
+session_write_close(); echo session_id();
+');
+$sidUI = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ppUIFile) . ' 2>&1'));
+$ch = curl_init("$BASE/public/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIE => "PHPSESSID=$sidUI", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$rUI = (string) curl_exec($ch); $cUI = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+// 70h: blank-state placeholder present, no image in the circle
+$hasPlaceholder = strpos($rUI, 'id="pfp-placeholder"') !== false;
+$hasCircle = strpos($rUI, 'id="pfp-circle"') !== false;
+preg_match('/id="pfp-circle">\\s*<svg/', $rUI, $blankMatch);
+$circleStartsBlank = count($blankMatch) === 1;
+rep('70h. blank-state: placeholder present, circle starts blank', $cUI === 200 && $hasPlaceholder && $hasCircle && $circleStartsBlank, "code=$cUI placeholder=$hasPlaceholder circle=$hasCircle blank=$circleStartsBlank");
+// 70i: preset modal contains all presets from catalog
+preg_match_all('/data-preset="(preset_\d{2})"/', $rUI, $presetMatches);
+$presetCount = count(array_unique($presetMatches[1]));
+rep('70i. preset modal has all 14 presets', $presetCount === 14, "found=$presetCount");
+// 70j: both entry-action buttons present
+$hasPresetBtn = strpos($rUI, 'id="btn-presets"') !== false;
+$hasBrowseBtn = strpos($rUI, 'id="btn-browse"') !== false;
+$hasFileInput = strpos($rUI, 'id="pfp-input"') !== false;
+rep('70j. entry actions present (Choose from presets + Browse + file input)', $hasPresetBtn && $hasBrowseBtn && $hasFileInput, "presets=$hasPresetBtn browse=$hasBrowseBtn file=$hasFileInput");
+// 70k: Save and Skip buttons both present, modal markup exists
+$hasSaveBtn = strpos($rUI, 'id="submit-btn"') !== false && strpos($rUI, 'Save picture') !== false;
+$hasSkipBtn = strpos($rUI, 'Skip for now') !== false;
+$hasModal = strpos($rUI, 'id="preset-modal"') !== false;
+$hasModalSelect = strpos($rUI, 'id="modal-select"') !== false;
+rep('70k. commit row + modal markup present', $hasSaveBtn && $hasSkipBtn && $hasModal && $hasModalSelect, "save=$hasSaveBtn skip=$hasSkipBtn modal=$hasModal select=$hasModalSelect");
+unlink($ppUIFile);
+
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");

@@ -54,13 +54,22 @@ $stations = $stmt->fetchAll();
                         <?php endif; ?>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        <?php if (!empty($station['deactivated_at'])): ?>
+                            <span class="badge badge-danger">Deactivated</span>
+                        <?php endif; ?>
                         <span class="badge <?php echo $badge; ?>"><?php echo $approval; ?></span>
                         <button class="btn btn-primary btn-sm" onclick="manageStationChargers(<?php echo $station['id']; ?>, '<?php echo addslashes($station['name']); ?>')">
                             <i class="fas fa-eye"></i> View
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteStation(<?php echo $station['id']; ?>)">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>
+                        <?php if (!empty($station['deactivated_at'])): ?>
+                            <button class="btn btn-secondary btn-sm" onclick="reactivateStation(<?php echo $station['id']; ?>)">
+                                <i class="fas fa-undo"></i> Reactivate
+                            </button>
+                        <?php else: ?>
+                            <button class="btn btn-danger btn-sm" onclick="deleteStation(<?php echo $station['id']; ?>)">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>

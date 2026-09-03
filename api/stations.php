@@ -124,7 +124,7 @@ try {
                        GROUP_CONCAT(DISTINCT CONCAT(c.charger_type, ' (', c.wattage_kw, 'kW)') ORDER BY c.wattage_kw DESC SEPARATOR ', ') as charger_details
                 FROM stations s
                 LEFT JOIN chargers c ON s.id = c.station_id
-                WHERE s.approval_status = 'approved' AND s.is_active = TRUE
+                WHERE s.approval_status = 'approved' AND s.is_active = TRUE AND s.deactivated_at IS NULL
                   AND s.latitude BETWEEN :min_lat AND :max_lat
                   AND s.longitude BETWEEN :min_lng AND :max_lng
                 GROUP BY s.id
@@ -244,6 +244,18 @@ try {
 
                 echo json_encode(['status' => 'success', 'message' => 'Station rejected']);
                 exit;
+            } elseif ($action === 'deactivate') {
+                // Deactivate: preserves booking/payment history, blocks new bookings.
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW() WHERE id = ?");
+                $stmt->execute([$station_id]);
+                echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
+                exit;
+            } elseif ($action === 'reactivate') {
+                // Reactivate: clears the deactivation flag.
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL WHERE id = ?");
+                $stmt->execute([$station_id]);
+                echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
+                exit;
             }
             
             http_response_code(400);
@@ -284,6 +296,26 @@ try {
                 $stmt->execute([$status, $charger_id]);
                 
                 echo json_encode(['status' => 'success', 'message' => 'Charger status updated successfully']);
+                exit;
+            }
+
+            if ($action === 'deactivate') {
+                // Owner deactivates their own station (preserves history).
+                $input = json_decode(file_get_contents('php://input'), true);
+                $target_id = intval($input['id'] ?? 0);
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW() WHERE id = ? AND owner_id = ?");
+                $stmt->execute([$target_id, $user_id]);
+                echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
+                exit;
+            }
+
+            if ($action === 'reactivate') {
+                // Owner reactivates their own station.
+                $input = json_decode(file_get_contents('php://input'), true);
+                $target_id = intval($input['id'] ?? 0);
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL WHERE id = ? AND owner_id = ?");
+                $stmt->execute([$target_id, $user_id]);
+                echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
                 exit;
             }
 
@@ -391,7 +423,19 @@ try {
         $user_type = Auth::getCurrentUserType();
         
         $station_id = intval($_GET['id'] ?? 0);
-        
+
+        // Guard: stations with booking/payment history cannot be hard-deleted.
+        // History must be preserved — deactivate instead.
+        // Both bookings and payment_transactions trace to stations via chargers (charger_id → chargers.station_id).
+        $stmt = $db->prepare("SELECT COUNT(*) as history_count FROM bookings b JOIN chargers c ON b.charger_id = c.id WHERE c.station_id = ?");
+        $stmt->execute([$station_id]);
+        $history = $stmt->fetch();
+        if ($history['history_count'] > 0) {
+            http_response_code(409);
+            echo json_encode(['status' => 'error', 'message' => 'This station has booking or payment history and cannot be deleted. Deactivate it instead.']);
+            exit;
+        }
+
         if ($user_type === 'admin') {
             $stmt = $db->prepare("DELETE FROM stations WHERE id = ?");
             $stmt->execute([$station_id]);

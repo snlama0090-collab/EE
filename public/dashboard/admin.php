@@ -243,6 +243,32 @@ $unread = (int) $notif['unread_count'];
         }
     }
 
+    function deactivateStation(stationId) {
+        showConfirm('Deactivate this station? It will no longer be bookable, but all booking and payment history will be preserved.', function() {
+            fetch('/EE/api/stations.php?action=deactivate&id=' + stationId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: stationId })
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') loadSection(currentSection, true);
+                else showToast(data.message || 'Failed to deactivate station', 'error');
+            });
+        });
+    }
+
+    function reactivateStation(stationId) {
+        showConfirm('Reactivate this station? It will become bookable again.', function() {
+            fetch('/EE/api/stations.php?action=reactivate&id=' + stationId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: stationId })
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') loadSection(currentSection, true);
+                else showToast(data.message || 'Failed to reactivate station', 'error');
+            });
+        });
+    }
+
     let detailMap = null;
     let detailStationId = null;
 

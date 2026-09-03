@@ -23,7 +23,7 @@ try {
     $db = getDB();
 
     // Active stations: approved by admin AND not deactivated
-    $stmt = $db->query("SELECT COUNT(*) AS count FROM stations WHERE is_active = TRUE AND approval_status = 'approved'");
+    $stmt = $db->query("SELECT COUNT(*) AS count FROM stations WHERE is_active = TRUE AND approval_status = 'approved' AND deactivated_at IS NULL");
     $stations = (int) $stmt->fetch()['count'];
 
     // Registered EV drivers: active accounts

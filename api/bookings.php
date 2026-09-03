@@ -64,13 +64,13 @@ try {
         if ($action === 'initiate_payment') {
             $charger_id = intval($input['charger_id'] ?? 0);
             
-            // Get charger details
-            $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ?");
+            // Get charger details + station (and check station is active)
+            $stmt = $db->prepare("SELECT c.*, s.owner_id FROM chargers c JOIN stations s ON c.station_id = s.id WHERE c.id = ? AND s.deactivated_at IS NULL");
             $stmt->execute([$charger_id]);
             $charger = $stmt->fetch();
             
             if (!$charger) {
-                echo json_encode(['status' => 'error', 'message' => 'Charger not found']);
+                echo json_encode(['status' => 'error', 'message' => 'Charger not found or station is no longer available']);
                 exit;
             }
             

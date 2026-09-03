@@ -888,6 +888,87 @@ $hasModalSelect = strpos($rUI, 'id="modal-select"') !== false;
 rep('70k. commit row + modal markup present', $hasSaveBtn && $hasSkipBtn && $hasModal && $hasModalSelect, "save=$hasSaveBtn skip=$hasSkipBtn modal=$hasModal select=$hasModalSelect");
 unlink($ppUIFile);
 
+// ===== 71: cascade-delete protection (2026-09-03) =====
+// Stations with booking/payment history cannot be hard-deleted — must deactivate instead.
+$ts = __DIR__ . '/_ts_station.tmp.php';
+$ts2 = __DIR__ . '/_ts_station2.tmp.php';
+// Station with no history (should be deletable)
+file_put_contents($ts, '<?php
+require_once __DIR__ . "/../app/config/config.php";
+$db = getDB();
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status, is_active) VALUES (1, \"Test Station No History\", 27.71, 85.32, \"Test Address\", \"Kathmandu\", 1, \"approved\", TRUE)")->execute();
+echo $db->lastInsertId();
+');
+$cleanStationId = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ts) . ' 2>&1'));
+// Station with booking history (should NOT be deletable)
+file_put_contents($ts2, '<?php
+require_once __DIR__ . "/../app/config/config.php";
+$db = getDB();
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status, is_active) VALUES (1, \"Test Station With History\", 27.72, 85.33, \"Test Address 2\", \"Kathmandu\", 1, \"approved\", TRUE)")->execute();
+$sid = $db->lastInsertId();
+$db->prepare("INSERT INTO chargers (station_id, charger_number, charger_type, wattage_kw, status) VALUES (?, 1, \"DC Fast\", 50, \"available\")")->execute([$sid]);
+$cid = $db->lastInsertId();
+$db->prepare("INSERT INTO bookings (user_id, charger_id, status, base_fee, payment_status) VALUES (1, ?, \"completed\", 50, \"completed\")")->execute([$cid]);
+echo $sid;
+');
+$histStationId = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ts2) . ' 2>&1'));
+
+// 71a: deleting a station with zero history succeeds
+$ch = curl_init("$BASE/api/stations.php?id=$cleanStationId");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => 'DELETE', CURLOPT_HTTPHEADER => ['Content-Type: application/json', "X-CSRF-Token: " . csrfFor($BASE, $oc, 'public/dashboard/owner.php', true)], CURLOPT_COOKIEFILE => $oc, CURLOPT_COOKIEJAR => $oc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$r71a = json_decode((string) curl_exec($ch), true);
+$c71a = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+rep('71a. delete station with no history succeeds', $c71a === 200 && ($r71a['status'] ?? '') === 'success', "code=$c71a resp=" . json_encode($r71a));
+
+// 71b: deleting a station with history is blocked (409)
+$ch = curl_init("$BASE/api/stations.php?id=$histStationId");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CUSTOMREQUEST => 'DELETE', CURLOPT_HTTPHEADER => ['Content-Type: application/json', "X-CSRF-Token: " . csrfFor($BASE, $oc, 'public/dashboard/owner.php', true)], CURLOPT_COOKIEFILE => $oc, CURLOPT_COOKIEJAR => $oc, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$r71b = json_decode((string) curl_exec($ch), true);
+$c71b = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+rep('71b. delete station with history blocked (409)', $c71b === 409 && strpos($r71b['message'] ?? '', 'history') !== false, "code=$c71b resp=" . json_encode($r71b));
+
+// 71c: deactivate sets deactivated_at
+list($c71c, $r71c) = tpost("$BASE/api/stations.php?action=deactivate&id=$histStationId", ['id' => $histStationId], csrfFor($BASE, $oc, 'public/dashboard/owner.php', true), $oc);
+rep('71c. deactivate sets flag', $c71c === 200 && ($r71c['status'] ?? '') === 'success', "code=$c71c resp=" . json_encode($r71c));
+$deactivated = q($db, "SELECT deactivated_at FROM stations WHERE id = ?", [$histStationId])[0]['deactivated_at'];
+rep('71c. deactivated_at is non-null', !empty($deactivated), "deactivated_at=$deactivated");
+
+// 71d: reactivate clears deactivated_at
+list($c71d, $r71d) = tpost("$BASE/api/stations.php?action=reactivate&id=$histStationId", ['id' => $histStationId], csrfFor($BASE, $oc, 'public/dashboard/owner.php', true), $oc);
+rep('71d. reactivate clears flag', $c71d === 200 && ($r71d['status'] ?? '') === 'success', "code=$c71d resp=" . json_encode($r71d));
+$reactivated = q($db, "SELECT deactivated_at FROM stations WHERE id = ?", [$histStationId])[0]['deactivated_at'];
+rep('71d. deactivated_at is null again', empty($reactivated), "deactivated_at=$reactivated");
+
+// 71e: deactivated station excluded from public nearby query
+// Re-deactivate first
+tpost("$BASE/api/stations.php?action=deactivate&id=$histStationId", ['id' => $histStationId], csrfFor($BASE, $oc, 'public/dashboard/owner.php', true), $oc);
+$ch = curl_init("$BASE/api/nearby-stations.php?latitude=27.7172&longitude=85.3240&radius=50");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+$r71e = json_decode((string) curl_exec($ch), true);
+curl_close($ch);
+$foundDeactivated = false;
+foreach ($r71e['data'] ?? [] as $s) {
+    if ((int)$s['id'] === (int)$histStationId) { $foundDeactivated = true; break; }
+}
+rep('71e. deactivated station excluded from public nearby', !$foundDeactivated && ($r71e['status'] ?? '') === 'success', "found=" . ($foundDeactivated ? 'yes' : 'no'));
+
+// 71f: deactivated station still appears in owner dashboard (history preserved)
+$ownerStations = q($db, "SELECT id FROM stations WHERE owner_id = 1");
+$foundInOwner = false;
+foreach ($ownerStations as $os) {
+    if ((int)$os['id'] === (int)$histStationId) { $foundInOwner = true; break; }
+}
+rep('71f. deactivated station still in owner dashboard', $foundInOwner, "found=" . ($foundInOwner ? 'yes' : 'no'));
+
+// Cleanup test data
+$db->prepare("DELETE FROM bookings WHERE station_id = ?")->execute([$histStationId]);
+$db->prepare("DELETE FROM chargers WHERE station_id = ?")->execute([$histStationId]);
+$db->prepare("DELETE FROM stations WHERE id IN (?, ?)")->execute([$cleanStationId, $histStationId]);
+unlink($ts);
+unlink($ts2);
+
 // Teardown: empty throttle + support-notification rows so later suite runs and manual logins aren't blocked
 q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");

@@ -51,7 +51,7 @@ $stations = $stmt->fetchAll();
 <div class="listing-table">
     <table>
         <thead>
-            <tr><th>Station <i class="fas fa-sort"></i></th><th>Owner</th><th>City</th><th>Chargers</th><th>Status</th><th>Approval</th><th>Actions</th></tr>
+            <tr><th>Station <i class="fas fa-sort"></i></th><th>Owner</th><th>City</th><th>Chargers</th><th>Status</th><th>Approval</th><th>Deactivated</th><th>Actions</th></tr>
         </thead>
         <tbody>
             <?php foreach ($stations as $s): ?>
@@ -62,14 +62,17 @@ $stations = $stmt->fetchAll();
                 <td><?php echo $s['num_chargers']; ?></td>
                 <td><span class="badge badge-<?php echo $s['is_active'] ? 'success' : 'danger'; ?>"><?php echo $s['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                 <td><span class="badge badge-<?php echo $s['approval_status'] === 'approved' ? 'success' : ($s['approval_status'] === 'pending' ? 'warning' : 'danger'); ?>"><?php echo $s['approval_status']; ?></span></td>
+                <td><?php if (!empty($s['deactivated_at'])): ?><span class="badge badge-danger">Deactivated</span><?php else: ?><span style="color:var(--muted-foreground);font-size:12px;">—</span><?php endif; ?></td>
                 <td>
                     <?php if ($s['approval_status'] === 'pending'): ?>
                         <div style="display:flex; gap:6px;">
                             <button type="button" class="btn btn-sm btn-primary" onclick="approveStation(<?php echo (int) $s['id']; ?>)">Approve</button>
                             <button type="button" class="btn btn-sm btn-danger" onclick="rejectStation(<?php echo (int) $s['id']; ?>)">Reject</button>
                         </div>
+                    <?php elseif (!empty($s['deactivated_at'])): ?>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="reactivateStation(<?php echo (int) $s['id']; ?>)">Reactivate</button>
                     <?php else: ?>
-                        <span style="color:var(--muted-foreground);font-size:12px;">—</span>
+                        <button type="button" class="btn btn-sm btn-danger" onclick="deactivateStation(<?php echo (int) $s['id']; ?>)">Deactivate</button>
                     <?php endif; ?>
                 </td>
             </tr>

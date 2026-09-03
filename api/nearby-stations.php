@@ -46,7 +46,7 @@ try {
                (SELECT COUNT(*) FROM ratings_reviews rr WHERE rr.station_id = s.id AND rr.is_deleted = FALSE) AS review_count
         FROM stations s
         LEFT JOIN chargers c ON s.id = c.station_id
-        WHERE s.approval_status = 'approved' AND s.is_active = TRUE
+        WHERE s.approval_status = 'approved' AND s.is_active = TRUE AND s.deactivated_at IS NULL
         GROUP BY s.id
     ";
 

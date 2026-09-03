@@ -656,10 +656,46 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
 
-        function htmlspecialchars(str) {
-            var amp = '&' + 'amp;';
-            var lt = '&' + 'lt;';
-            var gt = '&' + 'gt;';
+    }
+
+    function deactivateStation(id) {
+        showConfirm('Deactivate this station? It will no longer be bookable, but all booking and payment history will be preserved.', function() {
+            fetch('/EE/api/stations.php?action=deactivate&id=' + id, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') {
+                    showAlert('Station deactivated.', 'success');
+                    loadSection('stations', true);
+                } else {
+                    showAlert(data.message || 'Failed to deactivate.', 'error');
+                }
+            }).catch(() => showAlert('Connection error.', 'error'));
+        }, { confirmLabel: 'Deactivate', confirmClass: 'btn-danger' });
+    }
+
+    function reactivateStation(id) {
+        showConfirm('Reactivate this station? It will become bookable again.', function() {
+            fetch('/EE/api/stations.php?action=reactivate&id=' + id, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') {
+                    showAlert('Station reactivated.', 'success');
+                    loadSection('stations', true);
+                } else {
+                    showAlert(data.message || 'Failed to reactivate.', 'error');
+                }
+            }).catch(() => showAlert('Connection error.', 'error'));
+        }, { confirmLabel: 'Reactivate', confirmClass: 'btn-primary' });
+    }
+
+    function htmlspecialchars(str) {
+        var amp = '&' + 'amp;';
+        var lt = '&' + 'lt;';
+        var gt = '&' + 'gt;';
             var quot = '&' + 'quot;';
             var apos = '&' + '#039;';
             return str.replace(/&/g, amp).replace(/</g, lt).replace(/>/g, gt).replace(/"/g, quot).replace(/'/g, apos);

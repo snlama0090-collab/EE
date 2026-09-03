@@ -119,6 +119,7 @@ CREATE TABLE stations (
     is_active BOOLEAN DEFAULT TRUE,
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     rejection_reason TEXT,
+    deactivated_at TIMESTAMP NULL DEFAULT NULL, -- non-null = station deactivated (has booking/payment history, hard delete blocked)
     
     -- Analytics
     total_bookings INT DEFAULT 0,

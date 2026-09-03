@@ -24,23 +24,51 @@
     var otpEmailDisplay = $('otp-email-display');
     var submitBtn       = $('submit-btn');
 
-    // ── live password checklist (mirrors server rules via window.PW_CONFIG) ──
+    // ── live password checklist (length only; mirrors server rules) ──
     var pwEl = $('password');
     if (pwEl) {
         var pwBox = $('pw-checklist');
-        var ruleEls = { len: $('pw-rule-len'), upper: $('pw-rule-upper'), num: $('pw-rule-num') };
-        var cfg = window.PW_CONFIG || { min: 8, upper: true, num: true };
+        var ruleEls = { len: $('pw-rule-len') };
+        var cfg = window.PW_CONFIG || { min: 8 };
         var repaintPw = function () {
             var v = pwEl.value;
             var states = [
-                [v.length >= cfg.min, ruleEls.len],
-                [!cfg.upper || /[A-Z]/.test(v), ruleEls.upper],
-                [!cfg.num || /[0-9]/.test(v), ruleEls.num]
+                [v.length >= cfg.min, ruleEls.len]
             ];
             states.forEach(function (p) { if (p[1]) p[1].style.color = p[0] ? '#22c55e' : ''; });
         };
         pwEl.addEventListener('focus', function () { if (pwBox) pwBox.style.display = 'block'; });
-        pwEl.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; repaintPw(); });
+        pwEl.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; repaintPw(); updateStrength(); });
+    }
+
+    // ── password strength indicator (informational only) ──
+    function scoreStrength(pw) {
+        if (!pw) return 0;
+        var score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (pw.length >= 16) score++;
+        if (/[a-z]/.test(pw)) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+        return score;
+    }
+
+    function updateStrength() {
+        var pw = $('password');
+        var el = $('pw-strength');
+        if (!pw || !el) return;
+        var s = scoreStrength(pw.value);
+        var label, color;
+        if (pw.value.length === 0) { label = ''; color = ''; }
+        else if (s <= 2) { label = 'Weak'; color = '#e5484d'; }
+        else if (s <= 4) { label = 'Fair'; color = '#f5a623'; }
+        else if (s <= 5) { label = 'Strong'; color = '#22c55e'; }
+        else { label = 'Very Strong'; color = '#16a34a'; }
+        el.textContent = label;
+        el.style.color = color;
+        el.style.fontWeight = '600';
     }
 
     // ── unified declarative validation engine (shared by both auth pages) ──
@@ -204,8 +232,6 @@
 
     // ── declarative rule tables + bindings ──
     var pwMin = (window.PW_CONFIG && window.PW_CONFIG.min) || 8;
-    var pwUpper = !window.PW_CONFIG || window.PW_CONFIG.upper !== false;
-    var pwNum = !window.PW_CONFIG || window.PW_CONFIG.num !== false;
 
     var isDriver = function (getV) { return getV('user-type') === 'driver'; };
     var isOwner = function (getV) { return getV('user-type') === 'owner'; };
@@ -260,9 +286,7 @@
             [function (v) { return Validation.RE.bank.test(v.trim()); }, 'Bank account must be 5-20 digits']
         ]},
         { id: 'password', checks: [
-            [function (v) { return v.length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters'],
-            [function (v) { return !pwUpper || /[A-Z]/.test(v); }, 'Password must contain at least one uppercase letter'],
-            [function (v) { return !pwNum || /[0-9]/.test(v); }, 'Password must contain at least one number']
+            [function (v) { return v.length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters']
         ]},
         { id: 'confirm-password', checks: [
             [function (v) { return v !== '' && v === document.getElementById('password').value; }, 'Passwords do not match']

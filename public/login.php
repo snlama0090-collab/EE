@@ -418,8 +418,6 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             const btnText = document.getElementById('btn-text');
 
             if (!email || !password) { showToast('Please fill in all fields', 'error'); return; }
-            if (password.length < <?php echo (int) PASSWORD_MIN_LENGTH; ?>) { showToast('Password must be at least <?php echo (int) PASSWORD_MIN_LENGTH; ?> characters', 'error'); return; }
-
             // Freeze button width to prevent layout reflow before swapping text
             loginBtn.style.minWidth = loginBtn.offsetWidth + 'px';
             loginBtn.classList.add('loading');

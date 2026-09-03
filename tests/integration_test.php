@@ -499,10 +499,11 @@ $regExpect = function ($payload, $needle) use ($BASE, $rj) {
     $r = api('POST', "$BASE/api/auth/register.php", $rj, $payload);
     return [$r, strpos($r['message'] ?? '', $needle) !== false];
 };
-[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'valid1pass']), 'uppercase');
-rep('44a. register rejects missing uppercase', $ok, json_encode($r));
-[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'ValidPass']), 'at least one number');
-rep('44b. register rejects missing number', $ok, json_encode($r));
+// Password policy: length-only (no complexity requirements)
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'short']), 'too short');
+rep('44a. register rejects password below min length', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => 'lowercaseonly']), 'Email not verified');
+rep('44b. register accepts password meeting length only (no complexity required)', $ok, json_encode($r));
 [$r, $ok] = $regExpect(array_merge($regBase, ['name' => 'A']), 'between 2 and 100');
 rep('45a. register rejects short name', $ok, json_encode($r));
 [$r, $ok] = $regExpect(array_merge($regBase, ['name' => str_repeat('A', 101)]), 'between 2 and 100');

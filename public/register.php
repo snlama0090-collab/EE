@@ -476,11 +476,10 @@ $project_name = 'WattPulse';
                             <i class="fas fa-eye" id="eye-icon-password"></i>
                         </button>
                     </div>
+                    <div id="pw-strength" style="font-size:12px;margin-top:4px;min-height:16px;"></div>
                     <!-- Live password checklist (mirrors server rules; UX only) -->
                     <div id="pw-checklist" style="display:none;margin-top:6px;font-size:12px;color:var(--muted-foreground);">
-                        <span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span> ·
-                        <span id="pw-rule-upper">Uppercase letter</span> ·
-                        <span id="pw-rule-num">Number</span>
+                        <span id="<span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span>
                     </div>
                 </div>
 
@@ -533,9 +532,7 @@ $project_name = 'WattPulse';
     <script>
         // Password policy mirrored from server config so client hints can never drift
         window.PW_CONFIG = {
-            min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>,
-            upper: <?php echo PASSWORD_REQUIRE_UPPERCASE ? 'true' : 'false'; ?>,
-            num: <?php echo PASSWORD_REQUIRE_NUMBERS ? 'true' : 'false'; ?>
+            min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>
         };
         // showToast defined inline for early availability (fallback if dashboard.js hasn't loaded yet)
         function showToast(message, type, duration) {

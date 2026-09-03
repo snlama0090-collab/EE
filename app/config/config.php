@@ -83,9 +83,6 @@ define('LOG_MAX_SIZE', 10 * 1024 * 1024); // 10 MB
 
 // ===== VALIDATION CONFIGURATION =====
 define('PASSWORD_MIN_LENGTH', 8);
-define('PASSWORD_REQUIRE_UPPERCASE', true);
-define('PASSWORD_REQUIRE_NUMBERS', true);
-define('PASSWORD_REQUIRE_SPECIAL_CHARS', false);
 
 define('NAME_MIN_LENGTH', 2);
 define('NAME_MAX_LENGTH', 100);

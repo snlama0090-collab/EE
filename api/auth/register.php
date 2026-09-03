@@ -47,17 +47,6 @@ if (strlen($password) < PASSWORD_MIN_LENGTH) {
     exit;
 }
 
-// Complexity rules honored from config (previously dead flags — enforced since 2026-08-24)
-if (PASSWORD_REQUIRE_UPPERCASE && !preg_match('/[A-Z]/', $password)) {
-    echo json_encode(['status' => 'error', 'message' => 'Password must contain at least one uppercase letter']);
-    exit;
-}
-
-if (PASSWORD_REQUIRE_NUMBERS && !preg_match('/[0-9]/', $password)) {
-    echo json_encode(['status' => 'error', 'message' => 'Password must contain at least one number']);
-    exit;
-}
-
 if (strlen($name) < NAME_MIN_LENGTH || strlen($name) > NAME_MAX_LENGTH) {
     echo json_encode(['status' => 'error', 'message' => 'Name must be between ' . NAME_MIN_LENGTH . ' and ' . NAME_MAX_LENGTH . ' characters']);
     exit;

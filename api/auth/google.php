@@ -218,13 +218,11 @@ try {
         } else {
             // Provisional registration: NO fabricated company naming either -
             // NOT NULL satisfied with '' until completion fills the real name.
-            // approval_status='approved' mirrors legacy intent: it gates the operator
-            // account, not stations (station submissions run their own pipeline).
             $random_pass = hash_password(bin2hex(random_bytes(16)));
             
             $stmt = $db->prepare("
-                INSERT INTO owners (email, password, name, company_name, email_verified, approval_status, profile_complete)
-                VALUES (?, ?, ?, '', TRUE, 'approved', FALSE)
+                INSERT INTO owners (email, password, name, company_name, email_verified, profile_complete)
+                VALUES (?, ?, ?, '', TRUE, FALSE)
             ");
             $stmt->execute([$email, $random_pass, $name]);
             $user_id = $db->lastInsertId();

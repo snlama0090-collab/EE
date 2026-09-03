@@ -112,7 +112,6 @@ d:/Xampp/htdocs/EE/
 │   │
 │   ├── assets/
 │   │   ├── css/
-│   │   │   ├── auth.css      # Shared login/register page styles
 │   │   │   └── dashboard.css # Dashboard layout, sidebar, cards, tables, modals, responsive
 │   │   ├── js/
 │   │   │   ├── modal.js      # Themed modal/alert/confirm system (IIFE)
@@ -841,7 +840,7 @@ The following table summarizes all findings from the combined audit, ranked by s
 | 6 | Owner can start charging sessions without payment (legacy `booked`-status path) | `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-22 (`start_session` removed entirely; charging exclusively driver-initiated and payment-gated) |
 | 7 | Buffer/arrival timing inconsistent with config (`BOOKING_ARRIVAL_DEADLINE_MINUTES` vs hardcoded 5 min) | `api/bookings.php` | 🟠 High | Unresolved |
 | 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-31 (`stop_session` captures `end_battery_percent`, recalculates `charging_sessions` kWh/cost on actual delta; record-accuracy only — already-captured `payment_transactions` unchanged, no refunds. `complete_session`/`SessionTicker` untouched — 100% is a reasonable approximation for full-duration sessions) |
-| 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | Unresolved |
+| 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | ✅ Resolved 2026-09-03 (INSERT now omits `approval_status`, falling through to schema default `'pending'` — same as the regular `register.php` path; all owner accounts now require admin approval) |
 | 10 | AJAX session-expiry breaks silently — login page HTML injected into dashboard | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 🟠 High | Unresolved |
 | 11 | Cascade-delete destroys financial history (no soft-delete on stations) | `database/schema.sql`, `api/stations.php` | 🟠 High | Unresolved |
 | 12 | No audit trail for bookings or payments | `api/bookings.php` | 🟡 Medium | Unresolved |

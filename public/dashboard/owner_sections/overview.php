@@ -121,7 +121,7 @@ $recent_bookings = $stmt->fetchAll();
                             <span class="charger-badge">#<?php echo $booking['charger_number']; ?></span>
                             <span style="font-size: 12px; color: var(--muted-foreground);"><?php echo htmlspecialchars($booking['charger_type']); ?></span>
                         </td>
-                        <td class="amount">NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></td>
+                        <td class="amount">NPR <?php echo number_format($booking['estimated_total_cost'] ?? 0, 2); ?></td>
                         <td><span class="badge <?php echo $status_badge; ?>"><?php echo htmlspecialchars($booking['status']); ?></span></td>
                         <td style="font-size: 12px; color: var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($booking['created_at'])); ?></td>
                     </tr>

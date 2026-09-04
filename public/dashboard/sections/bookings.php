@@ -104,14 +104,14 @@ foreach ($rv->fetchAll() as $r) $reviewable[$r['id']] = true;
                 <td>
                     <?php if ($status === 'completed' && $booking['actual_charge_time_minutes']): ?>
                         <strong><?php echo $booking['actual_charge_time_minutes']; ?> mins</strong>
-                        <div style="font-size:11px;color:var(--muted-foreground);"><?php echo number_format($booking['kwh_consumed'], 1); ?> kWh</div>
+                        <div style="font-size:11px;color:var(--muted-foreground);"><?php echo number_format($booking['kwh_consumed'] ?? 0, 1); ?> kWh</div>
                     <?php else: ?>
                         <strong><?php echo $booking['calculated_charge_time_minutes']; ?> mins</strong>
                         <div style="font-size:11px;color:var(--muted-foreground);">Estimate</div>
                     <?php endif; ?>
                 </td>
                 <td>
-                    <span class="amount">NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></span>
+                    <span class="amount">NPR <?php echo number_format($booking['estimated_total_cost'] ?? 0, 2); ?></span>
                     <?php if ($status === 'completed' && $booking['payment_amount']): ?>
                         <div style="font-size:10px;color:var(--success);font-weight:600;">PAID</div>
                     <?php else: ?>

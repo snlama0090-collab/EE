@@ -68,7 +68,7 @@ $receipts = $stmt->fetchAll();
                 <td><?php echo htmlspecialchars($r['charger_type']); ?> (<?php echo $r['wattage_kw']; ?>kW)</td>
                 <td><?php echo $r['actual_charge_time_minutes'] ? $r['actual_charge_time_minutes'] . ' min' : '-'; ?></td>
                 <td><?php echo $r['kwh_consumed'] ? number_format($r['kwh_consumed'], 2) . ' kWh' : '-'; ?></td>
-                <td class="amount">NPR <?php echo number_format($r['payment_amount'] ?? $r['estimated_total_cost'], 2); ?></td>
+                <td class="amount">NPR <?php echo number_format($r['payment_amount'] ?? $r['estimated_total_cost'] ?? 0, 2); ?></td>
                 <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, Y', strtotime($r['created_at'])); ?></td>
             </tr>
             <?php endforeach; ?>

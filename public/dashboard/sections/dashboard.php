@@ -107,7 +107,7 @@ $active_bookings = $stmt->fetchAll();
                         </div>
                         <div>
                             <span style="color:var(--gray);">Est. Cost:</span>
-                            <strong style="color:#34C759;">NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></strong>
+                            <strong style="color:#34C759;">NPR <?php echo number_format($booking['estimated_total_cost'] ?? 0, 2); ?></strong>
                         </div>
                     </div>
 

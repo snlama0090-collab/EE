@@ -69,7 +69,7 @@ $total_pending = $stmt->fetch()['total_pending'];
                     <td><?php echo htmlspecialchars($inv['user_name']); ?></td>
                     <td><?php echo htmlspecialchars($inv['station_name']); ?></td>
                     <td><?php echo htmlspecialchars($inv['charger_type']); ?></td>
-                    <td class="amount">NPR <?php echo number_format($inv['payment_amount'] ?? $inv['estimated_total_cost'], 2); ?></td>
+                    <td class="amount">NPR <?php echo number_format($inv['payment_amount'] ?? $inv['estimated_total_cost'] ?? 0, 2); ?></td>
                     <td><span class="badge badge-<?php echo $inv['payment_status'] === 'completed' ? 'success' : 'info'; ?>"><?php echo $inv['payment_status']; ?></span></td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, Y', strtotime($inv['created_at'])); ?></td>
                 </tr>

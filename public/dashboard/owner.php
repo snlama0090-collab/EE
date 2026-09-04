@@ -656,7 +656,7 @@ if (file_exists($profilePicAbsolute)) {
             }
         }
 
-    }
+    
 
     function deactivateStation(id) {
         showConfirm('Deactivate this station? It will no longer be bookable, but all booking and payment history will be preserved.', function() {

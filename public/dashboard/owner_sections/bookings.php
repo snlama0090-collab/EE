@@ -79,7 +79,7 @@ $bookings = $stmt->fetchAll();
                             <div><span style="font-size: 11px; color: var(--muted-foreground);">Start Bat</span> <strong style="color: var(--success);"><?php echo $booking['car_current_battery_percent']; ?>%</strong></div>
                             <?php if ($status === 'completed'): ?>
                                 <div style="font-size: 11px; color: var(--muted-foreground); margin-top: 4px;">
-                                    <span>Consumed <strong style="color: var(--foreground);"><?php echo number_format($booking['kwh_consumed'], 2); ?> kWh</strong></span>
+                                    <span>Consumed <strong style="color: var(--foreground);"><?php echo number_format($booking['kwh_consumed'] ?? 0, 2); ?> kWh</strong></span>
                                 </div>
                             <?php elseif ($status === 'charging'): ?>
                                 <div style="font-size: 11px; color: var(--warning); margin-top: 4px; font-weight: 600;">
@@ -88,7 +88,7 @@ $bookings = $stmt->fetchAll();
                             <?php endif; ?>
                         </td>
                         <td>
-                            <div class="amount">Est. NPR <?php echo number_format($booking['estimated_total_cost'], 2); ?></div>
+                            <div class="amount">Est. NPR <?php echo number_format($booking['estimated_total_cost'] ?? 0, 2); ?></div>
                             <?php if ($booking['payment_amount']): ?>
                                 <div style="font-size: 12px; color: var(--success); font-weight: 600; margin-top: 2px;">
                                     Paid: NPR <?php echo number_format($booking['payment_amount'], 2); ?>

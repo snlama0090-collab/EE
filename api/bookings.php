@@ -588,6 +588,6 @@ try {
 } catch (Exception $e) {
     log_message('ERROR', "Booking API error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => 'Server error. Please try again later.']);
 }
 ?>

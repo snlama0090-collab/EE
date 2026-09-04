@@ -964,7 +964,8 @@ foreach ($ownerStations as $os) {
 rep('71f. deactivated station still in owner dashboard', $foundInOwner, "found=" . ($foundInOwner ? 'yes' : 'no'));
 
 // Cleanup test data
-$db->prepare("DELETE FROM bookings WHERE station_id = ?")->execute([$histStationId]);
+// bookings has charger_id, not station_id — resolve via subquery through chargers
+$db->prepare("DELETE FROM bookings WHERE charger_id IN (SELECT id FROM chargers WHERE station_id = ?)")->execute([$histStationId]);
 $db->prepare("DELETE FROM chargers WHERE station_id = ?")->execute([$histStationId]);
 $db->prepare("DELETE FROM stations WHERE id IN (?, ?)")->execute([$cleanStationId, $histStationId]);
 unlink($ts);

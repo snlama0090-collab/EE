@@ -38,7 +38,7 @@ h1{font-size:22px;margin:0 0 6px}.sub{color:#6b7280;font-size:14px;margin-bottom
 .chip{display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:4px 12px;font-size:13px;margin-bottom:18px}
 label{display:block;font-size:13px;font-weight:600;margin:14px 0 5px}
 input[type=text],input[type=number],select{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px}
-input:focus,select:focus{outline:2px solid #22c55e33;border-color:#22c55e}
+input:focus,select:focus{outline:none;border-color:#22c55e;box-shadow:0 0 0 2px #22c55e33}
 .field-error{color:#e5484d;font-size:12px;margin-top:4px;display:none}
 .is-invalid{border-color:#e5484d !important}
 .terms{display:flex;gap:8px;align-items:flex-start;margin-top:20px;font-size:13px}
@@ -62,7 +62,24 @@ button:disabled{opacity:.6;cursor:default}
 
 <?php if ($role === 'driver'): ?>
     <label for="car_model">Car model</label>
-    <input type="text" id="car_model" placeholder="e.g., Tata Nexon EV">
+    <input type="text" id="car_model" list="car-model-suggestions" placeholder="e.g., Tata Nexon EV">
+    <datalist id="car-model-suggestions">
+      <option value="Tata Nexon EV">
+      <option value="Tata Tiago EV">
+      <option value="Tata Tigor EV">
+      <option value="MG ZS EV">
+      <option value="MG Comet EV">
+      <option value="Hyundai Kona Electric">
+      <option value="Hyundai Ioniq 5">
+      <option value="Tesla Model 3">
+      <option value="Tesla Model Y">
+      <option value="BYD Atto 3">
+      <option value="BYD e6">
+      <option value="Nissan Leaf">
+      <option value="Mahindra XUV400">
+      <option value="Citroen eC3">
+      <option value="Wuling Air ev">
+    </datalist>
     <div class="field-error" id="err-car_model"></div>
 
     <label for="battery_capacity">Battery capacity (kWh)</label>

@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Environment secrets — never copy into image
+.env
+
+# Composer dependencies — installed at build time inside container
+vendor/
+
+# Composer binary
+composer.phar
+
+# Logs
+logs/
+
+# Tests
+tests/
+
+# Documentation (not needed at runtime)
+*.md
+docs/
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local development artifacts
+*.log
+*.tmp

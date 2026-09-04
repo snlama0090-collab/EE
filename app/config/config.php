@@ -27,11 +27,12 @@ define('KHALTI_BASE_URL', $_ENV['KHALTI_BASE_URL'] ?? 'https://dev.khalti.com/ap
 define('KHALTI_SECRET_KEY', $_ENV['KHALTI_SECRET_KEY'] ?? '');
 
 // ===== DATABASE CONFIGURATION =====
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', ''); // Leave empty for localhost without password
-define('DB_NAME', 'ev_charging_db');
-define('DB_PORT', 3306);
+// Reads from environment variables (PandaStack injects these); falls back to local defaults.
+define('DB_HOST', $_ENV['DB_HOST'] ?? 'localhost');
+define('DB_USER', $_ENV['DB_USER'] ?? 'root');
+define('DB_PASS', $_ENV['DB_PASS'] ?? '');
+define('DB_NAME', $_ENV['DB_NAME'] ?? 'ev_charging_db');
+define('DB_PORT', (int)($_ENV['DB_PORT'] ?? 3306));
 define('DB_CHARSET', 'utf8mb4');
 
 // ===== APPLICATION PATHS =====

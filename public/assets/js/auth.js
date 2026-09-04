@@ -255,7 +255,7 @@
             [function (v) { return Validation.RE.email.test(v.trim()); }, 'Enter a valid email address']
         ]},
         { id: 'password', checks: [
-            [function (v) { return String(v).length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters']
+            [function (v) { return String(v).length > 0; }, 'Password is required']
         ]}
     ]);
 

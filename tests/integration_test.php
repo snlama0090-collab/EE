@@ -1083,6 +1083,12 @@ $db->prepare("DELETE FROM users WHERE email = ?")->execute([$testEmail]); // ide
 $db->prepare("INSERT INTO users (email, password, name, phone, profile_pic, email_verified, status) VALUES (?, ?, ?, ?, ?, TRUE, 'active')")
    ->execute([$testEmail, password_hash('Test@123', PASSWORD_BCRYPT), 'Google Avatar Test', '+977 9801234567', $googleAvatarUrl]);
 $googleUserId = intval($db->lastInsertId());
+// ponytail: hermetic run — MariaDB reuses auto-increment ids after restart, so
+// a stale pfp/<id>.jpg orphaned by a deleted prior user would win Tier 1 of
+// get_profile_picture_url and falsely fail 73a/73b (seen 2026-09-05 with a
+// stray 17.jpg). A freshly allocated id cannot belong to a live row, so any
+// file named for it is an orphan.
+@unlink(PUBLIC_PATH . '/assets/uploads/pfp/' . $googleUserId . '.jpg');
 
 // Test the helper function directly
 $helperResult = get_profile_picture_url($googleUserId, 'driver', $googleAvatarUrl);

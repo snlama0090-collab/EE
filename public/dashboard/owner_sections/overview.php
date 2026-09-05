@@ -10,7 +10,6 @@ $db = getDB();
 $stmt = $db->prepare("
     SELECT 
         COUNT(id) as stations_count,
-        SUM(total_bookings) as total_bookings,
         SUM(total_revenue) as total_revenue,
         SUM(total_kwh_consumed) as total_kwh
     FROM stations 
@@ -18,6 +17,20 @@ $stmt = $db->prepare("
 ");
 $stmt->execute([$user_id]);
 $stats = $stmt->fetch();
+
+// Total Bookings counted LIVE from bookings — NOT the denormalized
+// stations.total_bookings counter, which only increments on 2 of the terminal
+// paths (owner "Bill" + SessionTicker) and has drifted. Definition: bookings
+// that resulted in an actual charging session (completed OR stopped).
+$stmt = $db->prepare("
+    SELECT COUNT(*) as total_bookings
+    FROM bookings b
+    JOIN chargers c ON b.charger_id = c.id
+    JOIN stations s ON c.station_id = s.id
+    WHERE s.owner_id = ? AND b.status IN ('completed', 'stopped')
+");
+$stmt->execute([$user_id]);
+$total_bookings = (int) $stmt->fetch()['total_bookings'];
 
 // Active charging sessions count
 $stmt = $db->prepare("
@@ -67,7 +80,7 @@ $recent_bookings = $stmt->fetchAll();
         <div class="metric-icon"><i class="fas fa-calendar-check"></i></div>
         <div class="metric-info">
             <h3>Total Bookings</h3>
-            <p><?php echo intval($stats['total_bookings'] ?? 0); ?></p>
+            <p><?php echo $total_bookings; ?></p>
         </div>
     </div>
 

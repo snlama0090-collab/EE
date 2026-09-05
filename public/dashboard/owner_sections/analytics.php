@@ -7,16 +7,29 @@ $user_id = Auth::getCurrentUserId();
 $db = getDB();
 
 $stmt = $db->prepare("
-    SELECT COUNT(id) as stations_count, SUM(total_bookings) as total_bookings,
+    SELECT COUNT(id) as stations_count,
            SUM(total_revenue) as total_revenue, SUM(total_kwh_consumed) as total_kwh
     FROM stations WHERE owner_id = ?
 ");
 $stmt->execute([$user_id]);
 $stats = $stmt->fetch();
 
+// Total Bookings counted LIVE from bookings — NOT the drifted
+// stations.total_bookings counter (see owner_sections/overview.php).
+// Definition: bookings that resulted in an actual charging session.
+$stmt = $db->prepare("
+    SELECT COUNT(*) as total_bookings
+    FROM bookings b
+    JOIN chargers c ON b.charger_id = c.id
+    JOIN stations s ON c.station_id = s.id
+    WHERE s.owner_id = ? AND b.status IN ('completed', 'stopped')
+");
+$stmt->execute([$user_id]);
+$total_bookings = (int) $stmt->fetch()['total_bookings'];
+
 $revenue = floatval($stats['total_revenue'] ?? 0);
 $kwh = floatval($stats['total_kwh'] ?? 0);
-$bookings = intval($stats['total_bookings'] ?? 0);
+$bookings = $total_bookings;
 $stations_count = intval($stats['stations_count'] ?? 0);
 
 $stmt = $db->prepare("SELECT COUNT(b.id) as active FROM bookings b JOIN chargers c ON b.charger_id = c.id JOIN stations s ON c.station_id = s.id WHERE s.owner_id = ? AND b.status = 'charging'");

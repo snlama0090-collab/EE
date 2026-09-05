@@ -40,8 +40,10 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .hero-stats { display: flex; gap: 32px; margin-top: 32px; }
         .hero-stats .stat h3 { font-size: 28px; font-weight: 700; color: var(--foreground); }
         .hero-stats .stat p { font-size: 13px; color: var(--muted-foreground); margin: 0; }
-        .hero-visual { flex: 1; min-height: 300px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--muted); display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
-        .hero-visual i { font-size: 64px; opacity: 0.3; }
+        .hero-visual { flex: 1; min-height: 300px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--muted); display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); overflow: hidden; }
+        .hero-visual svg { width: 100%; height: 100%; max-width: 400px; }
+        @keyframes pulse-bolt { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+        .hero-bolt { animation: pulse-bolt 2.5s ease-in-out infinite; transform-origin: center; }
         .section-title { text-align: center; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
         .section-desc { text-align: center; font-size: 14px; color: var(--muted-foreground); margin-bottom: 32px; }
         .role-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto 48px; padding: 0 24px; }
@@ -141,8 +143,29 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
                 <div class="stat"><h3 id="stat-owners">0</h3><p>Station Owners</p></div>
             </div>
         </div>
-        <div class="hero-visual">
-            <i class="fas fa-map"></i>
+        <div class="hero-visual" role="img" aria-label="Illustration of an electric vehicle plugged into a charging station">
+            <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--foreground)">
+                <!-- Charging station pillar -->
+                <rect x="220" y="60" width="80" height="200" rx="6" />
+                <rect x="235" y="80" width="50" height="70" rx="3" fill="var(--muted)" stroke="var(--border)" />
+                <!-- Station display screen -->
+                <rect x="245" y="95" width="30" height="20" rx="2" stroke="var(--muted-foreground)" />
+                <!-- Cable from station to car -->
+                <path d="M260 260 C260 270, 250 275, 200 275 C150 275, 140 270, 140 260" stroke-dasharray="4 3" />
+                <!-- Car body (simplified outline) -->
+                <path d="M60 220 L80 220 L90 190 L150 190 L160 220 L180 220 L180 250 L60 250 Z" />
+                <!-- Car roof/windshield -->
+                <path d="M95 190 L105 165 L145 165 L155 190" />
+                <!-- Car wheels -->
+                <circle cx="90" cy="250" r="14" fill="var(--muted)" stroke="var(--foreground)" stroke-width="1.5" />
+                <circle cx="150" cy="250" r="14" fill="var(--muted)" stroke="var(--foreground)" stroke-width="1.5" />
+                <!-- Charging port on car -->
+                <rect x="158" y="235" width="12" height="8" rx="2" stroke="var(--muted-foreground)" />
+                <!-- Animated bolt (green accent) -->
+                <g class="hero-bolt" fill="#22c55e" stroke="none">
+                    <path d="M252 108 L248 120 L255 120 L250 135 L258 118 L251 118 Z" />
+                </g>
+            </svg>
         </div>
     </section>
 

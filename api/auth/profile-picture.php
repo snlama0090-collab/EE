@@ -4,6 +4,7 @@
 // transaction to wrap; a failed image simply leaves the previous state in place.
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../app/config/config.php';
+require_once __DIR__ . '/../_rate_limit.php';
 require_once __DIR__ . '/../../app/helpers/Auth.php';
 require_once __DIR__ . '/../../app/helpers/Csrf.php';
 

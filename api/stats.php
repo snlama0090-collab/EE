@@ -9,6 +9,7 @@
 
 header('Content-Type: application/json');
 require_once '../app/config/config.php';
+require_once '_rate_limit.php';
 
 // Counts don't change every second — allow a short public cache.
 header('Cache-Control: public, max-age=60');

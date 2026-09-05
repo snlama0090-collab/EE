@@ -11,6 +11,7 @@
 
 header('Content-Type: application/json');
 require_once '../app/config/config.php';
+require_once '_rate_limit.php';
 require_once '../app/helpers/Location.php';
 
 // Counts/lists don't change every second — allow a short public cache.

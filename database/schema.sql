@@ -425,6 +425,15 @@ CREATE TABLE login_attempts (
     INDEX idx_ip_time (ip_address, attempted_at)
 );
 
+-- ===== 18. API RATE LIMITS TABLE (general per-IP request throttling) =====
+CREATE TABLE api_rate_limits (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    ip_address VARCHAR(45) NOT NULL,
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_ip_time (ip_address, requested_at)
+);
+
 -- ===== 17. SUPPORT TICKETS TABLE (driver/owner <-> admin help desk) =====
 CREATE TABLE support_tickets (
     id INT PRIMARY KEY AUTO_INCREMENT,

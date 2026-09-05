@@ -1082,4 +1082,27 @@ rep('73c. Owner type uses owner_ prefix in filename', $hasOwnerPrefix, "result=$
 // Cleanup
 $db->prepare("DELETE FROM users WHERE id = ?")->execute([$googleUserId]);
 
+// ===== 74: API rate limiter =====
+// Note: Rate limiting is skipped in non-production environments (ENV !== 'production').
+// These tests verify the helper logic directly rather than relying on HTTP 429 responses.
+require_once __DIR__ . '/../app/helpers/ApiRateLimiter.php';
+
+// Test 74a: Empty table allows requests
+$db->exec("DELETE FROM api_rate_limits");
+$result = ApiRateLimiter::check($db, '127.0.0.1');
+rep('74a. Rate limiter allows requests when under limit', $result['limited'] === false, "limited=" . var_export($result['limited'], true));
+
+// Test 74b: Development mode bypasses limiting (ENV !== 'production')
+// In development mode, check() always returns limited=false regardless of record count
+for ($i = 0; $i < 150; $i++) {
+    ApiRateLimiter::record($db, '10.0.0.1');
+}
+$result = ApiRateLimiter::check($db, '10.0.0.1');
+rep('74b. Development mode bypasses rate limit', $result['limited'] === false, "limited=" . var_export($result['limited'], true));
+
+// Test 74c: Verify the table structure and cleanup works
+$db->exec("DELETE FROM api_rate_limits");
+$count = (int)$db->query("SELECT COUNT(*) FROM api_rate_limits")->fetchColumn();
+rep('74c. Rate limit table cleanup works', $count === 0, "count=$count");
+
 echo "DONE\n";

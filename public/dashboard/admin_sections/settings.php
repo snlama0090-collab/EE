@@ -20,7 +20,7 @@ $db = getDB();
                 <tr>
                     <td>Rate Limiting</td>
                     <td><?php echo API_RATE_LIMIT_REQUESTS; ?> requests / <?php echo API_RATE_LIMIT_WINDOW / 3600; ?>h</td>
-                    <td><span class="badge badge-info">Planned</span></td>
+                    <td><span class="badge badge-success">Active</span></td>
                 </tr>
                 <tr>
                     <td>Booking Base Fee</td>

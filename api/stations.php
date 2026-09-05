@@ -1,6 +1,7 @@
 <?php
 header('Content-Type: application/json');
 require_once '../app/config/config.php';
+require_once '_rate_limit.php';
 require_once '../app/helpers/Auth.php';
 require_once '../app/helpers/Location.php';
 require_once '../app/helpers/Csrf.php';

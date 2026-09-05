@@ -1298,4 +1298,61 @@ rep('75o. all 5 sections carry wired Columns/Export buttons', $ok, 'users/custom
 q($db, "DELETE FROM admins WHERE email='exporttest-admin@evcharge.com'");
 @unlink($xa);
 
+// ===== 76a-76f: ADMIN OVERVIEW stat cards (split pending, active/deactivated stations) =====
+// Controlled seed + render comparison: the page's stat values must equal
+// counts computed from the DB under the SAME definitions the page claims.
+$ao = __DIR__ . '/xo.txt'; @unlink($ao);
+$db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 'super_admin')
+              ON DUPLICATE KEY UPDATE password = VALUES(password)")
+   ->execute(['ovtest-admin@evcharge.com', password_hash('AdminTest@123', PASSWORD_BCRYPT), 'Overview Test Admin']);
+$lo = api('POST', "$BASE/api/auth/login.php", $ao, ['email' => 'ovtest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+rep('76a. overview admin login', ($lo['status'] ?? '') === 'success', json_encode($lo));
+
+// Baselines under the fixed page's definitions
+$basePending = (int) q($db, "SELECT COUNT(*) c FROM stations WHERE approval_status='pending'")[0]['c'];
+$baseFlagged = (int) q($db, "SELECT COUNT(*) c FROM ratings_reviews WHERE is_flagged=TRUE AND is_deleted=FALSE")[0]['c'];
+$baseDeact   = (int) q($db, "SELECT COUNT(*) c FROM stations WHERE deactivated_at IS NOT NULL")[0]['c'];
+$baseBookable = (int) q($db, "SELECT COUNT(*) c FROM stations WHERE approval_status='approved' AND is_active=TRUE AND deactivated_at IS NULL")[0]['c'];
+
+// Seed: 2 pending + 1 rejected + 1 approved-but-deactivated station + 1 flagged review
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, approval_status) VALUES
+              (1, 'OVSTAT Pending A', 27.70000000, 85.30000000, 'pending'),
+              (1, 'OVSTAT Pending B', 27.80000000, 85.40000000, 'pending'),
+              (1, 'OVSTAT Rejected', 27.95000000, 85.55000000, 'rejected')")->execute();
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, approval_status, deactivated_at)
+              VALUES (1, 'OVSTAT Deactivated', 27.90000000, 85.50000000, 'approved', NOW())")->execute();
+$ovStId = (int) q($db, "SELECT id FROM stations WHERE name='OVSTAT Pending A'")[0]['id'];
+$db->prepare("INSERT INTO ratings_reviews (user_id, station_id, rating, is_flagged, flag_reason)
+              VALUES (1, ?, 1, TRUE, 'Suite: overview stat test')")->execute([$ovStId]);
+
+[, , $ovHtml] = $tget("$BASE/public/dashboard/admin_sections/overview.php", $ao);
+// Extract a card's rendered value by its exact label
+$ovStat = function ($html, $label) {
+    return preg_match('/stat-label">' . preg_quote($label, '/') . '<\/span>.*?stat-value">(\d+)</s', $html, $m) ? (int) $m[1] : -1;
+};
+
+// Each card must show its OWN definition's count (seed deltas included)
+$ovPending  = $ovStat($ovHtml, 'Pending Approvals');
+$ovFlagged  = $ovStat($ovHtml, 'Flagged Reviews');
+$ovDeact    = $ovStat($ovHtml, 'Deactivated Stations');
+$ovStations = $ovStat($ovHtml, 'Stations');
+rep('76b. Pending Approvals card = distinct pending-station count', $ovPending === $basePending + 2, "card=$ovPending expected=" . ($basePending + 2));
+rep('76c. Flagged Reviews card = distinct flagged-review count', $ovFlagged === $baseFlagged + 1, "card=$ovFlagged expected=" . ($baseFlagged + 1));
+rep('76d. Deactivated Stations card = deactivated-only count', $ovDeact === $baseDeact + 1, "card=$ovDeact expected=" . ($baseDeact + 1));
+// Stations card uses the strict bookable definition (approved + is_active +
+// not deactivated): all three seed types (2 pending, 1 rejected, 1 deactivated)
+// must be EXCLUDED -- the card equals the pre-seed bookable baseline exactly.
+// (The seeds being visible in their own buckets is proven by 76b/76d.)
+rep('76e. Stations card counts only bookable (approved+active+not-deactivated)', $ovStations === $baseBookable, "card=$ovStations expected=$baseBookable");
+// Old combined "Pending" card must be gone; the two split labels must exist
+$combinedGone = strpos($ovHtml, 'stat-label">Pending</span>') === false;
+$bothPresent  = strpos($ovHtml, 'stat-label">Pending Approvals</span>') !== false && strpos($ovHtml, 'stat-label">Flagged Reviews</span>') !== false;
+rep('76f. combined Pending card removed, split cards rendered', $combinedGone && $bothPresent, 'combined-gone=' . ($combinedGone ? 'yes' : 'no'));
+
+// Cleanup overview-test rows (review first; station FK would cascade it anyway)
+q($db, "DELETE FROM ratings_reviews WHERE flag_reason='Suite: overview stat test'");
+q($db, "DELETE FROM stations WHERE name LIKE 'OVSTAT%'");
+q($db, "DELETE FROM admins WHERE email='ovtest-admin@evcharge.com'");
+@unlink($ao);
+
 echo "DONE\n";

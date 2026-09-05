@@ -11,8 +11,15 @@ $user_count = $stmt->fetch();
 $stmt = $db->query("SELECT COUNT(*) as total FROM owners WHERE status = 'active'");
 $owner_count = $stmt->fetch();
 
-$stmt = $db->query("SELECT COUNT(*) as total FROM stations");
+// Bookable stations only — same eligibility definition as api/stations.php's
+// nearby search: approved AND is_active AND not deactivated. Pending, rejected,
+// and deactivated stations are counted in their own cards, never here.
+$stmt = $db->query("SELECT COUNT(*) as total FROM stations
+                    WHERE approval_status = 'approved' AND is_active = TRUE AND deactivated_at IS NULL");
 $station_count = $stmt->fetch();
+
+$stmt = $db->query("SELECT COUNT(*) as total FROM stations WHERE deactivated_at IS NOT NULL");
+$deactivated_count = $stmt->fetch();
 
 $stmt = $db->query("SELECT COUNT(*) as total FROM stations WHERE approval_status = 'pending'");
 $pending_approvals = $stmt->fetch();
@@ -64,19 +71,35 @@ $pending_stations = $stmt->fetchAll();
     </div>
     <div class="stat-card">
         <div class="stat-header">
-            <span class="stat-label">Total Stations</span>
+            <span class="stat-label">Stations</span>
             <span class="stat-icon"><i class="fas fa-charging-station"></i></span>
         </div>
         <div class="stat-value"><?php echo $station_count['total']; ?></div>
-        <div class="stat-subtitle">Registered locations</div>
+        <div class="stat-subtitle">Approved &amp; active</div>
     </div>
     <div class="stat-card">
         <div class="stat-header">
-            <span class="stat-label">Pending</span>
+            <span class="stat-label">Deactivated Stations</span>
+            <span class="stat-icon"><i class="fas fa-ban"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $deactivated_count['total']; ?></div>
+        <div class="stat-subtitle">Excluded from booking</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Pending Approvals</span>
             <span class="stat-icon"><i class="fas fa-hourglass-end"></i></span>
         </div>
-        <div class="stat-value"><?php echo $pending_approvals['total'] + $flagged_reviews['total']; ?></div>
-        <div class="stat-subtitle">Action required</div>
+        <div class="stat-value"><?php echo $pending_approvals['total']; ?></div>
+        <div class="stat-subtitle">Stations awaiting approval</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-header">
+            <span class="stat-label">Flagged Reviews</span>
+            <span class="stat-icon"><i class="fas fa-flag"></i></span>
+        </div>
+        <div class="stat-value"><?php echo $flagged_reviews['total']; ?></div>
+        <div class="stat-subtitle">Awaiting moderation</div>
     </div>
 </div>
 

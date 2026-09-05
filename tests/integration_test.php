@@ -1029,6 +1029,24 @@ rep('72d. owner deactivation without reason works', $c72d === 200 && ($r72d['sta
 $ownerDeactRecord = q($db, "SELECT deactivated_by, deactivation_reason FROM stations WHERE id = ?", [$ownerDeactId])[0];
 rep('72d. owner deactivated_by is owner', $ownerDeactRecord['deactivated_by'] === 'owner', "deactivated_by={$ownerDeactRecord['deactivated_by']}");
 
+// 72f: admin stations view shows deactivation details (who, when, why)
+// Fetch the admin stations page via curl with the admin session cookie
+$ch = curl_init("$BASE/public/dashboard/admin_sections/stations.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $ac, CURLOPT_COOKIEJAR => $ac, CURLOPT_USERAGENT => 'IntegrationTest/1.0', CURLOPT_FOLLOWLOCATION => true]);
+$adminStationsHtml = (string) curl_exec($ch);
+curl_close($ch);
+// The admin-deactivated station should show "by admin" and the reason text
+$hasAdminDeactDetails = strpos($adminStationsHtml, 'by admin') !== false && strpos($adminStationsHtml, 'Station equipment not compliant with safety regulations') !== false;
+rep('72f. admin stations view shows admin deactivation details (who + reason)', $hasAdminDeactDetails, 'html=' . substr($adminStationsHtml, 0, 200));
+
+// The owner-deactivated station should show "by owner" but NO reason text
+$hasOwnerDeactDetails = strpos($adminStationsHtml, 'by owner') !== false;
+// Verify the owner-deactivated station's reason is NOT displayed (since deactivated_by=owner has no reason)
+$ownerDeactPos = strpos($adminStationsHtml, 'Owner Deactivate Test');
+$ownerDeactSection = $ownerDeactPos !== false ? substr($adminStationsHtml, $ownerDeactPos, 500) : '';
+$ownerRowHasReason = strpos($ownerDeactSection, 'deactivation_reason') !== false || (strpos($ownerDeactSection, 'by owner') !== false && strpos($ownerDeactSection, 'info-circle') !== false);
+rep('72f. owner-deactivated station shows no reason (correct)', !$ownerRowHasReason, 'owner row has no reason displayed');
+
 // 72e: appeal creates a support ticket
 $appealResp = api('POST', "$BASE/api/support.php", $oc, ['action' => 'create', 'category' => 'station_approval', 'subject' => "Appeal: Station #$adminDeactId Deactivation", 'message' => 'I would like to appeal this deactivation.']);
 rep('72e. appeal creates support ticket', ($appealResp['status'] ?? '') === 'success' && !empty($appealResp['data']['ticket_id']), "resp=" . json_encode($appealResp));
@@ -1047,7 +1065,7 @@ unlink($ts4);
 // bookings has charger_id, not station_id — resolve via subquery through chargers
 $db->prepare("DELETE FROM bookings WHERE charger_id IN (SELECT id FROM chargers WHERE station_id = ?)")->execute([$histStationId]);
 $db->prepare("DELETE FROM chargers WHERE station_id = ?")->execute([$histStationId]);
-$db->prepare("DELETE FROM stations WHERE id IN (?, ?)")->execute([$cleanStationId, $histStationId]);
+$db->prepare("DELETE FROM stations WHERE id IN (?, ?, ?, ?)")->execute([$cleanStationId, $histStationId, $adminDeactId, $ownerDeactId]);
 unlink($ts);
 unlink($ts2);
 

@@ -62,7 +62,19 @@ $stations = $stmt->fetchAll();
                 <td><?php echo $s['num_chargers']; ?></td>
                 <td><span class="badge badge-<?php echo $s['is_active'] ? 'success' : 'danger'; ?>"><?php echo $s['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
                 <td><span class="badge badge-<?php echo $s['approval_status'] === 'approved' ? 'success' : ($s['approval_status'] === 'pending' ? 'warning' : 'danger'); ?>"><?php echo $s['approval_status']; ?></span></td>
-                <td><?php if (!empty($s['deactivated_at'])): ?><span class="badge badge-danger">Deactivated</span><?php else: ?><span style="color:var(--muted-foreground);font-size:12px;">—</span><?php endif; ?></td>
+                <td><?php if (!empty($s['deactivated_at'])): ?>
+                        <div style="font-size:12px;line-height:1.4;">
+                            <span class="badge badge-danger">Deactivated</span>
+                            <div style="margin-top:4px;color:var(--muted-foreground);">
+                                by <?php echo htmlspecialchars($s['deactivated_by'] ?? 'unknown'); ?> · <?php echo date('M d, Y', strtotime($s['deactivated_at'])); ?>
+                            </div>
+                            <?php if (($s['deactivated_by'] ?? '') === 'admin' && !empty($s['deactivation_reason'])): ?>
+                            <div style="margin-top:2px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted-foreground);" title="<?php echo htmlspecialchars($s['deactivation_reason'], ENT_QUOTES); ?>">
+                                <i class="fas fa-info-circle"></i> <?php echo htmlspecialchars($s['deactivation_reason']); ?>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?><span style="color:var(--muted-foreground);font-size:12px;">—</span><?php endif; ?></td>
                 <td>
                     <?php if ($s['approval_status'] === 'pending'): ?>
                         <div style="display:flex; gap:6px;">

@@ -801,6 +801,32 @@ rep('70d. multipart upload -> valid image written', ($pc4 === 200) && ($upResp['
 @unlink($upJ);
 @unlink($pfpDir . '/999002.jpg'); // disposable slot removed - nothing left behind
 unlink($ppW);
+
+// 70l: OWNER preset apply -> owner_{id}.jpg path (parallel to 70c driver test)
+// Same disposable-session pattern, but for user_type=owner. The profile-picture
+// endpoint must write owner_999003.jpg (not 999003.jpg) per the naming convention
+// in get_profile_picture_url() helper (owner prefix for owner-type sessions).
+$ppWO = __DIR__ . '/_pp_writer_owner.tmp.php';
+file_put_contents($ppWO, '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999003; $_SESSION["user_type"] = "owner";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "SuitePfpGate/1.0";
+$_SESSION["csrf_token"] = "suite-pfp-write-owner";
+session_write_close(); echo session_id();
+');
+$sidWO = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ppWO) . ' 2>&1'));
+$ch = curl_init("$BASE/api/auth/profile-picture.php");
+curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+    CURLOPT_HTTPHEADER => ['X-CSRF-Token: suite-pfp-write-owner'],
+    CURLOPT_POSTFIELDS => ['preset' => 'preset_01'],
+    CURLOPT_COOKIE => "PHPSESSID=$sidWO", CURLOPT_USERAGENT => 'SuitePfpGate/1.0']);
+$pr5 = (string) curl_exec($ch); $pc5 = curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+$j5 = json_decode($pr5, true);
+rep('70l. owner preset apply -> owner_{id}.jpg written', ($pc5 === 200) && ($j5['status'] ?? '') === 'success' && is_file($pfpDir . '/owner_999003.jpg'), 'code=' . $pc5 . ' resp=' . $pr5);
+// Cleanup: remove owner disposable slot
+@unlink($pfpDir . '/owner_999003.jpg');
+@unlink($ppWO);
+
 // 70e: successful registration returns the login-forward redirect (NO session
 // established - auto-login reverted). OTP row planted directly (SMTP out of scope).
 $regEmail = 'ppic-reg-' . time() . '@gmail.com';

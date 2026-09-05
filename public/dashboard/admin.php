@@ -244,16 +244,22 @@ $unread = (int) $notif['unread_count'];
     }
 
     function deactivateStation(stationId) {
-        showConfirm('Deactivate this station? It will no longer be bookable, but all booking and payment history will be preserved.', function() {
+        // Admin deactivation requires a reason
+        var reason = prompt('Reason for deactivation (required):');
+        if (!reason || reason.trim() === '') {
+            showToast('A reason is required to deactivate a station.', 'error');
+            return;
+        }
+        showConfirm('Deactivate this station? It will no longer be bookable, but all booking and payment history will be preserved.\n\nReason: ' + reason, function() {
             fetch('/EE/api/stations.php?action=deactivate&id=' + stationId, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: stationId })
+                body: JSON.stringify({ id: stationId, reason: reason.trim() })
             }).then(r => r.json()).then(data => {
                 if (data.status === 'success') loadSection(currentSection, true);
                 else showToast(data.message || 'Failed to deactivate station', 'error');
-            });
-        });
+            }).catch(() => showToast('Network error', 'error'));
+        }, { confirmLabel: 'Deactivate', confirmClass: 'btn-danger' });
     }
 
     function reactivateStation(stationId) {

@@ -120,6 +120,8 @@ CREATE TABLE stations (
     approval_status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     rejection_reason TEXT,
     deactivated_at TIMESTAMP NULL DEFAULT NULL, -- non-null = station deactivated (has booking/payment history, hard delete blocked)
+    deactivated_by ENUM('owner','admin') NULL DEFAULT NULL, -- who deactivated it (NULL = not deactivated)
+    deactivation_reason TEXT NULL DEFAULT NULL, -- reason for deactivation (required for admin, optional for owner)
     
     -- Analytics
     total_bookings INT DEFAULT 0,
@@ -175,7 +177,7 @@ CREATE TABLE bookings (
     
     -- Booking Details
     booking_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    arrival_deadline TIMESTAMP,
+    arrival_deadline TIMESTAMP NULL DEFAULT NULL,
     
     -- Calculated Values
     car_current_battery_percent INT,
@@ -216,8 +218,8 @@ CREATE TABLE charging_sessions (
     booking_id INT NOT NULL UNIQUE,
     
     -- Session Timing
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
+    start_time TIMESTAMP NULL DEFAULT NULL,
+    end_time TIMESTAMP NULL DEFAULT NULL,
     
     -- Battery Information
     battery_start_percent INT,
@@ -446,17 +448,17 @@ CREATE TABLE support_tickets (
 
 -- Insert sample users
 INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh, charger_preference) VALUES
-('driver1@example.com', '$2y$10$abc123', 'Raj Patel', '+977 9801234567', 'Tesla Model 3', 75, 'dc_fast'),
-('driver2@example.com', '$2y$10$def456', 'Priya Singh', '+977 9809876543', 'Nissan Leaf', 62, 'ac_22kw');
+('driver1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Raj Patel', '+977 9801234567', 'Tesla Model 3', 75, 'dc_fast'),
+('driver2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Priya Singh', '+977 9809876543', 'Nissan Leaf', 62, 'ac_22kw');
 
 -- Insert sample owners
 INSERT INTO owners (email, password, company_name, name, phone, approval_status) VALUES
-('owner1@example.com', '$2y$10$ghi789', 'Green Energy Ltd', 'Ram Enterprise', '+977 9876543210', 'approved'),
-('owner2@example.com', '$2y$10$jkl012', 'Eco Charging', 'Bishnu Energy', '+977 9843216543', 'approved');
+('owner1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Green Energy Ltd', 'Ram Enterprise', '+977 9876543210', 'approved'),
+('owner2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Eco Charging', 'Bishnu Energy', '+977 9843216543', 'approved');
 
 -- Insert sample admin
 INSERT INTO admins (email, password, name, role) VALUES
-('admin@example.com', '$2y$10$mno345', 'Admin User', 'super_admin');
+('admin@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Admin User', 'super_admin');
 
 -- Insert sample stations
 INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status) VALUES

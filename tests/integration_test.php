@@ -963,6 +963,59 @@ foreach ($ownerStations as $os) {
 }
 rep('71f. deactivated station still in owner dashboard', $foundInOwner, "found=" . ($foundInOwner ? 'yes' : 'no'));
 
+// ===== 72: admin moderation deactivation (reason required) =====
+// Create a fresh station for admin deactivation testing
+$ts3 = __DIR__ . '/_ts_station3.tmp.php';
+file_put_contents($ts3, '<?php
+require_once __DIR__ . "/../app/config/config.php";
+$db = getDB();
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status, is_active) VALUES (1, \"Admin Deactivate Test\", 27.73, 85.34, \"Test Address 3\", \"Kathmandu\", 1, \"approved\", TRUE)")->execute();
+echo $db->lastInsertId();
+');
+$adminDeactId = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ts3) . ' 2>&1'));
+
+// 72a: admin deactivation WITHOUT reason is rejected (400)
+list($c72a, $r72a) = tpost("$BASE/api/stations.php?action=deactivate&id=$adminDeactId", ['id' => $adminDeactId], csrfFor($BASE, $ac, 'public/dashboard/admin.php', true), $ac);
+rep('72a. admin deactivation without reason rejected', $c72a === 400 && strpos($r72a['message'] ?? '', 'reason') !== false, "code=$c72a resp=" . json_encode($r72a));
+
+// 72b: admin deactivation WITH reason succeeds
+$deactReason = 'Station equipment not compliant with safety regulations';
+list($c72b, $r72b) = tpost("$BASE/api/stations.php?action=deactivate&id=$adminDeactId", ['id' => $adminDeactId, 'reason' => $deactReason], csrfFor($BASE, $ac, 'public/dashboard/admin.php', true), $ac);
+rep('72b. admin deactivation with reason succeeds', $c72b === 200 && ($r72b['status'] ?? '') === 'success', "code=$c72b resp=" . json_encode($r72b));
+
+// 72c: verify deactivated_by='admin' and deactivation_reason stored
+$deactRecord = q($db, "SELECT deactivated_by, deactivation_reason FROM stations WHERE id = ?", [$adminDeactId])[0];
+rep('72c. deactivated_by is admin', $deactRecord['deactivated_by'] === 'admin', "deactivated_by={$deactRecord['deactivated_by']}");
+rep('72c. deactivation_reason stored', $deactRecord['deactivation_reason'] === $deactReason, "reason={$deactRecord['deactivation_reason']}");
+
+// 72d: owner deactivation WITHOUT reason still works (backward compat)
+$ts4 = __DIR__ . '/_ts_station4.tmp.php';
+file_put_contents($ts4, '<?php
+require_once __DIR__ . "/../app/config/config.php";
+$db = getDB();
+$db->prepare("INSERT INTO stations (owner_id, name, latitude, longitude, address, city, num_chargers, approval_status, is_active) VALUES (1, \"Owner Deactivate Test\", 27.74, 85.35, \"Test Address 4\", \"Kathmandu\", 1, \"approved\", TRUE)")->execute();
+echo $db->lastInsertId();
+');
+$ownerDeactId = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($ts4) . ' 2>&1'));
+list($c72d, $r72d) = tpost("$BASE/api/stations.php?action=deactivate&id=$ownerDeactId", ['id' => $ownerDeactId], csrfFor($BASE, $oc, 'public/dashboard/owner.php', true), $oc);
+rep('72d. owner deactivation without reason works', $c72d === 200 && ($r72d['status'] ?? '') === 'success', "code=$c72d resp=" . json_encode($r72d));
+$ownerDeactRecord = q($db, "SELECT deactivated_by, deactivation_reason FROM stations WHERE id = ?", [$ownerDeactId])[0];
+rep('72d. owner deactivated_by is owner', $ownerDeactRecord['deactivated_by'] === 'owner', "deactivated_by={$ownerDeactRecord['deactivated_by']}");
+
+// 72e: appeal creates a support ticket
+$appealResp = api('POST', "$BASE/api/support.php", $oc, ['action' => 'create', 'category' => 'station_approval', 'subject' => "Appeal: Station #$adminDeactId Deactivation", 'message' => 'I would like to appeal this deactivation.']);
+rep('72e. appeal creates support ticket', ($appealResp['status'] ?? '') === 'success' && !empty($appealResp['data']['ticket_id']), "resp=" . json_encode($appealResp));
+// Verify the ticket exists and references the station
+if (($appealResp['status'] ?? '') === 'success') {
+    $ticketId = $appealResp['data']['ticket_id'];
+    $ticket = q($db, "SELECT * FROM support_tickets WHERE id = ?", [$ticketId])[0];
+    rep('72e. appeal ticket has correct category', ($ticket['category'] ?? '') === 'station_approval', "category=" . ($ticket['category'] ?? ''));
+}
+
+// Cleanup 72 test data
+unlink($ts3);
+unlink($ts4);
+
 // Cleanup test data
 // bookings has charger_id, not station_id — resolve via subquery through chargers
 $db->prepare("DELETE FROM bookings WHERE charger_id IN (SELECT id FROM chargers WHERE station_id = ?)")->execute([$histStationId]);

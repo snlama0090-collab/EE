@@ -244,26 +244,70 @@ try {
 
                 echo json_encode(['status' => 'success', 'message' => 'Station rejected']);
                 exit;
-            } elseif ($action === 'deactivate') {
-                // Deactivate: preserves booking/payment history, blocks new bookings.
-                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW() WHERE id = ?");
-                $stmt->execute([$station_id]);
-                echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
-                exit;
-            } elseif ($action === 'reactivate') {
-                // Reactivate: clears the deactivation flag.
-                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL WHERE id = ?");
-                $stmt->execute([$station_id]);
-                echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
+            }
+
+            // Admin action not recognized — fall through to shared/owner handlers below
+            // (deactivate/reactivate are handled in the shared block for both roles)
+        }
+
+        // 2. Shared Actions (Owner AND Admin): deactivate/reactivate
+        $action = sanitize($_GET['action'] ?? '');
+        if ($action === 'deactivate') {
+            // Deactivate a station. Owners can deactivate their own; admins can deactivate any station.
+            // Admins MUST provide a reason; owners may optionally provide one.
+            $input = json_decode(file_get_contents('php://input'), true);
+            $target_id = intval($input['id'] ?? 0);
+            $reason = isset($input['reason']) ? sanitize($input['reason']) : null;
+
+            if ($user_type === 'admin') {
+                // Admin: can deactivate any station, reason required
+                if (empty($reason)) {
+                    http_response_code(400);
+                    echo json_encode(['status' => 'error', 'message' => 'A reason is required when deactivating a station.']);
+                    exit;
+                }
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'admin', deactivation_reason = ? WHERE id = ?");
+                $stmt->execute([$reason, $target_id]);
+            } else {
+                // Owner: can only deactivate their own station
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'owner', deactivation_reason = ? WHERE id = ? AND owner_id = ?");
+                $stmt->execute([$reason, $target_id, $user_id]);
+            }
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
                 exit;
             }
-            
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
+
+            echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
             exit;
         }
-        
-        // 2. Owner Actions
+
+        if ($action === 'reactivate') {
+            // Reactivate a station. Owners can reactivate their own; admins can reactivate any.
+            $input = json_decode(file_get_contents('php://input'), true);
+            $target_id = intval($input['id'] ?? 0);
+
+            if ($user_type === 'admin') {
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ?");
+                $stmt->execute([$target_id]);
+            } else {
+                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ? AND owner_id = ?");
+                $stmt->execute([$target_id, $user_id]);
+            }
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(403);
+                echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
+                exit;
+            }
+
+            echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
+            exit;
+        }
+
+        // 3. Owner Actions (owner-specific only)
         if ($user_type === 'owner') {
             $action = sanitize($_GET['action'] ?? '');
             if ($action === 'update_charger_status') {
@@ -300,21 +344,56 @@ try {
             }
 
             if ($action === 'deactivate') {
-                // Owner deactivates their own station (preserves history).
+                // Deactivate a station. Owners can deactivate their own; admins can deactivate any station.
+                // Admins MUST provide a reason; owners may optionally provide one.
                 $input = json_decode(file_get_contents('php://input'), true);
                 $target_id = intval($input['id'] ?? 0);
-                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW() WHERE id = ? AND owner_id = ?");
-                $stmt->execute([$target_id, $user_id]);
+                $reason = isset($input['reason']) ? sanitize($input['reason']) : null;
+
+                if ($user_type === 'admin') {
+                    // Admin: can deactivate any station, reason required
+                    if (empty($reason)) {
+                        http_response_code(400);
+                        echo json_encode(['status' => 'error', 'message' => 'A reason is required when deactivating a station.']);
+                        exit;
+                    }
+                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'admin', deactivation_reason = ? WHERE id = ?");
+                    $stmt->execute([$reason, $target_id]);
+                } else {
+                    // Owner: can only deactivate their own station
+                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'owner', deactivation_reason = ? WHERE id = ? AND owner_id = ?");
+                    $stmt->execute([$reason, $target_id, $user_id]);
+                }
+
+                if ($stmt->rowCount() === 0) {
+                    http_response_code(403);
+                    echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
+                    exit;
+                }
+
                 echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
                 exit;
             }
 
             if ($action === 'reactivate') {
-                // Owner reactivates their own station.
+                // Reactivate a station. Owners can reactivate their own; admins can reactivate any.
                 $input = json_decode(file_get_contents('php://input'), true);
                 $target_id = intval($input['id'] ?? 0);
-                $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL WHERE id = ? AND owner_id = ?");
-                $stmt->execute([$target_id, $user_id]);
+
+                if ($user_type === 'admin') {
+                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ?");
+                    $stmt->execute([$target_id]);
+                } else {
+                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ? AND owner_id = ?");
+                    $stmt->execute([$target_id, $user_id]);
+                }
+
+                if ($stmt->rowCount() === 0) {
+                    http_response_code(403);
+                    echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
+                    exit;
+                }
+
                 echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
                 exit;
             }

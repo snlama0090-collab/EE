@@ -692,6 +692,23 @@ if (file_exists($profilePicAbsolute)) {
         }, { confirmLabel: 'Reactivate', confirmClass: 'btn-primary' });
     }
 
+    function appealDeactivation(stationId) {
+        // Create a support ticket appealing the deactivation
+        var subject = 'Appeal: Station #' + stationId + ' Deactivation';
+        var message = 'I would like to appeal the deactivation of my station (ID: ' + stationId + ').\n\n[Please explain why you believe this deactivation should be reversed]';
+        fetch('/EE/api/support.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'create', category: 'station_approval', subject: subject, message: message })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.status === 'success') {
+                showAlert('Appeal submitted. An admin will review your case.', 'success');
+            } else {
+                showAlert(data.message || 'Failed to submit appeal.', 'error');
+            }
+        }).catch(function() { showAlert('Network error.', 'error'); });
+    }
+
     function htmlspecialchars(str) {
         var amp = '&' + 'amp;';
         var lt = '&' + 'lt;';

@@ -56,11 +56,21 @@ $stations = $stmt->fetchAll();
                     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                         <?php if (!empty($station['deactivated_at'])): ?>
                             <span class="badge badge-danger">Deactivated</span>
+                            <?php if ($station['deactivated_by'] === 'admin' && !empty($station['deactivation_reason'])): ?>
+                                <div style="font-size: 11px; color: var(--destructive); margin-top: 4px; max-width: 300px;">
+                                    <i class="fas fa-exclamation-circle"></i> <strong>Reason:</strong> <?php echo htmlspecialchars($station['deactivation_reason']); ?>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                         <span class="badge <?php echo $badge; ?>"><?php echo $approval; ?></span>
                         <button class="btn btn-primary btn-sm" onclick="manageStationChargers(<?php echo $station['id']; ?>, '<?php echo addslashes($station['name']); ?>')">
                             <i class="fas fa-eye"></i> View
                         </button>
+                        <?php if (!empty($station['deactivated_at']) && $station['deactivated_by'] === 'admin'): ?>
+                            <button class="btn btn-secondary btn-sm" onclick="appealDeactivation(<?php echo $station['id']; ?>)">
+                                <i class="fas fa-gavel"></i> Appeal
+                            </button>
+                        <?php endif; ?>
                         <?php if (!empty($station['deactivated_at'])): ?>
                             <button class="btn btn-secondary btn-sm" onclick="reactivateStation(<?php echo $station['id']; ?>)">
                                 <i class="fas fa-undo"></i> Reactivate

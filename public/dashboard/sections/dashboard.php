@@ -113,7 +113,7 @@ $active_bookings = $stmt->fetchAll();
 
                     <?php if ($booking['status'] === 'booked'): ?>
                         <div style="font-size: 11px; margin-top: 8px; color: var(--danger); font-weight:600;">
-                            <i class="fas fa-clock" style="margin-right:4px;"></i> Arrive before: <?php echo date('H:i', strtotime($booking['arrival_deadline'])); ?>
+                            <i class="fas fa-clock" style="margin-right:4px;"></i> Arrive before: <?php echo date('g:i A', strtotime($booking['arrival_deadline'])); ?>
                         </div>
                     <?php endif; ?>
                 </div>

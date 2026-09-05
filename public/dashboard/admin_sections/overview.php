@@ -145,7 +145,7 @@ $pending_stations = $stmt->fetchAll();
                 <td><?php echo $activity['admin_id'] ? 'Admin #'.$activity['admin_id'] : 'System'; ?></td>
                 <td><?php echo htmlspecialchars($activity['action']); ?></td>
                 <td><?php echo htmlspecialchars($activity['resource_type']); ?></td>
-                <td><?php echo date('M d, H:i', strtotime($activity['created_at'])); ?></td>
+                <td><?php echo date('M d, g:i A', strtotime($activity['created_at'])); ?></td>
             </tr>
             <?php endforeach; ?>
         </tbody>

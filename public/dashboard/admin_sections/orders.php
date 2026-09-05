@@ -89,7 +89,7 @@ $bookings = $stmt->fetchAll();
                     </td>
                     <td class="amount">NPR <?php echo number_format($b['estimated_total_cost'] ?? 0, 2); ?></td>
                     <td><span class="badge <?php echo $badge; ?>"><?php echo htmlspecialchars($b['status']); ?></span></td>
-                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($b['created_at'])); ?></td>
+                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($b['created_at'])); ?></td>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>

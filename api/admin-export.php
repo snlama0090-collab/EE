@@ -104,7 +104,7 @@ switch ($type) {
             $duration = ($r['status'] === 'completed' && $r['actual_charge_time_minutes'])
                 ? $r['actual_charge_time_minutes'] . ' min / ' . number_format((float) $r['kwh_consumed'], 1) . ' kWh'
                 : $r['calculated_charge_time_minutes'] . ' min (est)';
-            return [$r['user_name'], $r['user_email'], $r['station_name'], $r['charger_type'] . ' (' . $r['wattage_kw'] . 'kW)', $duration, number_format((float) ($r['estimated_total_cost'] ?? 0), 2), $r['status'], date('M d, H:i', strtotime($r['created_at']))];
+            return [$r['user_name'], $r['user_email'], $r['station_name'], $r['charger_type'] . ' (' . $r['wattage_kw'] . 'kW)', $duration, number_format((float) ($r['estimated_total_cost'] ?? 0), 2), $r['status'], date('M d, g:i A', strtotime($r['created_at']))];
         };
         break;
 

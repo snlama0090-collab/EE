@@ -36,7 +36,7 @@ $notifications = $stmt->fetchAll();
                 <tr class="<?php echo empty($n['is_read']) ? 'unread-row' : ''; ?>">
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td><?php echo htmlspecialchars($n['resource_type'] ?? '-'); ?></td>
-                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($n['created_at'])); ?></td>
+                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($n['created_at'])); ?></td>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>

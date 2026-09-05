@@ -41,7 +41,7 @@ $notifications = $stmt->fetchAll();
                     <td style="font-size:12px;color:var(--muted-foreground);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                         <?php echo htmlspecialchars(substr($n['details'] ?? '', 0, 80)); ?>
                     </td>
-                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($n['created_at'])); ?></td>
+                    <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($n['created_at'])); ?></td>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>

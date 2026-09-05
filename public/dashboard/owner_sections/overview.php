@@ -136,7 +136,7 @@ $recent_bookings = $stmt->fetchAll();
                         </td>
                         <td class="amount"><?php echo format_currency($booking['estimated_total_cost'] ?? 0); ?></td>
                         <td><span class="badge <?php echo $status_badge; ?>"><?php echo htmlspecialchars($booking['status']); ?></span></td>
-                        <td style="font-size: 12px; color: var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($booking['created_at'])); ?></td>
+                        <td style="font-size: 12px; color: var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($booking['created_at'])); ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>

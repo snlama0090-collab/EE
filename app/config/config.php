@@ -326,6 +326,37 @@ function format_currency($amount) {
 }
 
 /**
+ * Get profile picture URL with 3-tier fallback:
+ * 1. Uploaded file on disk (highest priority — manual upload always wins)
+ * 2. Google avatar URL from users.profile_pic column
+ * 3. Default avatar (lowest priority)
+ *
+ * @param int    $user_id     User ID
+ * @param string $user_type   'driver', 'owner', or 'admin'
+ * @param string $profile_pic Google avatar URL from DB (may be empty/null)
+ * @return string             URL/path to use as <img src>
+ */
+function get_profile_picture_url($user_id, $user_type, $profile_pic = '') {
+    // Determine filename prefix based on user type
+    $prefix = ($user_type === 'owner') ? 'owner_' : '';
+    $filename = $prefix . $user_id . '.jpg';
+
+    // Tier 1: Check if uploaded file exists on disk
+    $absolute_path = PUBLIC_PATH . "/assets/uploads/pfp/{$filename}";
+    if (file_exists($absolute_path)) {
+        return "../assets/uploads/pfp/{$filename}";
+    }
+
+    // Tier 2: Use Google avatar URL if available
+    if (!empty($profile_pic)) {
+        return $profile_pic;
+    }
+
+    // Tier 3: Fall back to default avatar
+    return '../assets/img/default-avatar.svg';
+}
+
+/**
  * Send JSON response
  */
 function json_response($status, $message = '', $data = null) {

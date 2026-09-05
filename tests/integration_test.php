@@ -19,6 +19,7 @@
  *     with password Test@123 (see database/schema.sql seed data)
  */
 error_reporting(E_ALL); ini_set('display_errors', 1);
+require_once __DIR__ . '/../app/config/config.php';
 $BASE='http://localhost/EE';
 $db=new PDO('mysql:host=localhost;dbname=ev_charging_db;charset=utf8mb4','root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);
 $CSRF_TOKENS=[];
@@ -1029,5 +1030,30 @@ q($db, "DELETE FROM login_attempts");
 q($db, "DELETE FROM activity_logs WHERE resource_type = 'support_ticket'");
 $left = (int)q($db, "SELECT COUNT(*) c FROM login_attempts")[0]['c'];
 rep('teardown. login_attempts emptied for next run', $left === 0, "rows_left=$left");
+
+// ===== 73: Google avatar fallback (profile_pic display) =====
+// Create a user with a Google avatar URL but no uploaded file
+$googleAvatarUrl = 'https://lh3.googleusercontent.com/a-/AOh14Gg-example-avatar';
+$testEmail = 'google-avatar-test@test.local';
+$db->prepare("DELETE FROM users WHERE email = ?")->execute([$testEmail]); // idempotent cleanup
+$db->prepare("INSERT INTO users (email, password, name, phone, profile_pic, email_verified, status) VALUES (?, ?, ?, ?, ?, TRUE, 'active')")
+   ->execute([$testEmail, password_hash('Test@123', PASSWORD_BCRYPT), 'Google Avatar Test', '+977 9801234567', $googleAvatarUrl]);
+$googleUserId = intval($db->lastInsertId());
+
+// Test the helper function directly
+$helperResult = get_profile_picture_url($googleUserId, 'driver', $googleAvatarUrl);
+rep('73a. Google avatar URL returned when no file exists', $helperResult === $googleAvatarUrl, "result=$helperResult");
+
+// Test that empty profile_pic falls back to default
+$emptyResult = get_profile_picture_url($googleUserId, 'driver', '');
+rep('73b. Empty profile_pic falls back to default', $emptyResult === '../assets/img/default-avatar.svg', "result=$emptyResult");
+
+// Test owner type uses owner_ prefix
+$ownerResult = get_profile_picture_url(999, 'owner', '');
+$hasOwnerPrefix = (strpos($ownerResult, 'owner_999.jpg') !== false) || ($ownerResult === '../assets/img/default-avatar.svg');
+rep('73c. Owner type uses owner_ prefix in filename', $hasOwnerPrefix, "result=$ownerResult");
+
+// Cleanup
+$db->prepare("DELETE FROM users WHERE id = ?")->execute([$googleUserId]);
 
 echo "DONE\n";

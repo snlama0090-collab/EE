@@ -31,12 +31,8 @@ require_once '../../app/helpers/Notifications.php';
 $notif = Notifications::summary($db, $user_role, $user_id);
 $unread = (int) $notif['unread_count'];
 
-// Get user profile picture
-$profilePicPath = '../assets/img/default-avatar.svg';
-$profilePicAbsolute = PUBLIC_PATH . "/assets/uploads/pfp/{$user_id}.jpg";
-if (file_exists($profilePicAbsolute)) {
-    $profilePicPath = "../assets/uploads/pfp/{$user_id}.jpg";
-}
+// Get user profile picture (3-tier: uploaded file → Google avatar → default)
+$profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="en">

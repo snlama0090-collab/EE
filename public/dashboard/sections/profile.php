@@ -104,12 +104,8 @@ $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
-// Profile picture path
-$profilePicPath = '../assets/img/default-avatar.svg';
-$profilePicAbsolute = PUBLIC_PATH . "/assets/uploads/pfp/{$user_id}.jpg";
-if (file_exists($profilePicAbsolute)) {
-    $profilePicPath = "../assets/uploads/pfp/{$user_id}.jpg";
-}
+// Profile picture path (3-tier: uploaded file → Google avatar → default)
+$profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic'] ?? '');
 ?>
 
 <div class="profile-container">

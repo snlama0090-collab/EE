@@ -176,11 +176,8 @@ $owner = $stmt->fetch();
             <h3 style="margin: 24px 0 16px 0; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Company Logo</h3>
             <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px;">
                 <?php
-                $logoPath = '../assets/img/default-avatar.svg';
-                $logoAbsolute = PUBLIC_PATH . "/assets/uploads/pfp/owner_{$user_id}.jpg";
-                if (file_exists($logoAbsolute)) {
-                    $logoPath = "../assets/uploads/pfp/owner_{$user_id}.jpg";
-                }
+                // Company logo (3-tier: uploaded file → Google avatar → default)
+                $logoPath = get_profile_picture_url($user_id, 'owner', $owner['profile_pic'] ?? '');
                 ?>
                 <div style="position:relative; display:inline-block;">
                     <img src="<?php echo htmlspecialchars($logoPath); ?>?t=<?php echo time(); ?>" alt="Logo" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid var(--secondary);">

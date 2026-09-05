@@ -1083,26 +1083,69 @@ rep('73c. Owner type uses owner_ prefix in filename', $hasOwnerPrefix, "result=$
 $db->prepare("DELETE FROM users WHERE id = ?")->execute([$googleUserId]);
 
 // ===== 74: API rate limiter =====
-// Note: Rate limiting is skipped in non-production environments (ENV !== 'production').
-// These tests verify the helper logic directly rather than relying on HTTP 429 responses.
+// Uses $forceProduction=true to exercise the actual enforcement logic in test env.
+// Uses disposable test IPs to avoid polluting/being polluted by other tests.
 require_once __DIR__ . '/../app/helpers/ApiRateLimiter.php';
 
-// Test 74a: Empty table allows requests
-$db->exec("DELETE FROM api_rate_limits");
-$result = ApiRateLimiter::check($db, '127.0.0.1');
-rep('74a. Rate limiter allows requests when under limit', $result['limited'] === false, "limited=" . var_export($result['limited'], true));
+$testIp = '192.168.255.100';      // disposable: exceeds limit
+$cleanIp = '192.168.255.101';     // disposable: stays under limit
 
-// Test 74b: Development mode bypasses limiting (ENV !== 'production')
-// In development mode, check() always returns limited=false regardless of record count
-for ($i = 0; $i < 150; $i++) {
-    ApiRateLimiter::record($db, '10.0.0.1');
+// Use the configured limit (100 requests/hour). We'll insert exactly that many
+// plus one to trigger enforcement.
+$db->exec("DELETE FROM api_rate_limits"); // start clean
+
+// --- Test 74a: Under limit allows requests ---
+// Record limit-1 requests, check should NOT be limited
+$limit = (int) API_RATE_LIMIT_REQUESTS;
+for ($i = 0; $i < $limit - 1; $i++) {
+    ApiRateLimiter::record($db, $testIp, true);
 }
-$result = ApiRateLimiter::check($db, '10.0.0.1');
-rep('74b. Development mode bypasses rate limit', $result['limited'] === false, "limited=" . var_export($result['limited'], true));
+$result = ApiRateLimiter::check($db, $testIp, true);
+rep('74a. Under limit allows requests', $result['limited'] === false, 'limited=' . var_export($result['limited'], true));
 
-// Test 74c: Verify the table structure and cleanup works
+// --- Test 74b: At/exceeding limit blocks requests ---
+// Record 1 more (now at limit), next check SHOULD be limited
+ApiRateLimiter::record($db, $testIp, true);
+$result = ApiRateLimiter::check($db, $testIp, true);
+rep('74b. At limit blocks requests (HTTP 429)', $result['limited'] === true, 'limited=' . var_export($result['limited'], true));
+
+// --- Test 74c: retry_after is within expected range ---
+$window = (int) API_RATE_LIMIT_WINDOW;
+rep('74c. retry_after is positive and within window', $result['retry_after'] > 0 && $result['retry_after'] <= $window, 'retry_after=' . $result['retry_after']);
+
+// --- Test 74d: Per-IP scoping ---
+// The clean IP has 0 requests, should NOT be limited even though testIp is
+$result = ApiRateLimiter::check($db, $cleanIp, true);
+rep('74d. Limiting is per-IP scoped (clean IP not blocked)', $result['limited'] === false, 'limited=' . var_export($result['limited'], true));
+
+// --- Test 74e: End-to-end with real REMOTE_ADDR ---
+// Seed rate limits for the actual REMOTE_ADDR used by the test suite,
+// then verify check() returns limited for that IP (integration test).
+$remoteIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 $db->exec("DELETE FROM api_rate_limits");
-$count = (int)$db->query("SELECT COUNT(*) FROM api_rate_limits")->fetchColumn();
-rep('74c. Rate limit table cleanup works', $count === 0, "count=$count");
+$seedStmt = $db->prepare("INSERT INTO api_rate_limits (ip_address, requested_at) VALUES (?, NOW())");
+for ($i = 0; $i < $limit; $i++) {
+    $seedStmt->execute([$remoteIp]);
+}
+$result = ApiRateLimiter::check($db, $remoteIp, true);
+rep('74e. Real REMOTE_ADDR is blocked at limit (integration)', $result['limited'] === true, 'limited=' . var_export($result['limited'], true));
+
+// --- Test 74f: retry_after math with controlled timestamps ---
+$db->exec("DELETE FROM api_rate_limits");
+$mathIp = '192.168.255.250';
+$now = time();
+// Insert $limit requests: oldest at $now-30s, newest at $now
+$mathStmt = $db->prepare("INSERT INTO api_rate_limits (ip_address, requested_at) VALUES (?, FROM_UNIXTIME(?))");
+for ($i = 0; $i < $limit; $i++) {
+    $mathStmt->execute([$mathIp, $now - 30 + (int)($i * 30 / $limit)]); // spread across ~30s
+}
+$result = ApiRateLimiter::check($db, $mathIp, true);
+// Expected: retry_after = window - (now - oldest_time) = 3600 - 30 = 3570 (approximately)
+$expectedMin = 3560; // allow some tolerance
+$expectedMax = 3580;
+rep('74f. retry_after math is approximately correct', $result['retry_after'] >= $expectedMin && $result['retry_after'] <= $expectedMax, 'retry_after=' . $result['retry_after']);
+
+// Cleanup
+$db->exec("DELETE FROM api_rate_limits");
 
 echo "DONE\n";

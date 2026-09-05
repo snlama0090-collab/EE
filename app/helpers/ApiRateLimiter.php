@@ -22,14 +22,16 @@ class ApiRateLimiter
     /**
      * Check if the current IP has exceeded the rate limit.
      *
-     * @param PDO    $db  Database connection
-     * @param string $ip  Client IP address
+     * @param PDO    $db              Database connection
+     * @param string $ip               Client IP address
+     * @param bool   $forceProduction  When true, bypass the ENV check (for testing only)
      * @return array      ['limited' => bool, 'retry_after' => int seconds]
      */
-    public static function check($db, $ip)
+    public static function check($db, $ip, $forceProduction = false)
     {
         // Skip rate limiting in non-production environments (development/testing)
-        if (ENV !== 'production') {
+        // unless explicitly forced (testing only)
+        if (!$forceProduction && ENV !== 'production') {
             return ['limited' => false, 'retry_after' => 0];
         }
 
@@ -69,12 +71,13 @@ class ApiRateLimiter
     /**
      * Record a request from the current IP.
      *
-     * @param PDO    $db  Database connection
-     * @param string $ip  Client IP address
+     * @param PDO    $db              Database connection
+     * @param string $ip               Client IP address
+     * @param bool   $forceProduction  When true, bypass the ENV check (for testing only)
      */
-    public static function record($db, $ip)
+    public static function record($db, $ip, $forceProduction = false)
     {
-        if (ENV !== 'production') {
+        if (!$forceProduction && ENV !== 'production') {
             return;
         }
 

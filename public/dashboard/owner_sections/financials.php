@@ -37,14 +37,14 @@ $avg_revenue_per_booking = $bookings > 0 ? $revenue / $bookings : 0;
         <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
         <div class="metric-info">
             <h3>Gross Revenue</h3>
-            <p>NPR <?php echo number_format($revenue, 2); ?></p>
+            <p><?php echo format_currency($revenue); ?></p>
         </div>
     </div>
     <div class="metric-card warning">
         <div class="metric-icon"><i class="fas fa-percent"></i></div>
         <div class="metric-info">
             <h3>Platform Fee (30%)</h3>
-            <p>NPR <?php echo number_format($platform_fee, 2); ?></p>
+            <p><?php echo format_currency($platform_fee); ?></p>
         </div>
     </div>
     <div class="metric-card">

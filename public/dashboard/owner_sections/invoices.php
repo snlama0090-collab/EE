@@ -44,14 +44,14 @@ $total_pending = $stmt->fetch()['total_pending'];
         <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
         <div class="metric-info">
             <h3>Total Paid</h3>
-            <p>NPR <?php echo number_format($total_paid, 2); ?></p>
+            <p><?php echo format_currency($total_paid); ?></p>
         </div>
     </div>
     <div class="metric-card warning">
         <div class="metric-icon"><i class="fas fa-clock"></i></div>
         <div class="metric-info">
             <h3>Pending</h3>
-            <p>NPR <?php echo number_format($total_pending, 2); ?></p>
+            <p><?php echo format_currency($total_pending); ?></p>
         </div>
     </div>
 </div>

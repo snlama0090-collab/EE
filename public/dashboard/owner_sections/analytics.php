@@ -40,7 +40,7 @@ $active_sessions = $stmt->fetch()['active'] ?? 0;
         <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
         <div class="metric-info">
             <h3>Total Revenue</h3>
-            <p>NPR <?php echo number_format($revenue, 2); ?></p>
+            <p><?php echo format_currency($revenue); ?></p>
         </div>
     </div>
     <div class="metric-card warning">

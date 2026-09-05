@@ -322,7 +322,7 @@ function generate_token($length = 32) {
  * Format currency
  */
 function format_currency($amount) {
-    return '₹' . number_format($amount, 2);
+    return 'NPR ' . number_format($amount, 2);
 }
 
 /**

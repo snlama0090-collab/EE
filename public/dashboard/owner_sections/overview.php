@@ -51,7 +51,7 @@ $recent_bookings = $stmt->fetchAll();
         <div class="metric-icon"><i class="fas fa-wallet"></i></div>
         <div class="metric-info">
             <h3>Total Revenue</h3>
-            <p>NPR <?php echo number_format($stats['total_revenue'] ?? 0, 2); ?></p>
+            <p><?php echo format_currency($stats['total_revenue'] ?? 0); ?></p>
         </div>
     </div>
     
@@ -121,7 +121,7 @@ $recent_bookings = $stmt->fetchAll();
                             <span class="charger-badge">#<?php echo $booking['charger_number']; ?></span>
                             <span style="font-size: 12px; color: var(--muted-foreground);"><?php echo htmlspecialchars($booking['charger_type']); ?></span>
                         </td>
-                        <td class="amount">NPR <?php echo number_format($booking['estimated_total_cost'] ?? 0, 2); ?></td>
+                        <td class="amount"><?php echo format_currency($booking['estimated_total_cost'] ?? 0); ?></td>
                         <td><span class="badge <?php echo $status_badge; ?>"><?php echo htmlspecialchars($booking['status']); ?></span></td>
                         <td style="font-size: 12px; color: var(--muted-foreground);"><?php echo date('M d, H:i', strtotime($booking['created_at'])); ?></td>
                     </tr>

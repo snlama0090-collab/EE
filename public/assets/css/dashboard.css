@@ -1294,6 +1294,47 @@ body {
 .listing-toolbar .toolbar-actions {
     display: flex;
     gap: 6px;
+    position: relative;
+}
+
+/* ===== COLUMNS SHOW/HIDE POPOVER (admin table tools) ===== */
+.columns-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    min-width: 170px;
+    padding: 8px;
+    display: none;
+    z-index: 100;
+}
+
+.columns-menu.show {
+    display: block;
+}
+
+.columns-menu label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    font-size: 13px;
+    color: var(--foreground);
+    border-radius: calc(var(--radius) - 2px);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.columns-menu label:hover {
+    background: var(--accent);
+}
+
+.columns-menu input[type="checkbox"] {
+    accent-color: var(--primary);
+    cursor: pointer;
 }
 
 .listing-table {

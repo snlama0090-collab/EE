@@ -101,6 +101,13 @@ $active_sessions = $stmt->fetch()['total'];
     </div>
 </div>
 
+<div class="listing-toolbar" data-table-tools="analytics" style="margin-bottom:12px;">
+    <div class="toolbar-actions">
+        <button type="button" class="btn btn-secondary btn-sm" data-columns><i class="fas fa-columns"></i> Columns</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-export><i class="fas fa-download"></i> Export</button>
+    </div>
+</div>
+
 <div class="listing-table" style="margin-bottom:24px;">
     <div style="padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;">
         <h3 style="font-size:15px;font-weight:600;color:var(--foreground);display:flex;align-items:center;gap:8px;"><i class="fas fa-calendar-day" style="color:var(--muted-foreground);font-size:16px;"></i> Bookings per Day (Last 30 Days)</h3>

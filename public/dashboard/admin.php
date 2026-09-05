@@ -206,6 +206,8 @@ $unread = (int) $notif['unread_count'];
             })
             .then(html => {
                 contentArea.innerHTML = html;
+                // Re-wire Columns/Export tools for the freshly injected section
+                if (window.initAdminTableTools) window.initAdminTableTools();
             })
             .catch(error => {
                 console.error('Failed to load section:', error);
@@ -442,7 +444,8 @@ $unread = (int) $notif['unread_count'];
     </div>
 </div>
 
-<script>window.userRole='<?php echo $user_role; ?>';</script>
-<script src="../assets/js/dashboard.js"></script>
+    <script>window.userRole='<?php echo $user_role; ?>';</script>
+    <script src="../assets/js/admin-table-tools.js"></script>
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>

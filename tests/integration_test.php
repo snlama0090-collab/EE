@@ -1166,4 +1166,130 @@ rep('74f. retry_after math is approximately correct', $result['retry_after'] >= 
 // Cleanup
 $db->exec("DELETE FROM api_rate_limits");
 
+// ===== 75a-75o: ADMIN EXPORT (api/admin-export.php) + table tools wiring =====
+// Raw GET helper returning [http_code, raw_headers, body] (export replies are CSV, not JSON).
+$tget = function ($u, $jar) {
+    $ch = curl_init($u);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true,
+        CURLOPT_COOKIEJAR => $jar, CURLOPT_COOKIEFILE => $jar, CURLOPT_USERAGENT => 'IntegrationTest/1.0']);
+    $r = (string) curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $hsize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    curl_close($ch);
+    return [$code, substr($r, 0, $hsize), substr($r, $hsize)];
+};
+function csvRows($body) {
+    $lines = explode("\n", trim($body));
+    return array_map('str_getcsv', $lines);
+}
+
+// Admin session (same fixture pattern as the 49-57 support block)
+$axh = password_hash('AdminTest@123', PASSWORD_BCRYPT);
+$db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 'super_admin')
+              ON DUPLICATE KEY UPDATE password = VALUES(password)")
+   ->execute(['exporttest-admin@evcharge.com', $axh, 'Export Test Admin']);
+$xa = __DIR__ . '/xa.txt'; @unlink($xa);
+api('POST', "$BASE/api/auth/login.php", $xa, ['email' => 'exporttest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+
+// 75a: users export — HTTP shape
+[$uc, $uh, $ub] = $tget("$BASE/api/admin-export.php?type=users", $xa);
+$urows = csvRows($ub);
+rep('75a. users export: 200 + text/csv + attachment', $uc === 200 && strpos($uh, 'Content-Type: text/csv') !== false && strpos($uh, 'attachment; filename="users-export-') !== false, "http=$uc");
+rep('75b. users CSV header row', ($urows[0] ?? []) === ['Name', 'Email', 'Role', 'Phone', 'Warnings', 'Status', 'Joined'], json_encode($urows[0] ?? null));
+
+// 75c: users rows mirror the users+owners tables (50 newest each, newest first)
+$expD = q($db, "SELECT name, email, 'driver' AS role, created_at FROM users ORDER BY created_at DESC LIMIT 50");
+$expO = q($db, "SELECT company_name AS name, email, 'owner' AS role, created_at FROM owners ORDER BY created_at DESC LIMIT 50");
+$exp = array_merge($expD, $expO);
+usort($exp, function ($a, $b) { return strtotime($b['created_at']) <=> strtotime($a['created_at']); });
+$ok = count($urows) - 1 === count($exp);
+if ($ok && count($exp) > 0) {
+    $ok = $urows[1][0] === $exp[0]['name'] && $urows[1][1] === $exp[0]['email'] && $urows[1][2] === $exp[0]['role'];
+}
+rep('75c. users CSV rows match users/owners tables', $ok, 'csv=' . (count($urows) - 1) . ' db=' . count($exp) . ' first=' . ($urows[1][1] ?? ''));
+
+// 75d: customers export mirrors users table
+[$cc, , $cb] = $tget("$BASE/api/admin-export.php?type=customers", $xa);
+$crows = csvRows($cb);
+$cexp = q($db, "SELECT name, email FROM users ORDER BY created_at DESC LIMIT 100");
+rep('75d. customers CSV matches users table', count($crows) - 1 === count($cexp) && ($crows[1][1] ?? '') === ($cexp[0]['email'] ?? ''), 'csv=' . (count($crows) - 1) . ' db=' . count($cexp));
+
+// 75e: orders export mirrors the bookings join (same LIMIT 100 as the page)
+[$o2c, , $ob] = $tget("$BASE/api/admin-export.php?type=orders", $xa);
+$orows = csvRows($ob);
+$oexp = q($db, "SELECT u.email AS user_email FROM bookings b JOIN chargers c ON b.charger_id=c.id JOIN stations s ON c.station_id=s.id JOIN users u ON b.user_id=u.id LEFT JOIN charging_sessions cs ON b.id=cs.booking_id ORDER BY b.created_at DESC LIMIT 100");
+rep('75e. orders CSV matches bookings join', count($orows) - 1 === count($oexp) && ($orows[1][1] ?? '') === ($oexp[0]['user_email'] ?? ''), 'csv=' . (count($orows) - 1) . ' db=' . count($oexp));
+
+// 75f: stations export mirrors the stations join
+[$s2c, , $sb] = $tget("$BASE/api/admin-export.php?type=stations", $xa);
+$srows = csvRows($sb);
+$sexp = q($db, "SELECT s.name, o.company_name FROM stations s JOIN owners o ON s.owner_id=o.id ORDER BY s.created_at DESC");
+rep('75f. stations CSV matches stations join', count($srows) - 1 === count($sexp) && ($srows[1][0] ?? '') === ($sexp[0]['name'] ?? ''), 'csv=' . (count($srows) - 1) . ' db=' . count($sexp));
+
+// 75g: analytics export mirrors the daily rollup of bookings
+[$a2c, , $ab] = $tget("$BASE/api/admin-export.php?type=analytics", $xa);
+$arows = csvRows($ab);
+$aexp = q($db, "SELECT DATE(created_at) AS day, COUNT(*) AS bookings FROM bookings WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) GROUP BY DATE(created_at) ORDER BY day DESC");
+$ok = count($arows) - 1 === count($aexp) && (count($aexp) === 0 || (int) $arows[1][1] === (int) $aexp[0]['bookings']);
+rep('75g. analytics CSV matches daily rollup of bookings', $ok, 'csv=' . (count($arows) - 1) . ' db=' . count($aexp));
+
+// 75h: users role=driver filter — driver rows only, count mirrors LIMIT-50 branch
+[$f2c, , $fb] = $tget("$BASE/api/admin-export.php?type=users&role=driver", $xa);
+$frows = csvRows($fb);
+$dexp = q($db, "SELECT COUNT(*) c FROM (SELECT id FROM users ORDER BY created_at DESC LIMIT 50) t");
+$roles = array_values(array_unique(array_map(function ($r) { return $r[2]; }, array_slice($frows, 1))));
+rep('75h. users role=driver filter', $f2c === 200 && $roles === ['driver'] && count($frows) - 1 === (int) $dexp[0]['c'], 'csv=' . (count($frows) - 1) . ' db=' . $dexp[0]['c'] . ' roles=' . json_encode($roles));
+
+// 75i: orders status=completed filter
+[$i2c, , $ib] = $tget("$BASE/api/admin-export.php?type=orders&status=completed", $xa);
+$irows = csvRows($ib);
+$iexp = q($db, "SELECT COUNT(*) c FROM (SELECT b.id FROM bookings b JOIN chargers c ON b.charger_id=c.id JOIN stations s ON c.station_id=s.id JOIN users u ON b.user_id=u.id WHERE b.status='completed' ORDER BY b.created_at DESC LIMIT 100) t");
+$allCompleted = true;
+foreach (array_slice($irows, 1) as $r) { if ($r[6] !== 'completed') $allCompleted = false; }
+rep('75i. orders status=completed filter', $i2c === 200 && count($irows) - 1 === (int) $iexp[0]['c'] && $allCompleted, 'csv=' . (count($irows) - 1) . ' db=' . $iexp[0]['c']);
+
+// 75j: users q= search filter
+[$q2c, , $qb] = $tget("$BASE/api/admin-export.php?type=users&q=driver1", $xa);
+$qrows = csvRows($qb);
+$qexpD = q($db, "SELECT email, created_at FROM users WHERE (name LIKE '%driver1%' OR email LIKE '%driver1%' OR phone LIKE '%driver1%') ORDER BY created_at DESC LIMIT 50");
+$qexpO = q($db, "SELECT email, created_at FROM owners WHERE (company_name LIKE '%driver1%' OR email LIKE '%driver1%' OR phone LIKE '%driver1%') ORDER BY created_at DESC LIMIT 50");
+$qexp = array_merge($qexpD, $qexpO);
+usort($qexp, function ($a, $b) { return strtotime($b['created_at']) <=> strtotime($a['created_at']); });
+rep('75j. users q=driver1 search filter', $q2c === 200 && count($qrows) - 1 === count($qexp) && ($qrows[1][1] ?? '') === 'driver1@example.com', 'csv=' . (count($qrows) - 1) . ' db=' . count($qexp));
+
+// 75k: authenticated non-admin (driver session) -> 403
+[$n2c] = $tget("$BASE/api/admin-export.php?type=users", $dc);
+rep('75k. export refused for driver session (403)', $n2c === 403, "http=$n2c");
+
+// 75l: guest -> redirected to login (302)
+$xg = __DIR__ . '/xg.txt'; @unlink($xg);
+[$g2c] = $tget("$BASE/api/admin-export.php?type=users", $xg);
+rep('75l. guest export redirected to login (302)', $g2c === 302, "http=$g2c");
+@unlink($xg);
+
+// 75m: unknown type -> 400
+[$b2c] = $tget("$BASE/api/admin-export.php?type=nope", $xa);
+rep('75m. unknown export type -> 400', $b2c === 400, "http=$b2c");
+
+// 75n: admin shell loads the table-tools script and hooks loadSection
+[, , $shell] = $tget("$BASE/public/dashboard/admin.php?page=users", $xa);
+rep('75n. admin shell includes table-tools js + loadSection hook', strpos($shell, 'admin-table-tools.js') !== false && strpos($shell, 'initAdminTableTools') !== false, 'js=' . (strpos($shell, 'admin-table-tools.js') !== false ? 'yes' : 'no'));
+
+// 75o: section fragments carry the wired buttons
+[, , $custHtml] = $tget("$BASE/public/dashboard/admin_sections/customers.php", $xa);
+[, , $ordHtml] = $tget("$BASE/public/dashboard/admin_sections/orders.php", $xa);
+[, , $anaHtml] = $tget("$BASE/public/dashboard/admin_sections/analytics.php", $xa);
+[, , $usrHtml] = $tget("$BASE/public/dashboard/admin_sections/users.php", $xa);
+[, , $stnHtml] = $tget("$BASE/public/dashboard/admin_sections/stations.php", $xa);
+$ok = strpos($usrHtml, 'data-table-tools="users"') !== false && strpos($usrHtml, 'data-export') !== false && strpos($usrHtml, 'data-columns') !== false
+   && strpos($custHtml, 'data-columns') !== false && strpos($custHtml, 'data-export') !== false
+   && strpos($ordHtml, 'data-columns') !== false && strpos($ordHtml, 'data-export') !== false
+   && strpos($stnHtml, 'data-table-tools="stations"') !== false && strpos($stnHtml, 'data-columns') !== false
+   && strpos($anaHtml, 'data-table-tools="analytics"') !== false && strpos($anaHtml, 'data-export') !== false && strpos($anaHtml, 'data-columns') !== false;
+rep('75o. all 5 sections carry wired Columns/Export buttons', $ok, 'users/customers/orders/analytics/stations');
+
+// Cleanup export-test admin
+q($db, "DELETE FROM admins WHERE email='exporttest-admin@evcharge.com'");
+@unlink($xa);
+
 echo "DONE\n";

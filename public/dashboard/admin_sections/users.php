@@ -40,13 +40,13 @@ usort($users, function($a, $b) { return strtotime($b['created_at']) - strtotime(
     <button class="filter-pill" onclick="document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.listing-table tbody tr').forEach(r=>{const s=r.querySelector('.badge-danger');r.style.display=s&&s.textContent.trim()==='inactive'?'':'none'});">Inactive</button>
 </div>
 
-<div class="listing-toolbar">
+<div class="listing-toolbar" data-table-tools="users">
     <div class="toolbar-search">
         <input type="text" placeholder="Search users..." id="user-search" oninput="var q=this.value.toLowerCase();document.querySelectorAll('.listing-table tbody tr').forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'});">
     </div>
     <div class="toolbar-actions">
-        <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-columns"></i> Columns</button>
-        <button type="button" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Export</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-columns><i class="fas fa-columns"></i> Columns</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-export><i class="fas fa-download"></i> Export</button>
     </div>
 </div>
 

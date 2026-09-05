@@ -41,9 +41,50 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
         .hero-stats .stat h3 { font-size: 28px; font-weight: 700; color: var(--foreground); }
         .hero-stats .stat p { font-size: 13px; color: var(--muted-foreground); margin: 0; }
         .hero-visual { flex: 1; min-height: 300px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--muted); display: flex; align-items: center; justify-content: center; color: var(--muted-foreground); overflow: hidden; }
+        /* Self-drawing hero illustration — single shared timeline, no drift.
+         * Total cycle: 6s (0-5s: draw sequence, 5-6s: hold, reset at 6s).
+         * Every element shares the SAME 6s duration + infinite iteration,
+         * so they will always loop in perfect sync — no drift possible.
+         * --path-len values are rounded UP from actual getTotalLength() to ensure
+         * the path is fully hidden at 0%/100% (no stray slivers). */
         .hero-visual svg { width: 100%; height: 100%; max-width: 400px; }
-        @keyframes pulse-bolt { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-        .hero-bolt { animation: pulse-bolt 2.5s ease-in-out infinite; transform-origin: center; }
+        .hero-svg path, .hero-svg rect, .hero-svg circle {
+            fill: none;
+            stroke: var(--foreground);
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: var(--path-len);
+            stroke-dashoffset: var(--path-len);
+            animation-duration: 6s;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+        }
+        /* Each element's keyframes place its draw at the correct % of the shared 6s timeline.
+         * All hold at offset 0 (drawn) until ~83%, then fade opacity and reset offset
+         * simultaneously for a clean, non-jarring loop transition. */
+        @keyframes station-body-kf { 0%,5%{stroke-dashoffset:320;opacity:0} 20%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:320;opacity:0} }
+        @keyframes station-screen-kf { 0%,18%{stroke-dashoffset:100;opacity:0} 28%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:100;opacity:0} }
+        @keyframes station-head-kf { 0%,25%{stroke-dashoffset:70;opacity:0} 33%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:70;opacity:0} }
+        @keyframes station-base-kf { 0%,30%{stroke-dashoffset:85;opacity:0} 38%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:85;opacity:0} }
+        @keyframes car-body-kf { 0%,35%{stroke-dashoffset:380;opacity:0} 50%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:380;opacity:0} }
+        @keyframes car-window-kf { 0%,35%{stroke-dashoffset:115;opacity:0} 50%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:115;opacity:0} }
+        @keyframes car-wheel-l-kf { 0%,50%{stroke-dashoffset:80;opacity:0} 55%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:80;opacity:0} }
+        @keyframes car-wheel-r-kf { 0%,52%{stroke-dashoffset:80;opacity:0} 57%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:80;opacity:0} }
+        @keyframes car-port-kf { 0%,55%{stroke-dashoffset:35;opacity:0} 60%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:35;opacity:0} }
+        @keyframes cable-kf { 0%,60%{stroke-dashoffset:130;opacity:0} 72%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:130;opacity:0} }
+        @keyframes bolt-draw-kf { 0%,75%{stroke-dashoffset:55;opacity:0} 82%{stroke-dashoffset:0;opacity:1} 83%{stroke-dashoffset:0;opacity:1} 95%{stroke-dashoffset:0;opacity:0} 100%{stroke-dashoffset:55;opacity:0} }
+        .station-body { --path-len:320; animation-name: station-body-kf; }
+        .station-screen { --path-len:100; animation-name: station-screen-kf; }
+        .station-head { --path-len:70; animation-name: station-head-kf; stroke: var(--muted-foreground); }
+        .station-base { --path-len:85; animation-name: station-base-kf; }
+        .car-body { --path-len:380; animation-name: car-body-kf; }
+        .car-window { --path-len:115; animation-name: car-window-kf; stroke: var(--muted-foreground); }
+        .car-wheel-l { --path-len:80; animation-name: car-wheel-l-kf; fill: var(--muted); }
+        .car-wheel-r { --path-len:80; animation-name: car-wheel-r-kf; fill: var(--muted); }
+        .car-port { --path-len:35; animation-name: car-port-kf; stroke: var(--muted-foreground); }
+        .cable { --path-len:130; animation-name: cable-kf; stroke: var(--border); stroke-dasharray: 4 3; }
+        .bolt { --path-len:55; animation-name: bolt-draw-kf; fill: #22c55e; stroke: none; }
         .section-title { text-align: center; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
         .section-desc { text-align: center; font-size: 14px; color: var(--muted-foreground); margin-bottom: 32px; }
         .role-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; margin: 0 auto 48px; padding: 0 24px; }
@@ -144,27 +185,33 @@ $user_role = Auth::isLoggedIn() ? Auth::getCurrentUserType() : null;
             </div>
         </div>
         <div class="hero-visual" role="img" aria-label="Illustration of an electric vehicle plugged into a charging station">
-            <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" color="var(--foreground)">
-                <!-- Charging station pillar -->
-                <rect x="220" y="60" width="80" height="200" rx="6" />
-                <rect x="235" y="80" width="50" height="70" rx="3" fill="var(--muted)" stroke="var(--border)" />
-                <!-- Station display screen -->
-                <rect x="245" y="95" width="30" height="20" rx="2" stroke="var(--muted-foreground)" />
-                <!-- Cable from station to car -->
-                <path d="M260 260 C260 270, 250 275, 200 275 C150 275, 140 270, 140 260" stroke-dasharray="4 3" />
-                <!-- Car body (simplified outline) -->
-                <path d="M60 220 L80 220 L90 190 L150 190 L160 220 L180 220 L180 250 L60 250 Z" />
-                <!-- Car roof/windshield -->
-                <path d="M95 190 L105 165 L145 165 L155 190" />
-                <!-- Car wheels -->
-                <circle cx="90" cy="250" r="14" fill="var(--muted)" stroke="var(--foreground)" stroke-width="1.5" />
-                <circle cx="150" cy="250" r="14" fill="var(--muted)" stroke="var(--foreground)" stroke-width="1.5" />
-                <!-- Charging port on car -->
-                <rect x="158" y="235" width="12" height="8" rx="2" stroke="var(--muted-foreground)" />
-                <!-- Animated bolt (green accent) -->
-                <g class="hero-bolt" fill="#22c55e" stroke="none">
-                    <path d="M252 108 L248 120 L255 120 L250 135 L258 118 L251 118 Z" />
-                </g>
+            <svg class="hero-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- CHARGING STATION (right side, ~50% of car height) -->
+                <!-- Station body: rounded-top pillar -->
+                <path class="station-body" d="M255 105 L255 100 Q255 95 260 95 L290 95 Q295 95 295 100 L295 210 Q295 215 290 215 L260 215 Q255 215 255 210 Z" />
+                <!-- Station screen (inset area near top, holds bolt) -->
+                <rect class="station-screen" x="262" y="108" width="26" height="18" rx="2" />
+                <!-- Charging head/nozzle mount (protruding from lower-right of station) -->
+                <path class="station-head" d="M280 185 L290 185 Q295 185 295 190 L295 200 Q295 205 290 205 L280 205 Z" />
+                <!-- Station base/foot -->
+                <rect class="station-base" x="258" y="218" width="34" height="6" rx="2" />
+
+                <!-- ELECTRIC VEHICLE (left side) -->
+                <!-- Car body with straight-line angular roofline + integrated window -->
+                <path class="car-body" d="M70 200 L90 200 L100 175 L110 158 L150 158 L160 175 L170 200 L195 200 L195 235 L70 235 Z" />
+                <!-- Car window -->
+                <rect class="car-window" x="118" y="182" width="34" height="14" rx="1" />
+                <!-- Wheels -->
+                <circle class="car-wheel-l" cx="100" cy="235" r="12" />
+                <circle class="car-wheel-r" cx="160" cy="235" r="12" />
+                <!-- Charging port (rear side of car, facing station) -->
+                <rect class="car-port" x="188" y="215" width="8" height="6" rx="1" />
+
+                <!-- CABLE: connects station charging head to car charging port -->
+                <path class="cable" d="M290 195 Q270 220 240 225 Q210 230 195 225 Q192 224 190 222" />
+
+                <!-- GREEN BOLT (inside station screen) -->
+                <path class="bolt" d="M271 114 L269 120 L273 120 L270 128 L275 118 L271 118 Z" />
             </svg>
         </div>
     </section>

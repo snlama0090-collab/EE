@@ -13,10 +13,21 @@
  *   - run it against a production or non-disposable database
  *   - commit the cookie files it generates (dc.txt / oc.txt)
  *
- * It uses PHP cURL + PDO and expects:
+ * It uses PHP cURL + PDO and expects:<
  *   - Apache/MySQL running locally with the app at http://localhost/EE
  *   - seed accounts driver1@example.com / owner1@example.com
  *     with password Test@123 (see database/schema.sql seed data)
+ *
+ * STANDING NOTE — sessions are User-Agent-bound by design (Auth.php:84):
+ * the login-time User-Agent is stored in $_SESSION['user_agent'] and any
+ * later request presenting a different one is treated as hijacked — boot()
+ * wipes the session and redirects to login.php?session=expired. This is
+ * intentional anti-hijacking behavior, NOT a bug. Consequence for testing:
+ * a cookie jar minted by this script (curl/PHP CLI, e.g. dc.txt) is valid
+ * ONLY for CLI requests with the same UA; it CANNOT be reused in a real or
+ * headless browser. Browser-based verification (headless-Chrome/CDP or
+ * manual) must log in from within that same browser context — see
+ * tests/cdp_countdown.mjs for a working in-browser-login example.
  */
 error_reporting(E_ALL); ini_set('display_errors', 1);
 require_once __DIR__ . '/../app/config/config.php';
@@ -1108,11 +1119,12 @@ $db->prepare("DELETE FROM users WHERE id = ?")->execute([$googleUserId]);
 
 // ===== 74: API rate limiter =====
 // Uses $forceProduction=true to exercise the actual enforcement logic in test env.
-// Uses disposable test IPs to avoid polluting/being polluted by other tests.
+// Disposable IPs are public TEST-NET (203.0.113.0/24, never routed, never a real
+// client) — NOT loopback/RFC1918, which the 2026-09-14 check() exemption skips.
 require_once __DIR__ . '/../app/helpers/ApiRateLimiter.php';
 
-$testIp = '192.168.255.100';      // disposable: exceeds limit
-$cleanIp = '192.168.255.101';     // disposable: stays under limit
+$testIp = '203.0.113.100';        // disposable: exceeds limit
+$cleanIp = '203.0.113.101';       // disposable: stays under limit
 
 // Use the configured limit (100 requests/hour). We'll insert exactly that many
 // plus one to trigger enforcement.
@@ -1142,9 +1154,10 @@ rep('74c. retry_after is positive and within window', $result['retry_after'] > 0
 $result = ApiRateLimiter::check($db, $cleanIp, true);
 rep('74d. Limiting is per-IP scoped (clean IP not blocked)', $result['limited'] === false, 'limited=' . var_export($result['limited'], true));
 
-// --- Test 74e: End-to-end with real REMOTE_ADDR ---
-// Seed rate limits for the actual REMOTE_ADDR used by the test suite,
-// then verify check() returns limited for that IP (integration test).
+// --- Test 74e: loopback/private exemption end-to-end ---
+// Since 2026-09-14 check() exempts loopback/RFC1918 IPs. The suite's real
+// client IP (REMOTE_ADDR under CLI = 127.0.0.1) must stay limited=false even
+// when seeded far over the cap — this is the regression test for that policy.
 $remoteIp = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
 $db->exec("DELETE FROM api_rate_limits");
 $seedStmt = $db->prepare("INSERT INTO api_rate_limits (ip_address, requested_at) VALUES (?, NOW())");
@@ -1152,11 +1165,11 @@ for ($i = 0; $i < $limit; $i++) {
     $seedStmt->execute([$remoteIp]);
 }
 $result = ApiRateLimiter::check($db, $remoteIp, true);
-rep('74e. Real REMOTE_ADDR is blocked at limit (integration)', $result['limited'] === true, 'limited=' . var_export($result['limited'], true));
+rep('74e. loopback/private IP exempt even over cap (integration)', $result['limited'] === false, 'ip=' . $remoteIp . ' limited=' . var_export($result['limited'], true));
 
 // --- Test 74f: retry_after math with controlled timestamps ---
 $db->exec("DELETE FROM api_rate_limits");
-$mathIp = '192.168.255.250';
+$mathIp = '203.0.113.250';
 $now = time();
 // Insert $limit requests: oldest at $now-30s, newest at $now
 $mathStmt = $db->prepare("INSERT INTO api_rate_limits (ip_address, requested_at) VALUES (?, FROM_UNIXTIME(?))");
@@ -1381,5 +1394,77 @@ q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid77]);
 q($db, "DELETE FROM charging_sessions WHERE booking_id=?", [$bid77]);
 q($db, "DELETE FROM activity_logs WHERE resource_type='booking' AND resource_id=?", [$bid77]);
 q($db, "DELETE FROM bookings WHERE id=?", [$bid77]);
+
+// ===== 78-pre/78a-78g: truncation recoverability — full text + title attrs =====
+// Regression for the server-side cuts (bells mb_substr 90, notification lists
+// substr 80, admin reviews mb_substr 60): full text must reach the rendered
+// HTML, with a title="..." attribute as the recovery path where CSS ellipsis
+// clips it. Owner notifications previously had NO details column at all.
+$longReason = 'Suite truncation check: this rejection reason is intentionally longer than ninety characters so that any server-side bell or list truncation becomes detectable in the rendered HTML response.';
+$longComment = 'Suite truncation check: this review comment is intentionally longer than sixty characters so that any server-side truncation in the admin reviews table becomes detectable in the rendered HTML output.';
+
+$xt = __DIR__ . '/xt.txt'; @unlink($xt);
+$db->prepare("INSERT INTO admins (email, password, name, role) VALUES (?, ?, ?, 'super_admin')
+              ON DUPLICATE KEY UPDATE password = VALUES(password)")
+   ->execute(['trunctest-admin@evcharge.com', password_hash('AdminTest@123', PASSWORD_BCRYPT), 'Truncation Test Admin']);
+api('POST', "$BASE/api/auth/login.php", $xt, ['email' => 'trunctest-admin@evcharge.com', 'password' => 'AdminTest@123', 'user_type' => 'admin']);
+csrfFor($BASE, $xt, 'public/dashboard/admin.php', true); // login rotates the CSRF token — re-prime from the dashboard (same as the support block)
+
+// Owner submits a station; admin rejects it with a long reason ->
+// one long station_rejected row, visible to owner (bell + section) and admin
+$tr = api('POST', "$BASE/api/stations.php", $oc, ['name' => 'TRUNC Stn', 'description' => 'suite', 'latitude' => 27.72, 'longitude' => 85.33, 'address' => 'Trunc Rd', 'city' => 'Kathmandu', 'chargers' => [['type' => 'DC Fast', 'wattage' => 50]]]);
+$stId78 = intval($tr['data']['station_id'] ?? 0);
+api('POST', "$BASE/api/stations.php?id=" . $stId78 . '&action=reject', $xt, ['reason' => $longReason]);
+$rejDetails = q($db, "SELECT details FROM activity_logs WHERE action='station_rejected' AND resource_id=?", [$stId78])[0]['details'] ?? '';
+rep('78-pre. rejection notification stored in full', strlen($rejDetails) > 150 && strpos($rejDetails, $longReason) !== false, 'len=' . strlen($rejDetails));
+
+[, , $admBell] = $tget("$BASE/public/dashboard/admin.php", $xt);
+[, , $admNotif] = $tget("$BASE/public/dashboard/admin_sections/notifications.php", $xt);
+[, , $ownBell] = $tget("$BASE/public/dashboard/owner.php", $oc);
+[, , $ownNotif] = $tget("$BASE/public/dashboard/owner_sections/notifications.php", $oc);
+$rejTitleEsc = 'title="' . htmlspecialchars($rejDetails, ENT_QUOTES) . '"'; // quotes escape to &quot; inside the attribute
+rep('78a. admin notifications: full details + title + expand', strpos($admNotif, $longReason) !== false && strpos($admNotif, $rejTitleEsc) !== false && strpos($admNotif, 'data-truncate') !== false, 'full=' . (strpos($admNotif, $longReason) !== false ? 'yes' : 'no') . ' titleEsc=' . (strpos($admNotif, $rejTitleEsc) !== false ? 'yes' : 'no') . ' expand=' . (strpos($admNotif, 'data-truncate') !== false ? 'yes' : 'no'));
+rep('78b. admin bell: full details (no 90-char cut)', strpos($admBell, $longReason) !== false, 'present=' . (strpos($admBell, $longReason) !== false ? 'yes' : 'no'));
+rep('78c. owner notifications: full details + title + expand (column added)', strpos($ownNotif, $longReason) !== false && strpos($ownNotif, $rejTitleEsc) !== false && strpos($ownNotif, 'data-truncate') !== false, 'full=' . (strpos($ownNotif, $longReason) !== false ? 'yes' : 'no') . ' titleEsc=' . (strpos($ownNotif, $rejTitleEsc) !== false ? 'yes' : 'no') . ' expand=' . (strpos($ownNotif, 'data-truncate') !== false ? 'yes' : 'no'));
+rep('78d. owner bell: full details (no 90-char cut)', strpos($ownBell, $longReason) !== false, 'present=' . (strpos($ownBell, $longReason) !== false ? 'yes' : 'no'));
+
+// Driver: fresh booking + session start -> ~97-char session_started notification
+$i78 = api('POST', "$BASE/api/bookings.php", $dc, ['action' => 'initiate_payment', 'charger_id' => 1]);
+$bid78 = intval($i78['data']['booking_id'] ?? 0);
+api('POST', "$BASE/api/bookings.php", $dc, ['action' => 'confirm_payment', 'booking_id' => $bid78]);
+api('POST', "$BASE/api/bookings.php", $dc, ['action' => 'confirm_charging_payment', 'booking_id' => $bid78, 'battery_percent' => 40]);
+$drvDetails = q($db, "SELECT details FROM activity_logs WHERE action='session_started' AND resource_type='booking' AND resource_id=?", [$bid78])[0]['details'] ?? '';
+[, , $drvBell] = $tget("$BASE/public/dashboard/driver.php", $dc);
+[, , $drvNotif] = $tget("$BASE/public/dashboard/sections/notifications.php", $dc);
+rep('78e. driver notifications: full details + title + expand', strpos($drvNotif, $drvDetails) !== false && strpos($drvNotif, 'title="' . $drvDetails . '"') !== false && strpos($drvNotif, 'data-truncate') !== false, 'len=' . strlen($drvDetails) . ' expand=' . (strpos($drvNotif, 'data-truncate') !== false ? 'yes' : 'no'));
+rep('78f. driver bell: full details (no 90-char cut)', strpos($drvBell, $drvDetails) !== false, 'present=' . (strpos($drvBell, $drvDetails) !== false ? 'yes' : 'no'));
+
+// Stop + review with a long comment -> admin reviews full text + title attrs
+api('POST', "$BASE/api/bookings.php", $dc, ['action' => 'stop_session', 'booking_id' => $bid78, 'end_battery_percent' => 75]);
+$rv78 = api('POST', "$BASE/api/reviews.php", $dc, ['booking_id' => $bid78, 'rating' => 5, 'comment' => $longComment]);
+[, , $revHtml] = $tget("$BASE/public/dashboard/admin_sections/reviews.php", $xt);
+rep('78g. admin reviews: full comment + title + expand (no 60-char cut)', strpos($revHtml, $longComment) !== false && strpos($revHtml, 'title="' . $longComment . '"') !== false && strpos($revHtml, 'data-truncate') !== false, 'review=' . json_encode(['status' => $rv78['status'] ?? '']));
+
+// 79: an expired/invalid session fetching a dashboard section fragment must NOT
+// come back as login-page HTML with a 200 status — Auth::boot() must redirect
+// (loadSection()'s login-marker guard assumes the client never receives login
+// markup on a fragment fetch). $tget does not follow redirects; fresh guest jar.
+$xj = __DIR__ . '/xj.txt';
+@unlink($xj);
+[$h79, , $b79] = $tget("$BASE/public/dashboard/sections/dashboard.php", $xj);
+$leak79 = ($h79 === 200 && strpos($b79, 'id="login-form"') !== false);
+rep('79. expired-session section fragment: no login HTML with 200', !$leak79, 'http=' . $h79 . ' loginMarker=' . (strpos($b79, 'id="login-form"') !== false ? 'yes' : 'no'));
+@unlink($xj);
+
+// cleanup
+q($db, "DELETE FROM ratings_reviews WHERE booking_id=?", [$bid78]);
+q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid78]);
+q($db, "DELETE FROM charging_sessions WHERE booking_id=?", [$bid78]);
+q($db, "DELETE FROM activity_logs WHERE resource_type='booking' AND resource_id=?", [$bid78]);
+q($db, "DELETE FROM bookings WHERE id=?", [$bid78]);
+q($db, "DELETE FROM chargers WHERE station_id=?", [$stId78]);
+q($db, "DELETE FROM stations WHERE id=?", [$stId78]);
+q($db, "DELETE FROM admins WHERE email='trunctest-admin@evcharge.com'");
+@unlink($xt);
 
 echo "DONE\n";

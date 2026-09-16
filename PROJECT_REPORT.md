@@ -332,7 +332,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 **Key Functions:**
 - `switchUserType(type)` — updates hidden input + active tab styling
 - `handleLogin(event)` — async fetch to `api/auth/login.php`, handles loading state, redirects on success
-- `togglePasswordVisibility()` — hardcoded for `#password` / `#eye-icon`
+- ~~`togglePasswordVisibility()` — hardcoded for `#password` / `#eye-icon`~~ removed 2026-09-14 — shared parameterized version now in `assets/js/auth.js`
 - `handleGoogleSignIn(response)` — passes credential to `api/auth/google.php`, handles errors, re-renders Google button on failure
 
 ### 5.10 `public/register.php`
@@ -343,7 +343,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 - `selectUserType(element, type)` — toggles driver/owner form sections, disables fields for inactive type
 - `goToStep(step)` — navigates between step 1 (type selection) and step 2 (form), updates progress bar
 - `handleRegister(event)` — validates password match, terms, minimum length; POST to `api/auth/register.php`
-- `togglePasswordVisibility(inputId, iconId)` — parameterized version (not in login.php) supporting both password and confirm-password fields
+- `togglePasswordVisibility(inputId, iconId)` — ~~parameterized version (not in login.php)~~ moved to `assets/js/auth.js` 2026-09-14, shared by both pages — supports both password and confirm-password fields
 
 ### 5.11 `public/dashboard/driver.php`
 
@@ -434,9 +434,10 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
    - pollTick() runs every 12s while active bookings exist
    - For each booking card with [data-booking-id]:
        * Shows green "⚡ Charging — M:SS remaining" from session start
-         (the orange "Owner connecting..." buffer phase is dead UI — `buffer_ends_at` is never set by any API path; see §7.3)
+         (the orange "Owner connecting..." buffer phase — dead UI keyed on `buffer_ends_at`, never set by any API path — was removed from pollTick() entirely on 2026-09-14; see §7.3)
        * After session_ends_at: stops polling, reloads section (SessionTicker may auto-complete)
    - initCountdowns() wires startCountdown() to .countdown elements in bookings.php template
+   - CORRECTION 2026-09-14 (live-verified in-browser): pollTick's green display above never rendered while the bug existed — its per-card guard early-returned on always-NULL `buffer_ends_at` on every tick (the bookings-page countdown ran solely via initCountdowns()); the guard now keys on `session_ends_at` and the display renders again on the dashboard section.
 
 5. DRIVER STOPS CHARGING EARLY
    File: public/dashboard/driver.php → stopCharging(bookingId)
@@ -584,7 +585,7 @@ ENUM('booked', 'pending_payment', 'charging', 'completed', 'cancelled', 'stopped
 The `buffer_ends_at` column (schema.sql line 180) is deprecated in the current implementation:
 - It remains in the schema for backward compatibility but is never set by the current API.
 - Timers and countdowns rely exclusively on `arrival_deadline` (reservation expiry) and `session_ends_at` (charging session expiry).
-- The polling logic in `driver.php` checks `buffer_ends_at` but will skip display if NULL, falling back to `session_ends_at` behavior.
+- ~~The polling logic in `driver.php` checks `buffer_ends_at` but will skip display if NULL, falling back to `session_ends_at` behavior.~~ **Corrected 2026-09-14:** pollTick()'s per-card guard keys directly on `session_ends_at` (the only check — not a fallback), and the dead `buffer_ends_at`-keyed "Owner connecting..." branch was removed from pollTick() entirely. Bug record: the old guard early-returned on always-NULL `buffer_ends_at` on every tick, so pollTick's live countdown display never rendered at all — presented as an "intentional fallback" but actually a silent no-op (live-verified in-browser, then fixed).
 
 ## 8. Financial Logic & Reporting
 
@@ -615,13 +616,13 @@ All driver receipts, owner invoices, and admin financial reports must filter str
 
 ## 9. Architectural Observations & Recommendations
 
-### 1. 🔴 Duplicate Password Toggle Logic
+### 1. ✅ Duplicate Password Toggle Logic — RESOLVED 2026-09-14
 
 **Location:** `public/login.php` (line 348) and `public/register.php` (line 688)
 
-Both files define a `togglePasswordVisibility()` function with nearly identical logic. `login.php` hardcodes element IDs (`#password`, `#eye-icon`) while `register.php` uses a parameterized version (`(inputId, iconId)`). The login version is brittle and cannot be reused for additional fields.
+~~Both files define a `togglePasswordVisibility()` function with nearly identical logic. `login.php` hardcodes element IDs (`#password`, `#eye-icon`) while `register.php` uses a parameterized version (`(inputId, iconId)`). The login version is brittle and cannot be reused for additional fields.~~ **Resolved 2026-09-14:** the shared parameterized version now lives in `assets/js/auth.js`; both inline copies were deleted.
 
-**Recommendation:** Extract a single `togglePasswordVisibility(inputId, iconId)` into `assets/js/auth.js` (a new shared JS file) and include it on both pages. Update `login.php` to call it with the explicit IDs. This eliminates duplication and makes maintenance easier.
+~~**Recommendation:** Extract a single `togglePasswordVisibility(inputId, iconId)` into `assets/js/auth.js` (a new shared JS file) and include it on both pages. Update `login.php` to call it with the explicit IDs. This eliminates duplication and makes maintenance easier.~~ **Implemented exactly as recommended 2026-09-14** (both pages already loaded `auth.js`; login's button now calls `('password', 'eye-icon')`).
 
 **Effort:** ~10 minutes. Low risk since it's isolated inline JavaScript.
 
@@ -656,7 +657,7 @@ Regression coverage: integration suite checks 44–48 — each rejection message
 Each dashboard page contains hundreds of lines of inline JavaScript (driver.php: ~500 lines, owner.php: ~450 lines, admin.php: ~200 lines). This prevents caching, bloats HTML responses, and makes it impossible to use modern JS tooling (linting, TypeScript, bundling). The only shared JS file is `assets/js/modal.js` (96 lines).
 
 **Recommendation:** Incrementally refactor common logic into separate JS modules:
-- `assets/js/auth.js` — login/register/Google handlers, password toggle
+- `assets/js/auth.js` — login/register/Google handlers, ~~password toggle~~ (toggle shipped 2026-09-14: the shared `togglePasswordVisibility` now lives here; handlers remain inline)
 - `assets/js/dashboard-base.js` — `loadSection()`, polling, logout, `showAlert`/`showConfirm` imports
 - `assets/js/map.js` — Leaflet initialization, markers, geocoding
 - `assets/js/booking-modal.js` — booking modal, payment flow
@@ -684,7 +685,7 @@ The config file defines `ELECTRICITY_RATE_PER_KWH = 10` and `BOOKING_BASE_FEE = 
 
 | Priority | Issue | Effort | Impact |
 |---|---|---|---|
-| 🔴 High | Duplicate password toggle logic | 10 min | Maintenance burden, brittle code |
+| 🔴 High | Duplicate password toggle logic ✅ DONE 2026-09-14 (see §9.1 / issue #18) | 10 min | Maintenance burden, brittle code |
 | 🟡 Medium | No CSRF protection | 2-3 hrs | Security gap for state-changing operations |
 | 🟡 Medium | Password rules not enforced server-side | 15 min | Config intent not honored |
 | 🟢 Low | No centralized JS modules | 4-6 hrs | Code organization, caching, tooling |
@@ -841,20 +842,23 @@ The following table summarizes all findings from the combined audit, ranked by s
 | 7 | Buffer/arrival timing inconsistent with config (`BOOKING_ARRIVAL_DEADLINE_MINUTES` vs hardcoded 5 min) | `api/bookings.php` | 🟠 High | Unresolved |
 | 8 | kWh billing assumes every session charges to 100% — no end-battery input | `app/helpers/SessionTicker.php`, `api/bookings.php` | 🟠 High | ✅ Resolved 2026-08-31 (`stop_session` captures `end_battery_percent`, recalculates `charging_sessions` kWh/cost on actual delta; record-accuracy only — already-captured `payment_transactions` unchanged, no refunds. `complete_session`/`SessionTicker` untouched — 100% is a reasonable approximation for full-duration sessions) |
 | 9 | Google OAuth auto-approves new owner accounts (bypasses admin moderation) | `api/auth/google.php` | 🟠 High | ✅ Resolved 2026-09-03 (INSERT now omits `approval_status`, falling through to schema default `'pending'` — same as the regular `register.php` path; all owner accounts now require admin approval) |
-| 10 | AJAX session-expiry breaks silently — login page HTML injected into dashboard | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 🟠 High | Unresolved |
+| 10 | AJAX session-expiry breaks silently — login page HTML injected into dashboard | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 🟠 High | ✅ Resolved 2026-09-14 (loadSection()'s fetch handler now checks the response for the login-page marker (`id="login-form"`) before injecting and hard-redirects to login.php instead — driver/owner/admin dashboards; suite case 79: expired-session fragment fetch returns 302, no login HTML with 200) |
 | 11 | Cascade-delete destroys financial history (no soft-delete on stations) | `database/schema.sql`, `api/stations.php` | 🟠 High | ✅ Resolved 2026-09-03 (hard DELETE blocked via 409 when station has booking/payment history; deactivate/reactivate actions added — deactivated stations hidden from public/booking flows but preserved with history intact in owner/admin views) |
 | 12 | No audit trail for bookings or payments | `api/bookings.php` | 🟡 Medium | Unresolved |
 | 13 | Server-side password complexity rules are dead config (never enforced) | `api/auth/register.php`, `app/config/config.php` | 🟡 Medium | Unresolved |
 | 14 | Debug-mode errors leak raw exception text to client | `api/bookings.php`, `api/stations.php` | 🟡 Medium | Unresolved |
 | 15 | No input length validation (`NAME_MAX_LENGTH` defined but never enforced) | `api/auth/register.php`, `api/stations.php` | 🟡 Medium | Unresolved |
-| 16 | Google OAuth data run through `sanitize()` before storage (corrupts special chars) | `api/auth/google.php` | 🟡 Medium | Unresolved |
+| 16 | Google OAuth data run through `sanitize()` before storage (corrupts special chars) | `api/auth/google.php` | 🟡 Medium | ✅ Resolved 2026-09-14 (`sanitize()` removed from `$email`/`$name`/`$picture`; email is `trim()`'d only; storage is parameterized PDO and dashboards still `htmlspecialchars()` at render time) |
 | 17 | Inconsistent use of `sanitize()` on string inputs | `api/bookings.php`, `api/stations.php` | 🟡 Medium | Unresolved |
-| 18 | Duplicate password-toggle logic across login/register pages | `public/login.php`, `public/register.php` | 🟢 Low | Unresolved |
-| 19 | Native `alert()` still used in `searchStations()` instead of themed `showAlert()` | `public/dashboard/driver.php` | 🟢 Low | Unresolved |
+| 18 | Duplicate password-toggle logic across login/register pages | `public/login.php`, `public/register.php` | 🟢 Low | ✅ Resolved 2026-09-14 (single parameterized `togglePasswordVisibility(inputId, iconId)` now lives once in `assets/js/auth.js`, shared by both pages; login.php's button calls it with `('password', 'eye-icon')`) |
+| 19 | Native `alert()` still used in `searchStations()` instead of themed `showAlert()` | `public/dashboard/driver.php` | 🟢 Low | ✅ Resolved 2026-09-14 (`searchStations()` now calls `showAlert(..., 'error')`) |
 | 20 | Currency symbol mismatch — `format_currency()` outputs `₹` (INR) instead of NPR | `app/config/config.php` | 🟢 Low | Unresolved |
 | 21 | No timeout on Nominatim reverse-geocode calls (can hang UI) | `public/dashboard/driver.php`, `public/assets/js/landing.js` | 🟢 Low | Unresolved |
 | 22 | Log file has no rotation (`LOG_MAX_SIZE` defined but never enforced) | `app/config/config.php`, `app/helpers/Auth.php` | 🟢 Low | ✅ **Fixed 2026-08-29** — `log_message()` enforces the 10 MB cap: renames to a timestamped `app-*.log` archive (forensic history kept; newest 5 archives retained, older pruned) then appends fresh. Live-tested with a temporarily lowered threshold (417 KB log rotated to `app-20260829-154129.log`, clean restart verified). Caveat: PHP-native `error_log()` writes bypass the gate until the next `log_message()` call. |
 | 23 | `PROJECT_REPORT.md` stale claim — `.sidebar-collapsed` CSS was reported as pruned but is still present in `dashboard.css` | `PROJECT_REPORT.md` (this file) | 🟢 Low | ✅ Fixed (documentation corrected) |
+| 24 | `tests/` and `logs/` web-executable — destructive `tests/integration_test.php`, session cookie jars (.txt), and app logs all served over HTTP | `.htaccess` | 🟠 High | ✅ Resolved 2026-09-14 (path-scoped `RewriteRule ^(tests\|logs)(/|$) - [F,L]` + dual `<IfModule>` authz: modern `Require all denied` via `<If>` URI match, legacy `Order/Deny` fallback — holds whichever Apache authz module stack is loaded. Live-verified 403 on `tests/integration_test.php`, `tests/dc.txt`, `logs/app.log`; public pages unaffected. XAMPP httpd.conf loads both `mod_authz_core` and `mod_access_compat`) |
+
+**Security hardening 2026-09-14 (post-audit batch):** `app/config/config.php` flipped to `ENV='production'` / `DEBUG=false` (SESSION_COOKIE_SECURE intentionally still `false` — localhost-only deployment, flagged in-file as a pre-HTTPS-deployment blocker). Direct consequence: the previously-dormant `ApiRateLimiter` (skipped whenever `ENV !== 'production'`) now **actively enforces** 100 req/hour/IP for the first time. Companion change in `ApiRateLimiter::check()`: loopback + RFC1918 private-range IPs are permanently exempt (`filter_var` with `NO_PRIV_RANGE|NO_RES_RANGE` + explicit `127.0.0.1`/`::1` checks) — this is a local XAMPP deployment not exposed to the public internet, and the integration suite fires hundreds of rapid calls from 127.0.0.1. Enforcement for public IPs verified unchanged (suite cases 74a-74f now use disposable TEST-NET `203.0.113.x` IPs; case 74e re-pointed to assert the exemption itself: loopback seeded 100-over-cap stays `limited=false`). Suite 198/0 twice back-to-back under production ENV.
 
 ### 9.4 Persistent UI State Management
 
@@ -917,7 +921,7 @@ This avoids blocking UI paint on network requests while still providing cross-de
 | Fix buffer/arrival timing drift | `api/bookings.php` | 1 hour |
 | ~~Real end-battery kWh billing~~ ✅ Done 2026-08-31 (`stop_session` captures end-battery %, recalculates charging_sessions; payment unchanged) | `api/bookings.php`, `public/dashboard/driver.php` | 2-3 hours |
 | Owner stations default to `pending` regardless of signup method | `api/auth/google.php` | 30 min |
-| Fix AJAX session-expiry redirect | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 1-2 hours |
+| ~~Fix AJAX session-expiry redirect~~ ✅ DONE 2026-09-14 (see issue #10) | `app/helpers/Auth.php`, `loadSection()` in all dashboards | 1-2 hours |
 | Soft-delete stations instead of cascading | `database/schema.sql`, `api/stations.php` | 2-3 hours |
 
 #### Week 3 — Medium
@@ -928,15 +932,15 @@ This avoids blocking UI paint on network requests while still providing cross-de
 | Server-side password complexity enforcement | `api/auth/register.php` | 30 min |
 | Stop leaking raw exception messages | `api/bookings.php`, `api/stations.php` | 30 min |
 | Input length validation | `api/auth/register.php`, `api/stations.php` | 30 min |
-| Stop `sanitize()`-ing OAuth payload data | `api/auth/google.php` | 15 min |
+| ~~Stop `sanitize()`-ing OAuth payload data~~ ✅ DONE 2026-09-14 (see issue #16) | `api/auth/google.php` | 15 min |
 | Normalize `sanitize()` usage | `api/bookings.php`, `api/stations.php` | 30 min |
 
 #### Week 4 — Low / Polish
 
 | Task | Files | Effort |
 |---|---|---|
-| Extract shared password-toggle JS module | `public/login.php`, `public/register.php`, new `assets/js/auth.js` | 30 min |
-| Replace `alert()` with `showAlert()` in driver search | `public/dashboard/driver.php` | 15 min |
+| ~~Extract shared password-toggle JS module~~ ✅ DONE 2026-09-14 (see issue #18) | `public/login.php`, `public/register.php`, new `assets/js/auth.js` | 30 min |
+| ~~Replace `alert()` with `showAlert()` in driver search~~ ✅ DONE 2026-09-14 (see issue #19) | `public/dashboard/driver.php` | 15 min |
 | Fix currency symbol to NPR | `app/config/config.php` | 15 min |
 | Add AbortController timeout to Nominatim calls | `public/dashboard/driver.php`, `public/assets/js/landing.js` | 30 min |
 | Implement log rotation | `app/helpers/Auth.php` | 30 min |
@@ -1160,7 +1164,7 @@ The original audit reported Remember-Me reachability as "unproven" (F1.2-b3). Th
 
 **Closed — manual verification bundle (2026-08-27 evening, commit `d581453` + this commit):** real-browser (CDP) pass completed across the Google sign-up completion flow (valid/invalid/abandon-reuse/gates — Google handshake leg itself NOT-RUNNABLE-OFFLINE, server contract suite-covered), completion-page accessibility layer (label association, live aria=alert/polite, toast render+auto-dismiss via simulated network drop), and all six force-refresh flows (owner submit, admin approve+reject, driver/owner ticket submits, owner station delete) — **13 PASS / 1 FAIL→FIXED-and-reverified / 1 INCONCLUSIVE**. The FAIL was **C12: the admin station approve/reject UI was completely unreachable** — `openStationDetail`, `approveStation`, `rejectStation` and the detail modal had zero call sites in any UI (approval historically done via SQL directly); fixed by adding a pending-only **Actions** column (Approve/Reject buttons wired to the existing force-refreshed functions), verified end-to-end in-browser: station 32 approved + station 33 rejected (badge flips, same-document refresh, activity rows written). **C16 (countdown expiry refresh)** stayed INCONCLUSIVE in-browser: the harness's synthetic ISO-Z fixtures are unparseable by `startCountdown`'s NPT-timezone append (`'+05:45'`), so the expiry callback never fired in-harness; the code path itself is deterministic (pre-`d581453` = guarded no-op, post-fix = force-refresh) — real-deadline confirmation stays in the manual-pass bundle. All incidental fixtures/tickets/rows cleaned post-pass; snapshot restored (users 8 · owners 4 · admins 2 · stations 6 · tickets 0).
 
-**Open — inherited backlog:** legacy fabricated-data row retroactive cleanup (§17, owner sign-off required) · native `alert()` in `searchStations()` should migrate to the themed `showAlert()` (modal.js) · helper-lookup trap note: `showAlert`/`showConfirm` are defined **assignment-style** in `modal.js` (`window.showAlert = function…`, since the initial commit) — grepping for `function showAlert` misses them and produces false "orphaned helper" conclusions (2026-08-29 false-alarm lesson, retracted same-day) · Google avatar is write-only (`users.profile_pic` stored by google.php, never displayed — see §13 2026-08-29 block) · original handoff untouched set: simulated payments roadmap, upload content validation, booking queue race condition, cascade-delete financial-history loss, kWh-billing assumption. (RESOLVED 2026-08-29, removed from this list: `LOG_MAX_SIZE` log-rotation wiring — see issue #22; login-CSRF on the four auth POST endpoints — see §13; profile-endpoint CSRF gap + image compression — see §13 2026-08-29 block; the relative-API-paths sweep — see §10. RESOLVED 2026-08-31: `.htaccess` AH00124 rewrite-loop fragility and the paired logout.php open-redirect item — see above.)
+**Open — inherited backlog:** legacy fabricated-data row retroactive cleanup (§17, owner sign-off required) · ~~native `alert()` in `searchStations()` should migrate to the themed `showAlert()` (modal.js)~~ (DONE 2026-09-14 — see issue #19) · helper-lookup trap note: `showAlert`/`showConfirm` are defined **assignment-style** in `modal.js` (`window.showAlert = function…`, since the initial commit) — grepping for `function showAlert` misses them and produces false "orphaned helper" conclusions (2026-08-29 false-alarm lesson, retracted same-day) · Google avatar is write-only (`users.profile_pic` stored by google.php, never displayed — see §13 2026-08-29 block) · original handoff untouched set: simulated payments roadmap, upload content validation, booking queue race condition, cascade-delete financial-history loss, kWh-billing assumption. (RESOLVED 2026-08-29, removed from this list: `LOG_MAX_SIZE` log-rotation wiring — see issue #22; login-CSRF on the four auth POST endpoints — see §13; profile-endpoint CSRF gap + image compression — see §13 2026-08-29 block; the relative-API-paths sweep — see §10. RESOLVED 2026-08-31: `.htaccess` AH00124 rewrite-loop fragility and the paired logout.php open-redirect item — see above.)
 
 ### ✅ Incident outcome & environment hardened (2026-08-27 evening)
 - **Repair executed** (owner-approved skip-grant bootstrap): `REPAIR TABLE mysql.db` — corrupt CRC datapage discarded, note `rows changed from 3 to 0` = legacy db-level grant rows, unused by this app (root authority lives in intact `global_priv`, post-repair `SHOW GRANTS` verified) — and `REPAIR TABLE mysql.roles_mapping` OK; `CHECK TABLE … EXTENDED` returned **OK for both**.

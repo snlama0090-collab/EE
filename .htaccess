@@ -8,6 +8,12 @@
     # Disable directory listing
     Options -Indexes
     
+    # Block dev-only directories outright: tests/ (destructive live-DB test
+    # runner, session cookie jars, audit docs) and logs/ (app logs).
+    # Primary gate: mod_rewrite [F] — path-scoped, works on Apache 2.2 AND 2.4
+    # (mod_rewrite is already required by this file's rewrite block).
+    RewriteRule ^(tests|logs)(/|$) - [F,L]
+    
     # Allow direct access to files and folders
     # Prevent rewrite loop: don't rewrite if already pointing into public/
     RewriteCond %{REQUEST_URI} !^/EE/public/
@@ -18,11 +24,28 @@
     RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
 
-# Block access to sensitive files
-<FilesMatch "\.(env|json|sql|log)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
+# Block access to sensitive files — dual syntax: modern Apache 2.4 authz
+# (mod_authz_core) with legacy 2.2 Order/Deny fallback, so the deny holds
+# whichever authz module stack is loaded.
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(env|json|sql|log)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(env|json|sql|log)$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+# Path-scoped deny for tests/ + logs/ — modern 2.4 authz via <If>. On legacy
+# Apache 2.2 (<If> unsupported) the RewriteRule [F] rule above is the fallback.
+<IfModule mod_authz_core.c>
+    <If "%{REQUEST_URI} =~ m#^/EE/(tests|logs)(/|$)#">
+        Require all denied
+    </If>
+</IfModule>
 
 # Set proper headers
 <IfModule mod_headers.c>

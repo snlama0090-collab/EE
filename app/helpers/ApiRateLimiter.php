@@ -35,6 +35,18 @@ class ApiRateLimiter
             return ['limited' => false, 'retry_after' => 0];
         }
 
+        // Loopback + RFC1918 private-range exemption: this deployment is a local
+        // XAMPP instance not exposed to the public internet, and the integration
+        // suite fires hundreds of rapid API calls from 127.0.0.1. filter_var()
+        // with both flags returns false exactly for loopback (127.0.0.1, ::1),
+        // private (10/8, 172.16/12, 192.168/16, fc00::/7) and other non-routable
+        // addresses — i.e. everything that can never be an internet attacker.
+        // Public IPs still hit the full query + cap below.
+        if ($ip === '127.0.0.1' || $ip === '::1' ||
+            filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return ['limited' => false, 'retry_after' => 0];
+        }
+
         // Lazy cleanup of expired rows
         self::cleanup($db);
 

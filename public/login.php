@@ -232,7 +232,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                 <label for="password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Password</label>
                 <div class="input-group">
                     <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon')">
                         <i class="fas fa-eye" id="eye-icon"></i>
                     </button>
                 </div>
@@ -473,20 +473,6 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             errorMessage.textContent = 'Error: ' + message;
             errorMessage.classList.add('show');
             errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        function togglePasswordVisibility() {
-            const passwordInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('eye-icon');
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
         }
 
         // Back-button cache bust (bfcache restores stale typed values)

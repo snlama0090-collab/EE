@@ -48,6 +48,8 @@ define('APP_URL', 'http://localhost/EE');
 
 // ===== SESSION CONFIGURATION =====
 define('SESSION_TIMEOUT', 3600); // 1 hour in seconds
+// MUST become true before any real (non-localhost) deployment — without
+// HTTPS the session cookie travels in cleartext and is interceptable.
 define('SESSION_COOKIE_SECURE', false); // Set to true for HTTPS only
 define('SESSION_COOKIE_HTTPONLY', true);
 define('SESSION_COOKIE_SAMESITE', 'Lax');

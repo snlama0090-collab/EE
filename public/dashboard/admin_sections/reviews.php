@@ -77,8 +77,8 @@ $reviews = $stmt->fetchAll();
                 <td><?php echo htmlspecialchars($r['station_name']); ?></td>
                 <td><?php echo htmlspecialchars($r['company_name'] ?? '-'); ?></td>
                 <td><?php for($i=0;$i<$r['rating'];$i++){echo '<span class="star" style="color:var(--warning);font-size:14px;">★</span>';} ?></td>
-                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?php echo htmlspecialchars(mb_substr($r['comment'] ?? '', 0, 60)) . (mb_strlen($r['comment'] ?? '') > 60 ? '...' : ''); ?></td>
-                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;"><?php echo $r['is_flagged'] ? htmlspecialchars($r['flag_reason'] ?? '') : '—'; ?></td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-truncate title="<?php echo htmlspecialchars($r['comment'] ?? '', ENT_QUOTES); ?>"><?php echo htmlspecialchars($r['comment'] ?? ''); ?></td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;" data-truncate<?php echo $r['is_flagged'] ? ' title="' . htmlspecialchars($r['flag_reason'] ?? '', ENT_QUOTES) . '"' : ''; ?>><?php echo $r['is_flagged'] ? htmlspecialchars($r['flag_reason'] ?? '') : '—'; ?></td>
                 <td><?php echo $r['is_flagged'] ? '<span class="badge badge-danger">Flagged</span>' : '<span class="badge badge-success">Clean</span>'; ?></td>
                 <td><?php echo date('M d, Y', strtotime($r['created_at'])); ?></td>
                 <td><?php if ($r['is_flagged']): ?>

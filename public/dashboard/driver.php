@@ -76,9 +76,9 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                     <div class="dropdown-item muted">No new notifications</div>
                 <?php else: ?>
                     <?php foreach ($notif['items'] as $n): ?>
-                    <div class="dropdown-item">
+                    <div class="dropdown-item" title="<?php echo htmlspecialchars((string)($n['details'] ?? ''), ENT_QUOTES); ?>">
                         <strong><?php echo htmlspecialchars($n['action']); ?></strong><br>
-                        <small><?php echo htmlspecialchars(mb_substr((string)($n['details'] ?? ''), 0, 90)); ?></small>
+                        <small><?php echo htmlspecialchars((string)($n['details'] ?? '')); ?></small>
                     </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -194,7 +194,12 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             // Fetch section content
             fetch(`sections/${sectionName}.php`)
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-                .then(html => { contentArea.innerHTML = html; initializeSection(sectionName); })
+                .then(html => {
+                    // Expired session: Auth::boot() 302s to login.php and fetch follows it
+                    // transparently — never inject the login page into the dashboard.
+                    if (html.includes('id="login-form"')) { window.location.href = '../login.php'; return; }
+                    contentArea.innerHTML = html; initializeSection(sectionName);
+                })
                 .catch(() => {
                     contentArea.innerHTML = `
                         <div style="padding: 32px; text-align: center; color: #FF3B30;">
@@ -325,7 +330,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
 
         function searchStations() {
             var loc = document.getElementById('location-input')?.value;
-            if (!loc) { alert('Please enter a location'); return; }
+            if (!loc) { showAlert('Please enter a location', 'error'); return; }
             showStations(); document.getElementById('range-filter').value = '2'; document.getElementById('charger-filter').value = ''; filterStations();
         }
 
@@ -779,9 +784,8 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                     document.querySelectorAll('[data-booking-id]').forEach(el => {
                         const bid = parseInt(el.dataset.bookingId);
                         const booking = active.find(b => b.id === bid);
-                        if (!booking || !booking.buffer_ends_at) return;
+                        if (!booking || !booking.session_ends_at) return;
                         const now = Date.now();
-                        const bufEnd = new Date(booking.buffer_ends_at.replace(' ', 'T') + '+05:45').getTime();
                         const sessEnd = new Date(booking.session_ends_at.replace(' ', 'T') + '+05:45').getTime();
 
                         let display = el.querySelector('.timer-display');
@@ -791,14 +795,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                             el.querySelector('.booking-status-area')?.appendChild(display);
                         }
 
-                        if (now < bufEnd) {
-                            // Buffer phase — warning
-                            const sec = Math.max(0, Math.floor((bufEnd - now) / 1000));
-                            const m = Math.floor(sec / 60);
-                            const s = sec % 60;
-                            el.style.borderLeftColor = '#FF9500';
-                            display.innerHTML = `<span style="color:#FF9500;font-weight:600;"><i class="fas fa-plug"></i> Owner connecting... ${m}:${String(s).padStart(2,'0')} buffer remaining</span>`;
-                        } else if (now < sessEnd) {
+                        if (now < sessEnd) {
                             // Active charging — green countdown
                             const sec = Math.max(0, Math.floor((sessEnd - now) / 1000));
                             const m = Math.floor(sec / 60);
@@ -1030,6 +1027,6 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
         }
     </script>
     <script>window.userRole='<?php echo $user_role; ?>';</script>
-    <script src="../assets/js/dashboard.js"></script>
+    <script src="../assets/js/dashboard.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/dashboard.js'); ?>"></script>
 </body>
 </html>

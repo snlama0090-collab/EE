@@ -126,8 +126,15 @@
 function notifEsc(s) {
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
-    return d.innerHTML;
+    // also escape double quotes so the result is safe inside title="..." attributes
+    return d.innerHTML.replace(/"/g, '&quot;');
 }
+
+/* ── Click-to-expand truncated cells (title tooltips are hover-only and don't exist on touch) ── */
+document.addEventListener('click', function (e) {
+    const cell = e.target.closest ? e.target.closest('td[data-truncate]') : null;
+    if (cell) cell.classList.toggle('truncate-expanded');
+});
 
 function renderNotifBell(data) {
     const btn = document.getElementById('notif-btn');
@@ -147,7 +154,7 @@ function renderNotifBell(data) {
     }
     body.innerHTML = data.items.length
         ? data.items.map(function (n) {
-              return '<div class="dropdown-item"><strong>' + notifEsc(n.action) + '</strong><br>' +
+              return '<div class="dropdown-item" title="' + notifEsc(n.details) + '"><strong>' + notifEsc(n.action) + '</strong><br>' +
                      '<small>' + notifEsc(n.details) + '</small></div>';
           }).join('')
         : '<div class="dropdown-item muted">No new notifications</div>';

@@ -29,18 +29,21 @@ $notifications = $stmt->fetchAll();
 
 <div class="listing-table">
     <table>
-        <thead><tr><th>Action</th><th>Resource</th><th>Time</th></tr></thead>
+        <thead><tr><th>Action</th><th>Resource</th><th>Details</th><th>Time</th></tr></thead>
         <tbody>
             <?php if (count($notifications) > 0): ?>
                 <?php foreach ($notifications as $n): ?>
                 <tr class="<?php echo empty($n['is_read']) ? 'unread-row' : ''; ?>">
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
                     <td><?php echo htmlspecialchars($n['resource_type'] ?? '-'); ?></td>
+                    <td style="font-size:12px;color:var(--muted-foreground);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-truncate title="<?php echo htmlspecialchars($n['details'] ?? '', ENT_QUOTES); ?>">
+                        <?php echo htmlspecialchars($n['details'] ?? ''); ?>
+                    </td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($n['created_at'])); ?></td>
                 </tr>
                 <?php endforeach; ?>
             <?php else: ?>
-                <tr><td colspan="3" style="text-align:center;color:var(--muted-foreground);padding:24px;">No notifications yet.</td></tr>
+                <tr><td colspan="4" style="text-align:center;color:var(--muted-foreground);padding:24px;">No notifications yet.</td></tr>
             <?php endif; ?>
         </tbody>
     </table>

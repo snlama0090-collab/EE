@@ -74,9 +74,9 @@ $unread = (int) $notif['unread_count'];
                     <div class="dropdown-item muted">No new notifications</div>
                 <?php else: ?>
                     <?php foreach ($notif['items'] as $n): ?>
-                    <div class="dropdown-item">
+                    <div class="dropdown-item" title="<?php echo htmlspecialchars((string)($n['details'] ?? ''), ENT_QUOTES); ?>">
                         <strong><?php echo htmlspecialchars($n['action']); ?></strong><br>
-                        <small><?php echo htmlspecialchars(mb_substr((string)($n['details'] ?? ''), 0, 90)); ?></small>
+                        <small><?php echo htmlspecialchars((string)($n['details'] ?? '')); ?></small>
                     </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -205,6 +205,9 @@ $unread = (int) $notif['unread_count'];
                 return response.text();
             })
             .then(html => {
+                // Expired session: Auth::boot() 302s to login.php and fetch follows it
+                // transparently — never inject the login page into the dashboard.
+                if (html.includes('id="login-form"')) { window.location.href = '../login.php'; return; }
                 contentArea.innerHTML = html;
                 // Re-wire Columns/Export tools for the freshly injected section
                 if (window.initAdminTableTools) window.initAdminTableTools();
@@ -446,6 +449,6 @@ $unread = (int) $notif['unread_count'];
 
     <script>window.userRole='<?php echo $user_role; ?>';</script>
     <script src="../assets/js/admin-table-tools.js"></script>
-    <script src="../assets/js/dashboard.js"></script>
+    <script src="../assets/js/dashboard.js?v=<?php echo @filemtime(__DIR__ . '/../assets/js/dashboard.js'); ?>"></script>
 </body>
 </html>

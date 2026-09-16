@@ -1717,3 +1717,17 @@ body.page-transitioning {
         height: 200px;
     }
 }
+/* ===== CLICK-TO-EXPAND for truncated cells =====
+   title="..." tooltips are hover-only (and nonexistent on touch); clicking a
+   truncated cell toggles the full text inline. !important is required to beat
+   the inline styles on the cells. */
+tr td[data-truncate] {
+    cursor: pointer;
+}
+
+tr td[data-truncate].truncate-expanded {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    max-width: none !important;
+}

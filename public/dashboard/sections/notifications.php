@@ -38,8 +38,8 @@ $notifications = $stmt->fetchAll();
                 <?php foreach ($notifications as $n): ?>
                 <tr class="<?php echo empty($n['is_read']) ? 'unread-row' : ''; ?>">
                     <td><span class="badge badge-info"><?php echo htmlspecialchars($n['action']); ?></span></td>
-                    <td style="font-size:12px;color:var(--muted-foreground);max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                        <?php echo htmlspecialchars(substr($n['details'] ?? '', 0, 80)); ?>
+                    <td style="font-size:12px;color:var(--muted-foreground);max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-truncate title="<?php echo htmlspecialchars($n['details'] ?? '', ENT_QUOTES); ?>">
+                        <?php echo htmlspecialchars($n['details'] ?? ''); ?>
                     </td>
                     <td style="font-size:12px;color:var(--muted-foreground);"><?php echo date('M d, g:i A', strtotime($n['created_at'])); ?></td>
                 </tr>

@@ -15,10 +15,17 @@ try {
         if (isset($_GET['id'])) {
             $station_id = intval($_GET['id']);
             
+            // Public detail endpoint (unauthenticated by design): explicit column
+            // whitelist — never s.*, which would leak owner analytics
+            // (total_revenue, total_bookings, total_kwh_consumed) and admin
+            // fields (rejection_reason, deactivation_reason, deactivated_by).
             $stmt = $db->prepare("
-                SELECT s.*, o.company_name as owner_company 
-                FROM stations s 
-                JOIN owners o ON s.owner_id = o.id 
+                SELECT s.id, s.owner_id, s.name, s.description, s.latitude, s.longitude,
+                       s.address, s.city, s.num_chargers, s.is_active, s.approval_status,
+                       s.average_rating, s.created_at,
+                       o.company_name as owner_company
+                FROM stations s
+                JOIN owners o ON s.owner_id = o.id
                 WHERE s.id = ?
             ");
             $stmt->execute([$station_id]);

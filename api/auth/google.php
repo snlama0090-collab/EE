@@ -161,9 +161,11 @@ try {
         exit;
     }
     
-    $email = sanitize($payload['email'] ?? '');
-    $name = sanitize($payload['name'] ?? '');
-    $picture = sanitize($payload['picture'] ?? '');
+    // ponytail: payload is Google-verified and storage is parameterized PDO; sanitize()
+    // HTML-encodes at rest ("O'Brien" -> "O&#039;Brien") — dashboards escape at render.
+    $email = trim($payload['email'] ?? '');
+    $name = $payload['name'] ?? '';
+    $picture = $payload['picture'] ?? '';
     
     if (empty($email)) {
         echo json_encode(['status' => 'error', 'message' => 'Could not retrieve email from Google']);

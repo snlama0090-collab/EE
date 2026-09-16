@@ -27,3 +27,7 @@ tests/*.txt
 # NOTE: absent in fresh clones by design; apply_preset()/picker must
 # exist-check on disk and hide missing presets (see PROJECT_REPORT §13).
 public/assets/img/presets/
+
+# Throwaway test probe scripts — one-off debugging fixtures, never commit
+tests/probe_countdown.php
+tests/cdp_countdown.mjs

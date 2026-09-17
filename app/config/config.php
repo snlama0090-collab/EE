@@ -91,7 +91,8 @@ define('NAME_MIN_LENGTH', 2);
 define('NAME_MAX_LENGTH', 100);
 
 // ===== FEATURE FLAGS =====
-define('GOOGLE_CLIENT_ID', '34761081203-1gjrigkese1k489kc5gnap2kvvfro0he.apps.googleusercontent.com');
+// Client ID is public but environment-specific — keep it in .env (see .env.example).
+define('GOOGLE_CLIENT_ID', $_ENV['GOOGLE_CLIENT_ID'] ?? '');
 
 // ===== EMAIL (OTP via Gmail SMTP) =====
 define('OTP_EXPIRY_MINUTES', 10);

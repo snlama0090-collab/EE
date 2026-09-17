@@ -8,7 +8,7 @@ $db = getDB();
 
 // Fetch driver bookings
 $stmt = $db->prepare("
-    SELECT b.*, s.name as station_name, s.address, s.city,
+    SELECT b.*, s.id as station_id, s.name as station_name, s.address, s.city,
            c.charger_type, c.wattage_kw, 
            cs.kwh_consumed, cs.actual_charge_time_minutes, cs.start_time as session_start
     FROM bookings b
@@ -34,6 +34,13 @@ $rv = $db->prepare("
 $rv->execute([$user_id]);
 $reviewable = [];
 foreach ($rv->fetchAll() as $r) $reviewable[$r['id']] = true;
+
+// Stations this driver already favorited — completed/stopped rows offer a
+// one-click "Save Station" (wired to the shell's existing addFavorite()).
+$fv = $db->prepare("SELECT station_id FROM favorites WHERE user_id = ?");
+$fv->execute([$user_id]);
+$favorited = [];
+foreach ($fv->fetchAll() as $f) $favorited[$f['station_id']] = true;
 ?>
 <div class="listing-header">
     <div class="listing-title">
@@ -138,11 +145,18 @@ foreach ($rv->fetchAll() as $r) $reviewable[$r['id']] = true;
                             <i class="fas fa-stop"></i> Stop Charging
                         </button>
                     <?php else: ?>
-                        <?php if (!empty($reviewable[$booking['id']])): ?>
-                        <button class="btn btn-primary btn-sm" onclick="rateBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['station_name']); ?>')">
+                        <?php $postChargeAction = false; ?>
+                        <?php if (!empty($reviewable[$booking['id']])): $postChargeAction = true; ?>
+                        <button class="btn btn-primary btn-sm" onclick="rateBooking(<?php echo $booking['id']; ?>, '<?php echo htmlspecialchars($booking['station_name']); ?>')" style="margin-top:4px;">
                             <i class="fas fa-star"></i> Rate
                         </button>
-                        <?php else: ?>
+                        <?php endif; ?>
+                        <?php if (!empty($booking['station_id']) && empty($favorited[$booking['station_id']])): $postChargeAction = true; ?>
+                        <button class="btn btn-secondary btn-sm" data-favorite="0" onclick="addFavorite(this, <?php echo (int) $booking['station_id']; ?>)" style="margin-top:4px;">
+                            <i class="fas fa-heart"></i> Save Station
+                        </button>
+                        <?php endif; ?>
+                        <?php if (!$postChargeAction): ?>
                         <span style="font-size:12px;color:var(--muted-foreground);">-</span>
                         <?php endif; ?>
                     <?php endif; ?>

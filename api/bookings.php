@@ -470,6 +470,12 @@ try {
             $stmt = $db->prepare("UPDATE chargers SET status = 'available' WHERE id = ?");
             $stmt->execute([$booking['charger_id']]);
 
+            // Station stats — previously only complete_session/SessionTicker counted
+            // stopped sessions, losing their revenue/kWh from station aggregates.
+            $stopped_revenue = floatval($booking['base_fee']) + $electricity_cost_actual;
+            $stmt = $db->prepare("UPDATE stations SET total_bookings = total_bookings + 1, total_revenue = total_revenue + ?, total_kwh_consumed = total_kwh_consumed + ? WHERE id = ?");
+            $stmt->execute([$stopped_revenue, round($kwh_actual, 2), $booking['station_id']]);
+
             // Notify driver (no refund)
             $stmt = $db->prepare("
                 INSERT INTO activity_logs (user_id, action, resource_type, resource_id, details)
@@ -487,6 +493,7 @@ try {
         }
         
     } elseif ($method === 'PUT') {
+        Csrf::validate();
         $id = intval($_GET['id'] ?? 0);
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -569,7 +576,16 @@ try {
             exit;
             
         } else {
+            // Driver PUT — whitelist: every other lifecycle transition is owned by
+            // dedicated actions (confirm_payment→booked, confirm_charging→charging,
+            // stop_session→stopped, owner/ticker→completed). A driver may only
+            // cancel from here (same semantics as the DELETE handler below).
             $status = sanitize($input['status'] ?? '');
+            if (!in_array($status, ['cancelled'], true)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Invalid booking status']);
+                exit;
+            }
             $stmt = $db->prepare("UPDATE bookings SET status = ? WHERE id = ? AND user_id = ?");
             $stmt->execute([$status, $id, $user_id]);
             

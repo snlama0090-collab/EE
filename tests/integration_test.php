@@ -1371,7 +1371,11 @@ q($db, "DELETE FROM admins WHERE email='ovtest-admin@evcharge.com'");
 // ===== 77a-77b: Owner "Total Bookings" reflects driver-stopped sessions =====
 // Regression for the denormalized stations.total_bookings drift: the stat must
 // be a live COUNT (completed OR stopped) for the owner's stations, so a
-// driver-initiated early stop is counted immediately.
+// driver-initiated early stop is counted immediately. (Updated 2026-09-17:)
+// stop_session now ALSO increments the denormalized counter (mirroring
+// complete_session), so station-level revenue/kWh aggregates no longer lose
+// early-stopped sessions — the counter must move +1, and the rendered stat
+// must still equal the live COUNT, independent of the counter.
 $tbBefore = (int) q($db, "SELECT COUNT(*) c FROM bookings b JOIN chargers c2 ON b.charger_id=c2.id
                           JOIN stations s ON c2.station_id=s.id WHERE s.owner_id=1 AND b.status IN ('completed','stopped')")[0]['c'];
 $counterBefore = (int) q($db, "SELECT COALESCE(SUM(total_bookings),0) c FROM stations WHERE owner_id=1")[0]['c'];
@@ -1387,7 +1391,7 @@ rep('77-pre. driver stop accepted', ($st77['status'] ?? '') === 'success', json_
 $tbRendered = preg_match('/Total Bookings<\/h3>\s*<p>(\d+)<\/p>/', $ovHtml77, $m77) ? (int) $m77[1] : -1;
 rep('77a. stopped booking reflected in Total Bookings stat', $tbRendered === $tbBefore + 1, "rendered=$tbRendered expected=" . ($tbBefore + 1));
 $counterAfter = (int) q($db, "SELECT COALESCE(SUM(total_bookings),0) c FROM stations WHERE owner_id=1")[0]['c'];
-rep('77b. stat no longer reads the drifted counter', $counterAfter === $counterBefore && $tbRendered === $tbBefore + 1, "counter $counterBefore -> $counterAfter (stop path must not affect the stat)");
+rep('77b. stop increments stations.total_bookings by exactly 1; stat stays a live count', $counterAfter === $counterBefore + 1 && $tbRendered === $tbBefore + 1, "counter $counterBefore -> $counterAfter (expected +1), rendered=$tbRendered expected=" . ($tbBefore + 1));
 
 // cleanup
 q($db, "DELETE FROM payment_transactions WHERE booking_id=?", [$bid77]);

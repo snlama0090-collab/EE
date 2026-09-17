@@ -456,14 +456,14 @@ CREATE TABLE support_tickets (
 -- ===== SAMPLE DATA (for testing) =====
 
 -- Insert sample users
-INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh, charger_preference) VALUES
-('driver1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Raj Patel', '+977 9801234567', 'Tesla Model 3', 75, 'dc_fast'),
-('driver2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Priya Singh', '+977 9809876543', 'Nissan Leaf', 62, 'ac_22kw');
+INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh, charger_preference, email_verified) VALUES
+('driver1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Raj Patel', '+977 9801234567', 'Tesla Model 3', 75, 'dc_fast', TRUE),
+('driver2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Priya Singh', '+977 9809876543', 'Nissan Leaf', 62, 'ac_22kw', TRUE);
 
 -- Insert sample owners
-INSERT INTO owners (email, password, company_name, name, phone, approval_status) VALUES
-('owner1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Green Energy Ltd', 'Ram Enterprise', '+977 9876543210', 'approved'),
-('owner2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Eco Charging', 'Bishnu Energy', '+977 9843216543', 'approved');
+INSERT INTO owners (email, password, company_name, name, phone, approval_status, email_verified) VALUES
+('owner1@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Green Energy Ltd', 'Ram Enterprise', '+977 9876543210', 'approved', TRUE),
+('owner2@example.com', '$2y$10$I18ByVpEfDS7Ydhtpl07iuc7EogIj5zAF8c1V4XPonAYDMe5NOlA6', 'Eco Charging', 'Bishnu Energy', '+977 9843216543', 'approved', TRUE);
 
 -- Insert sample admin
 INSERT INTO admins (email, password, name, role) VALUES

@@ -124,16 +124,16 @@ try {
 
     if ($user_type === 'driver') {
         $stmt = $db->prepare("
-            INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh, email_verified)
+            VALUES (?, ?, ?, ?, ?, ?, TRUE)
         ");
 
         $stmt->execute([$email, $hashed_password, $name, $phone, $car_model, $battery]);
 
     } elseif ($user_type === 'owner') {
         $stmt = $db->prepare("
-            INSERT INTO owners (email, password, name, company_name, phone, bank_account_number)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO owners (email, password, name, company_name, phone, bank_account_number, email_verified)
+            VALUES (?, ?, ?, ?, ?, ?, TRUE)
         ");
 
         $stmt->execute([$email, $hashed_password, $name, $company, $phone, $bank]);

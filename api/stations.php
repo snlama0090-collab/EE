@@ -351,61 +351,6 @@ try {
                 exit;
             }
 
-            if ($action === 'deactivate') {
-                // Deactivate a station. Owners can deactivate their own; admins can deactivate any station.
-                // Admins MUST provide a reason; owners may optionally provide one.
-                $input = json_decode(file_get_contents('php://input'), true);
-                $target_id = intval($input['id'] ?? 0);
-                $reason = isset($input['reason']) ? sanitize($input['reason']) : null;
-
-                if ($user_type === 'admin') {
-                    // Admin: can deactivate any station, reason required
-                    if (empty($reason)) {
-                        http_response_code(400);
-                        echo json_encode(['status' => 'error', 'message' => 'A reason is required when deactivating a station.']);
-                        exit;
-                    }
-                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'admin', deactivation_reason = ? WHERE id = ?");
-                    $stmt->execute([$reason, $target_id]);
-                } else {
-                    // Owner: can only deactivate their own station
-                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NOW(), deactivated_by = 'owner', deactivation_reason = ? WHERE id = ? AND owner_id = ?");
-                    $stmt->execute([$reason, $target_id, $user_id]);
-                }
-
-                if ($stmt->rowCount() === 0) {
-                    http_response_code(403);
-                    echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
-                    exit;
-                }
-
-                echo json_encode(['status' => 'success', 'message' => 'Station deactivated']);
-                exit;
-            }
-
-            if ($action === 'reactivate') {
-                // Reactivate a station. Owners can reactivate their own; admins can reactivate any.
-                $input = json_decode(file_get_contents('php://input'), true);
-                $target_id = intval($input['id'] ?? 0);
-
-                if ($user_type === 'admin') {
-                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ?");
-                    $stmt->execute([$target_id]);
-                } else {
-                    $stmt = $db->prepare("UPDATE stations SET deactivated_at = NULL, deactivated_by = NULL, deactivation_reason = NULL WHERE id = ? AND owner_id = ?");
-                    $stmt->execute([$target_id, $user_id]);
-                }
-
-                if ($stmt->rowCount() === 0) {
-                    http_response_code(403);
-                    echo json_encode(['status' => 'error', 'message' => 'Station not found or access denied.']);
-                    exit;
-                }
-
-                echo json_encode(['status' => 'success', 'message' => 'Station reactivated']);
-                exit;
-            }
-
             $input = json_decode(file_get_contents('php://input'), true);
             if (!$input) {
                 echo json_encode(['status' => 'error', 'message' => 'Invalid JSON input']);

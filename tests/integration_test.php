@@ -66,10 +66,19 @@ $own2=q($db,"SELECT COUNT(*) c FROM activity_logs WHERE action='booking_created'
 rep('4c. duplicate confirm cannot re-notify (state gate)',$own2[0]['c']===1,'confirm2='.$c2['status'].' count='.$own2[0]['c']);
 // STEP 2
 $bat=40;
+// Capacity/wattage read LIVE (2026-09-21): billing expectations derive from the driver's
+// current car_full_capacity_kwh + charger 1 wattage instead of seed-hardcoded 45/54/450,
+// so profile edits to the demo account cannot falsify the billing-math contract.
+$cap=(float)q($db,"SELECT car_full_capacity_kwh c FROM users WHERE id=1")[0]['c'];
+$watt=(float)q($db,"SELECT wattage_kw c FROM chargers WHERE id=1")[0]['c'];
+$rawKwh=(100-$bat)/100*$cap;
+$expTime=(int)ceil($rawKwh/$watt*60);
+$expCost=round($rawKwh*ELECTRICITY_RATE_PER_KWH,2);
+$expTotal=BOOKING_BASE_FEE+$expCost;
 $ic=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_charging_payment','booking_id'=>$bid,'battery_percent'=>$bat]);
 rep('5. initiate_charging',$ic['status']==='success',json_encode($ic));
 $d=$ic['data']??[];
-rep('5b. math',$d['kwh_needed']==45&&$d['charge_time_minutes']==54&&$d['charging_cost']==450,'exp kwh=45,t=54,c=450 got '.json_encode($d));
+rep('5b. math',$d['kwh_needed']==round($rawKwh,2)&&$d['charge_time_minutes']==$expTime&&$d['charging_cost']==$expCost,"exp kwh=".round($rawKwh,2).",t=$expTime,c=$expCost got ".json_encode($d));
 $b=q($db,"SELECT status FROM bookings WHERE id=?",[$bid]);
 rep('6. still booked',$b[0]['status']==='booked','status='.$b[0]['status']);
 $cc=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_charging_payment','booking_id'=>$bid,'battery_percent'=>$bat]);
@@ -81,9 +90,9 @@ rep('9. charger charging',$ch[0]['status']==='charging','status='.$ch[0]['status
 $cs=q($db,"SELECT battery_start_percent,per_kwh_rate,payment_status FROM charging_sessions WHERE booking_id=?",[$bid]);
 rep('10. session exists',count($cs)===1&&$cs[0]['battery_start_percent']==40&&$cs[0]['payment_status']==='completed',json_encode($cs[0]));
 $pt=q($db,"SELECT amount FROM payment_transactions WHERE booking_id=? ORDER BY id",[$bid]);
-rep('11. two txns',count($pt)===2&&$pt[0]['amount']==50&&$pt[1]['amount']==450,json_encode($pt));
+rep('11. two txns',count($pt)===2&&$pt[0]['amount']==50&&$pt[1]['amount']==$expCost,json_encode($pt));
 $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='session_started' AND resource_id=?",[$bid]);
-rep('12. activity_logs',count($al)===1&&strpos($al[0]['details'],'NPR 500.00')!==false,json_encode($al[0]));
+rep('12. activity_logs',count($al)===1&&strpos($al[0]['details'],'NPR '.number_format($expTotal,2))!==false,json_encode($al[0]));
 // STEP 3
 $comp=api('PUT',"$BASE/api/bookings.php?id=$bid",$oc,['action'=>'complete_session']);
 rep('13. complete_session',$comp['status']==='success',json_encode($comp));
@@ -105,7 +114,7 @@ api('POST',"$BASE/api/bookings.php",$dc,['action'=>'confirm_charging_payment','b
 $stop=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'stop_session','booking_id'=>$bid2,'end_battery_percent'=>75]);
 rep('18. stop_session',$stop['status']==='success',json_encode($stop));
 $b=q($db,"SELECT status,payment_status,payment_amount FROM bookings WHERE id=?",[$bid2]);
-rep('19. stopped status',$b[0]['status']==='stopped'&&$b[0]['payment_status']==='completed'&&$b[0]['payment_amount']==500,json_encode($b[0]));
+rep('19. stopped status',$b[0]['status']==='stopped'&&$b[0]['payment_status']==='completed'&&$b[0]['payment_amount']==$expTotal,json_encode($b[0]));
 $ch=q($db,"SELECT status FROM chargers WHERE id=1");
 rep('20. charger released',$ch[0]['status']==='available','status='.$ch[0]['status']);
 $al=q($db,"SELECT action,details FROM activity_logs WHERE user_id=1 AND action='session_stopped' AND resource_id=?",[$bid2]);
@@ -113,9 +122,9 @@ rep('21. session_stopped log',count($al)===1&&strpos($al[0]['details'],'NOT refu
 // 21b-21e: kWh-billing fix (audit #8, 2026-08-31) — stop_session captures end-battery % and
 // recalculates kWh on the actual delta (record-accuracy only; payment_amount unchanged).
 $cs=q($db,"SELECT battery_start_percent,battery_end_percent,kwh_consumed,electricity_cost,per_kwh_rate FROM charging_sessions WHERE booking_id=?",[$bid2]);
-$expectedKwh=round((75-40)/100*75,2);
+$expectedKwh=round((75-40)/100*$cap,2);
 rep('21b. end-battery + kWh recorded', $cs[0]['battery_start_percent']==40&&$cs[0]['battery_end_percent']==75&&$cs[0]['kwh_consumed']==$expectedKwh&&$cs[0]['electricity_cost']==round($expectedKwh*$cs[0]['per_kwh_rate'],2), 'start='.$cs[0]['battery_start_percent'].' end='.$cs[0]['battery_end_percent'].' kwh='.$cs[0]['kwh_consumed'].' cost='.$cs[0]['electricity_cost']);
-rep('21c. payment_amount unchanged (no refund)', $b[0]['payment_amount']==500, 'payment_amount='.$b[0]['payment_amount']);
+rep('21c. payment_amount unchanged (no refund)', $b[0]['payment_amount']==$expTotal, 'payment_amount='.$b[0]['payment_amount']);
 // 21d-21e: validation rejects invalid end% — use a FRESH booking (bid2 is already stopped above)
 $i3=api('POST',"$BASE/api/bookings.php",$dc,['action'=>'initiate_payment','charger_id'=>1]);
 $bid3=intval($i3['data']['booking_id']??0);
@@ -1107,11 +1116,11 @@ rep('73a. Google avatar URL returned when no file exists', $helperResult === $go
 
 // Test that empty profile_pic falls back to default
 $emptyResult = get_profile_picture_url($googleUserId, 'driver', '');
-rep('73b. Empty profile_pic falls back to default', $emptyResult === '../assets/img/default-avatar.svg', "result=$emptyResult");
+rep('73b. Empty profile_pic falls back to default', $emptyResult === '/EE/public/assets/img/default-avatar.svg', "result=$emptyResult");
 
 // Test owner type uses owner_ prefix
 $ownerResult = get_profile_picture_url(999, 'owner', '');
-$hasOwnerPrefix = (strpos($ownerResult, 'owner_999.jpg') !== false) || ($ownerResult === '../assets/img/default-avatar.svg');
+$hasOwnerPrefix = (strpos($ownerResult, 'owner_999.jpg') !== false) || ($ownerResult === '/EE/public/assets/img/default-avatar.svg');
 rep('73c. Owner type uses owner_ prefix in filename', $hasOwnerPrefix, "result=$ownerResult");
 
 // Cleanup

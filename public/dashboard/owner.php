@@ -303,7 +303,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'owner', $user['profile_pic'
             activeBtn.style.transform = 'translateX(4px)';
         }
 
-            fetch(`owner_sections/${sectionName}.php`)
+            fetch('/EE/public/dashboard/owner_sections/' + sectionName + '.php')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
@@ -792,7 +792,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'owner', $user['profile_pic'
             const form = document.getElementById('owner-profile-form');
             const formData = new FormData(form);
             try {
-                const response = await fetch('owner_sections/profile.php', {
+                const response = await fetch('/EE/public/dashboard/owner_sections/profile.php', {
                     method: 'POST',
                     body: formData
                 });

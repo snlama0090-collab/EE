@@ -100,7 +100,7 @@ h1{font-size:22px;margin:0 0 6px}.sub{color:var(--muted-foreground);font-size:14
     <h2>Choose an avatar</h2>
     <div class="modal-presets">
     <?php foreach ($presetList as $pk): ?>
-      <img src="<?php echo APP_URL; ?>/public/assets/img/presets/<?php echo $pk; ?>.jpg"
+      <img src="/EE/public/assets/img/presets/<?php echo $pk; ?>.jpg"
            alt="<?php echo $pk; ?>" data-preset="<?php echo $pk; ?>" tabindex="0" role="button">
     <?php endforeach; ?>
     </div>
@@ -108,7 +108,7 @@ h1{font-size:22px;margin:0 0 6px}.sub{color:var(--muted-foreground);font-size:14
   </div>
 </div>
 
-<script src="<?php echo APP_URL; ?>/public/assets/js/csrf.js"></script>
+<script src="/EE/public/assets/js/csrf.js"></script>
 <script>
 (function () {
   var dashboard = '<?php echo $dashboard; ?>';
@@ -188,7 +188,7 @@ h1{font-size:22px;margin:0 0 6px}.sub{color:var(--muted-foreground);font-size:14
   // in the circle stays untouched.
   modalSelect.addEventListener('click', function () {
     if (!chosenPreset) return;
-    showPreview('<?php echo APP_URL; ?>/public/assets/img/presets/' + chosenPreset + '.jpg');
+    showPreview('/EE/public/assets/img/presets/' + chosenPreset + '.jpg');
     fileInput.value = null; // preset choice overrides any file
     closeModal();
   });

@@ -346,8 +346,10 @@ function get_profile_picture_url($user_id, $user_type, $profile_pic = '') {
 
     // Tier 1: Check if uploaded file exists on disk
     $absolute_path = PUBLIC_PATH . "/assets/uploads/pfp/{$filename}";
+    // ponytail: root-absolute so the URL survives both canonical and rewritten
+    // short URLs (page-relative ../assets broke under /EE/dashboard/driver.php)
     if (file_exists($absolute_path)) {
-        return "../assets/uploads/pfp/{$filename}";
+        return "/EE/public/assets/uploads/pfp/{$filename}";
     }
 
     // Tier 2: Use Google avatar URL if available
@@ -356,7 +358,7 @@ function get_profile_picture_url($user_id, $user_type, $profile_pic = '') {
     }
 
     // Tier 3: Fall back to default avatar
-    return '../assets/img/default-avatar.svg';
+    return '/EE/public/assets/img/default-avatar.svg';
 }
 
 /**

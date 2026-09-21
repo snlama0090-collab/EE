@@ -192,7 +192,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             if (activeBtn) activeBtn.classList.add('active');
 
             // Fetch section content
-            fetch(`sections/${sectionName}.php`)
+            fetch('/EE/public/dashboard/sections/' + sectionName + '.php')
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
                 .then(html => {
                     // Expired session: Auth::boot() 302s to login.php and fetch follows it
@@ -874,7 +874,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             formData.append('action', action);
             formData.append('station_id', stationId);
             try {
-                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
+                const response = await fetch('/EE/public/dashboard/sections/favorites.php', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (result.status === 'success') {
                     btn.dataset.favorite = isFav ? '0' : '1';
@@ -897,7 +897,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             formData.append('action', 'add');
             formData.append('station_id', stationId);
             try {
-                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
+                const response = await fetch('/EE/public/dashboard/sections/favorites.php', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (result.status === 'success') {
                     btn.dataset.favorite = '1';
@@ -922,7 +922,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             formData.append('action', 'remove');
             formData.append('station_id', stationId);
             try {
-                const response = await fetch('sections/favorites.php', { method: 'POST', body: formData });
+                const response = await fetch('/EE/public/dashboard/sections/favorites.php', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (result.status === 'success') {
                     loadSection('favorites');
@@ -1006,7 +1006,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
             const formData = new FormData(form);
 
             try {
-                const response = await fetch('sections/profile.php', {
+                const response = await fetch('/EE/public/dashboard/sections/profile.php', {
                     method: 'POST',
                     body: formData
                 });

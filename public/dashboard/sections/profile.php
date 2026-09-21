@@ -121,7 +121,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                 <div style="font-size:13px;color:var(--gray);margin-bottom:8px;">Or pick a preset avatar:</div>
                 <div class="preset-picker" style="display:flex;gap:8px;flex-wrap:wrap;">
                 <?php foreach ($presetList as $pk): ?>
-                    <img src="../assets/img/presets/<?php echo $pk; ?>.jpg" alt="<?php echo $pk; ?>"
+                    <img src="/EE/public/assets/img/presets/<?php echo $pk; ?>.jpg" alt="<?php echo $pk; ?>"
                          onclick="selectPreset('<?php echo $pk; ?>', this)"
                          style="width:48px;height:48px;border-radius:50%;cursor:pointer;border:3px solid transparent;object-fit:cover;">
                 <?php endforeach; ?>

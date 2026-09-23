@@ -1480,4 +1480,75 @@ q($db, "DELETE FROM stations WHERE id=?", [$stId78]);
 q($db, "DELETE FROM admins WHERE email='trunctest-admin@evcharge.com'");
 @unlink($xt);
 
+// ===== 80: PASSWORD RESET (forgot + reset endpoints; R7 auth coverage) =====
+// verification_tokens (token_type='password_reset', SHA-256-stored, single-use,
+// 30-min expiry), drivers+owners only, admins excluded (google.php parity).
+// NOTE: known-email forgot calls trigger REAL reset emails to the seed address
+// (Mailer exercised end-to-end) — 2 sends per suite run.
+$pwBefore = q($db, "SELECT password p FROM users WHERE id = 1")[0]['p'];
+$remTok = 'suite-remember-' . bin2hex(random_bytes(8));
+$db->prepare("INSERT INTO remember_tokens (user_id, token, user_type, expires_at) VALUES (1, ?, 'driver', DATE_ADD(NOW(), INTERVAL 1 DAY))")->execute([$remTok]);
+$oldRaw = 'suite-old-reset-' . bin2hex(random_bytes(8));
+// Backdated created_at (5 min ago, still inside its 30-min window): an unused
+// row with created_at=NOW() would trip the 60s cooldown and mask the real flow.
+$db->prepare("INSERT INTO verification_tokens (user_id, token, token_type, expires_at, created_at) VALUES (1, ?, 'password_reset', DATE_ADD(NOW(), INTERVAL 25 MINUTE), DATE_SUB(NOW(), INTERVAL 5 MINUTE))")->execute([hash('sha256', $oldRaw)]);
+
+list($c80a) = tpost("$BASE/api/auth/forgot-password.php", ['email' => 'driver1@example.com', 'user_type' => 'driver'], null, $dc);
+rep('80a. forgot-password CSRF 403 without token', $c80a === 403, 'code=' . $c80a);
+list($c80b) = tpost("$BASE/api/auth/reset-password.php", ['token' => 'x', 'password' => 'Whatever1'], null, $dc);
+rep('80b. reset-password CSRF 403 without token', $c80b === 403, 'code=' . $c80b);
+
+$known80 = api('POST', "$BASE/api/auth/forgot-password.php", $dc, ['email' => 'driver1@example.com', 'user_type' => 'driver']);
+$unknown80 = api('POST', "$BASE/api/auth/forgot-password.php", $dc, ['email' => 'nosuchuser-xyz@gmail.com', 'user_type' => 'driver']);
+rep('80c. forgot response identical for known vs unknown email (no enumeration)', $known80 == $unknown80 && ($known80['status'] ?? '') === 'success', json_encode($known80) . ' vs ' . json_encode($unknown80));
+
+$row80 = q($db, "SELECT token_type, is_used, CHAR_LENGTH(token) tl, TIMESTAMPDIFF(MINUTE, NOW(), expires_at) mins FROM verification_tokens WHERE user_id = 1 AND token_type = 'password_reset' AND is_used = FALSE ORDER BY id DESC LIMIT 1");
+rep('80d. forgot issues 30-min single-use password_reset token (SHA-256 = 64 hex)', count($row80) === 1 && $row80[0]['token_type'] === 'password_reset' && (int)$row80[0]['is_used'] === 0 && (int)$row80[0]['tl'] === 64 && (int)$row80[0]['mins'] >= 28 && (int)$row80[0]['mins'] <= 31, json_encode($row80));
+
+$cool80 = api('POST', "$BASE/api/auth/forgot-password.php", $dc, ['email' => 'driver1@example.com', 'user_type' => 'driver']);
+rep('80e. per-email cooldown rejects rapid re-request', ($cool80['status'] ?? '') === 'error', json_encode($cool80));
+
+// 80f: reissue invalidates the old link — drop the real issued row (cooldown
+// cleared), so the REAL forgot deletes the seeded old token too; old raw must
+// then be rejected by reset-password.
+q($db, "DELETE FROM verification_tokens WHERE user_id = 1 AND token_type = 'password_reset' AND token != ?", [hash('sha256', $oldRaw)]);
+$re80 = api('POST', "$BASE/api/auth/forgot-password.php", $dc, ['email' => 'driver1@example.com', 'user_type' => 'driver']);
+$oldGone = count(q($db, "SELECT id FROM verification_tokens WHERE token = ?", [hash('sha256', $oldRaw)])) === 0;
+list($c80f, $j80f) = tpost("$BASE/api/auth/reset-password.php", ['token' => $oldRaw, 'password' => 'Whatever1'], $CSRF_TOKENS[$dc] ?? null, $dc);
+rep('80f. re-request invalidates prior link (old raw token rejected)', ($re80['status'] ?? '') === 'success' && $oldGone && ($j80f['status'] ?? '') === 'error', 'forgot=' . json_encode($re80) . ' oldGone=' . ($oldGone ? 'yes' : 'no') . ' reset=' . json_encode($j80f));
+
+// 80g: owner-paired request for a DRIVER's email must not create an owner token
+$pair80 = api('POST', "$BASE/api/auth/forgot-password.php", $dc, ['email' => 'driver1@example.com', 'user_type' => 'owner']);
+$pairRows = q($db, "SELECT id FROM verification_tokens WHERE owner_id = 1 AND token_type = 'password_reset'");
+rep('80g. wrong user_type/email pairing creates no owner-scoped token', ($pair80['status'] ?? '') === 'success' && count($pairRows) === 0, 'resp=' . json_encode($pair80) . ' ownerRows=' . count($pairRows));
+
+// 80h: valid reset — seed a known raw token, then verify the full flip
+$raw80h = 'suite-reset-' . bin2hex(random_bytes(8));
+$db->prepare("INSERT INTO verification_tokens (user_id, token, token_type, expires_at) VALUES (1, ?, 'password_reset', DATE_ADD(NOW(), INTERVAL 30 MINUTE))")->execute([hash('sha256', $raw80h)]);
+$r80h = api('POST', "$BASE/api/auth/reset-password.php", $dc, ['token' => $raw80h, 'password' => 'NewPass@123']);
+$used80 = (int) q($db, "SELECT is_used u FROM verification_tokens WHERE token = ?", [hash('sha256', $raw80h)])[0]['u'];
+$remGone = count(q($db, "SELECT id FROM remember_tokens WHERE token = ?", [$remTok])) === 0;
+$loginOld = api('POST', "$BASE/api/auth/login.php", $dc, ['email' => 'driver1@example.com', 'password' => 'Test@123', 'user_type' => 'driver']);
+$loginNew = api('POST', "$BASE/api/auth/login.php", $dc, ['email' => 'driver1@example.com', 'password' => 'NewPass@123', 'user_type' => 'driver']);
+rep('80h. valid reset: password changed + is_used=TRUE + remember token wiped + login flips', ($r80h['status'] ?? '') === 'success' && $used80 === 1 && $remGone && ($loginOld['status'] ?? '') !== 'success' && ($loginNew['status'] ?? '') === 'success', 'reset=' . json_encode($r80h) . ' used=' . $used80 . ' remGone=' . ($remGone ? 'yes' : 'no') . ' oldLogin=' . json_encode($loginOld) . ' newLogin=' . json_encode($loginNew));
+
+// 80i/80j: tpost needs the SESSION csrf token (driver dashboard meta) — the
+// $CSRF_TOKENS cache may hold a stale guest token from earlier login calls.
+$tok80 = csrfFor($BASE, $dc, 'public/dashboard/driver.php', true);
+// 80i: expired token rejected
+$raw80i = 'suite-expired-' . bin2hex(random_bytes(8));
+$db->prepare("INSERT INTO verification_tokens (user_id, token, token_type, expires_at) VALUES (1, ?, 'password_reset', DATE_SUB(NOW(), INTERVAL 1 MINUTE))")->execute([hash('sha256', $raw80i)]);
+list($c80i, $j80i) = tpost("$BASE/api/auth/reset-password.php", ['token' => $raw80i, 'password' => 'NewPass@123'], $tok80, $dc);
+rep('80i. expired token rejected', $c80i === 400 && ($j80i['status'] ?? '') === 'error', 'code=' . $c80i . ' resp=' . json_encode($j80i));
+
+// 80j: replay of a used token rejected
+list($c80j, $j80j) = tpost("$BASE/api/auth/reset-password.php", ['token' => $raw80h, 'password' => 'NewPass@123'], $tok80, $dc);
+rep('80j. replay of used token rejected', $c80j === 400 && ($j80j['status'] ?? '') === 'error', 'code=' . $c80j . ' resp=' . json_encode($j80j));
+
+// cleanup: restore driver1's password, purge reset/throttle artifacts
+q($db, "UPDATE users SET password = ? WHERE id = 1", [$pwBefore]);
+q($db, "DELETE FROM verification_tokens WHERE token_type = 'password_reset'");
+q($db, "DELETE FROM remember_tokens WHERE user_id = 1 AND user_type = 'driver'");
+q($db, "DELETE FROM login_attempts WHERE email = 'driver1@example.com'");
+
 echo "DONE\n";

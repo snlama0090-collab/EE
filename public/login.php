@@ -283,6 +283,8 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         <div class="auth-footer">
             Don't have an account?
             <a href="register.php">Create one now</a>
+            <br>
+            <a href="forgot-password.php" style="font-size:13px;">Forgot password?</a>
         </div>
     </div>
 

@@ -3,10 +3,34 @@
 // sections under /EE/, (c) owner loadSection() dynamic sections, (d) profile-picture presets.
 // Asserts: ZERO CSP-violation console errors, ZERO failed/blocked localhost requests.
 // Usage: node tests/cdp_paths_check.mjs   (Node built-ins only; mirrors cdp_countdown.mjs)
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+const GENERIC_MSG = 'If that email is registered, a password reset link has been sent.';
+const MYSQL = 'D:\\Xampp\\mysql\\bin\\mysql.exe';
+function sqlExec(sql) {
+  const r = spawnSync(MYSQL, ['-u', 'root', 'ev_charging_db'], { input: sql, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error('mysql failed: ' + (r.stderr || r.stdout));
+}
+// Case-80 seeding pattern: raw token only client-side, SHA-256 stored in DB.
+function seedResetToken(raw) {
+  const h = createHash('sha256').update(raw).digest('hex');
+  sqlExec(`INSERT INTO verification_tokens (user_id, token, token_type, expires_at) VALUES (1, '${h}', 'password_reset', DATE_ADD(NOW(), INTERVAL 30 MINUTE));`);
+  return h;
+}
+function deleteResetTokenRow(h) {
+  sqlExec(`DELETE FROM verification_tokens WHERE token = '${h}';`);
+}
+function getDriverPasswordHash() {
+  // NOTE: the database name MUST be passed as a positional arg — omitting it
+  // makes mysql print usage, stdout goes empty, and the caller restores ''.
+  const r = spawnSync(MYSQL, ['-u', 'root', 'ev_charging_db', '-B', '-N', '-e', 'SELECT password FROM users WHERE id = 1'], { encoding: 'utf8' });
+  if (r.status !== 0 || !(r.stdout || '').trim()) throw new Error('driver hash read failed: ' + (r.stderr || '').slice(0, 200));
+  return r.stdout.trim();
+}
 
 const PORT = 9337;
 const profile = mkdtempSync(join(tmpdir(), 'cdp-paths-'));
@@ -83,6 +107,64 @@ try {
   results.register.heightMonotonic = (results.register.heightT0 ?? 0) >= 44
     && (results.register.heightT1 ?? 0) >= (results.register.heightT0 ?? 0) - 1
     && (results.register.heightT2 ?? 0) >= (results.register.heightT1 ?? 0) - 1;
+
+  // (0b) forgot/reset pages as guest — UI verification for the password-reset flow.
+  await nav('http://localhost/EE/public/forgot-password.php', 3500);
+  results.forgot_page = {
+    path: await evl('location.pathname'),
+    formVisible: await evl("!!document.getElementById('forgot-form') && document.getElementById('forgot-form').offsetParent !== null"),
+    csrfMeta: await evl("!!document.querySelector('meta[name=\"csrf-token\"]')"),
+  };
+  await evl("document.getElementById('email').value = 'driver1@example.com'; document.getElementById('user-type').value = 'driver'; true;");
+  await evl("document.getElementById('forgot-form').dispatchEvent(new Event('submit', { cancelable: true })); true;");
+  // wait 6s: the endpoint sends a REAL Gmail SMTP mail synchronously before responding
+  await wait(6000);
+  results.forgot_generic_valid = await evl("document.getElementById('success-message').textContent");
+  await evl("document.getElementById('email').value = 'nosuchuser-cdp@gmail.com'; document.getElementById('user-type').value = 'driver'; true;");
+  await evl("document.getElementById('forgot-form').dispatchEvent(new Event('submit', { cancelable: true })); true;");
+  await wait(1500);
+  results.forgot_generic_unknown = await evl("document.getElementById('success-message').textContent");
+
+  // reset-password with missing token → error card, NO password field
+  await nav('http://localhost/EE/public/reset-password.php', 3000);
+  results.reset_invalid = {
+    path: await evl('location.pathname'),
+    errorCard: await evl("document.body.textContent.includes('Link Invalid or Expired')"),
+    noPasswordField: await evl("!document.getElementById('password')"),
+  };
+
+  // valid token (seeded via case-80 pattern) → password form + live checklist
+  const rawTok = 'cdp-reset-' + createHash('sha256').update(String(Date.now()) + 'cdp').digest('hex').slice(0, 24);
+  const seedHash = seedResetToken(rawTok);
+  await nav('http://localhost/EE/public/reset-password.php?token=' + encodeURIComponent(rawTok), 3500);
+  results.reset_valid = {
+    path: await evl('location.pathname'),
+    formPresent: await evl("!!document.getElementById('reset-form')"),
+    passwordField: await evl("!!document.getElementById('password')"),
+  };
+  await evl("const p = document.getElementById('password'); p.value = '12345678'; p.dispatchEvent(new Event('input', { bubbles: true })); true;");
+  results.reset_checklistGreen = await evl("document.getElementById('pw-rule-len').classList.contains('ok')");
+  // mismatch blocked CLIENT-side: spy fetch, submit mismatch → zero reset calls
+  await evl("window.__rp = 0; const __of = window.fetch; window.fetch = function (u, o) { if (String(u).includes('reset-password')) window.__rp++; return __of.apply(this, arguments); }; true;");
+  await evl("document.getElementById('confirm-password').value = 'different999'; true;");
+  await evl("document.getElementById('reset-form').dispatchEvent(new Event('submit', { cancelable: true })); true;");
+  await wait(600);
+  results.reset_mismatchMsg = await evl("document.getElementById('error-message').textContent");
+  results.reset_mismatchNoFetch = await evl('window.__rp === 0');
+  // capture the pre-test password hash — the reset REALLY changes driver1's
+  // password, and the downstream driver-login stage needs the original back.
+  const prevHash = getDriverPasswordHash();
+  // matching submit → success + redirect toward login
+  await evl("document.getElementById('confirm-password').value = '12345678'; true;");
+  await evl("document.getElementById('reset-form').dispatchEvent(new Event('submit', { cancelable: true })); true;");
+  await wait(800); // capture the success toast BEFORE the 1800ms redirect fires
+  results.reset_successMsg = await evl("document.body.textContent.includes('Password updated')");
+  await wait(2200);
+  results.reset_redirect = await evl('location.pathname');
+  // restore: original password hash + purge test token/rows (suite 80-cooldown safety)
+  sqlExec("UPDATE users SET password = '" + prevHash + "' WHERE id = 1;");
+  deleteResetTokenRow(seedHash);
+  sqlExec("DELETE FROM verification_tokens WHERE user_id = 1 AND token_type = 'password_reset' AND is_used = FALSE;");
 
   // (a) landing map as guest — Leaflet + marker PNGs (unpkg) must load under CSP
   await nav('http://localhost/EE/public/index.php', 5000);
@@ -175,6 +257,12 @@ try {
     registerGsiOk: results.register.gsiDivPresent === true && results.register.gsiIframeRendered === true,
     registerTabBindingOk: results.register.tabOwnerBound === true && results.register.tabDriverBound === true,
     registerNoFlicker: results.register.heightMonotonic === true,
+    forgotPageOk: results.forgot_page.formVisible === true && results.forgot_page.csrfMeta === true,
+    forgotGenericUIMatches: results.forgot_generic_valid === GENERIC_MSG && results.forgot_generic_unknown === GENERIC_MSG,
+    resetInvalidNoForm: results.reset_invalid.errorCard === true && results.reset_invalid.noPasswordField === true,
+    resetFormAndChecklistOk: results.reset_valid.formPresent === true && results.reset_checklistGreen === true,
+    resetMismatchBlocked: results.reset_mismatchNoFetch === true,
+    resetSuccessRedirect: results.reset_successMsg === true && (results.reset_redirect ?? '').includes('/login.php'),
     mapOk: results.map_leafletLoaded === true,
     markersVisible: (results.map_markerImgs ?? 0) > 0,
     driverFavoritesOk: results.driver_favorites.hasFavoritesHeading === true && results.driver_favorites.loginLeak === false,

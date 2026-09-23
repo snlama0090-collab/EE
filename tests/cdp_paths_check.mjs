@@ -53,6 +53,37 @@ const results = {};
 try {
   await send('Network.enable'); await send('Page.enable'); await send('Log.enable'); await send('Runtime.enable');
 
+  // (0) register.php as guest — GSI button renders on BOTH role tabs, the real
+  // flow entry (handleGoogleRegister) binds the LIVE selectedUserType, and the
+  // wrapper height never shrinks (flicker ratchet).
+  await nav('http://localhost/EE/public/register.php', 4000);
+  const regHeightAt = () => evl("document.getElementById('google-btn-wrapper').getBoundingClientRect().height");
+  results.register = {
+    path: await evl('location.pathname'),
+    gsiDivPresent: await evl("!!document.querySelector('.g_id_signin')"),
+    gsiIframeRendered: await evl("!!document.querySelector('.g_id_signin iframe')"),
+    clientIdFromEnv: await evl("(document.getElementById('g_id_onload').getAttribute('data-client_id') || '').endsWith('.apps.googleusercontent.com')"),
+    dataText: await evl("document.querySelector('.g_id_signin').getAttribute('data-text')"),
+    heightT0: await regHeightAt(),
+    loginLeak: await evl("!!document.getElementById('login-form')"),
+  };
+  await wait(1500);
+  results.register.heightT1 = await regHeightAt();
+  // Spy fetch, then drive the REAL flow entry (the GSI callback) under each tab
+  await evl(`window.__cap = []; const __orig = window.fetch;
+             window.fetch = function (u, o) { try { window.__cap.push(JSON.parse(o.body)); } catch (e) { window.__cap.push(null); }
+               return __orig.apply(this, arguments); }; true;`);
+  await evl("selectUserType(document.querySelector('.type-option[data-type=\"owner\"]'), 'owner'); handleGoogleRegister({ credential: 'csp-probe-token' }); true;");
+  await wait(800);
+  await evl("selectUserType(document.querySelector('.type-option[data-type=\"driver\"]'), 'driver'); handleGoogleRegister({ credential: 'csp-probe-token' }); true;");
+  await wait(1200);
+  results.register.tabOwnerBound = await evl("window.__cap.some(b => b && b.user_type === 'owner')");
+  results.register.tabDriverBound = await evl("window.__cap.some(b => b && b.user_type === 'driver')");
+  results.register.heightT2 = await regHeightAt();
+  results.register.heightMonotonic = (results.register.heightT0 ?? 0) >= 44
+    && (results.register.heightT1 ?? 0) >= (results.register.heightT0 ?? 0) - 1
+    && (results.register.heightT2 ?? 0) >= (results.register.heightT1 ?? 0) - 1;
+
   // (a) landing map as guest — Leaflet + marker PNGs (unpkg) must load under CSP
   await nav('http://localhost/EE/public/index.php', 5000);
   results.map_leafletLoaded = await evl("typeof L !== 'undefined'");
@@ -128,6 +159,9 @@ try {
   };
 
   results.SUMMARY = {
+    registerGsiOk: results.register.gsiDivPresent === true && results.register.gsiIframeRendered === true,
+    registerTabBindingOk: results.register.tabOwnerBound === true && results.register.tabDriverBound === true,
+    registerNoFlicker: results.register.heightMonotonic === true,
     mapOk: results.map_leafletLoaded === true,
     markersVisible: (results.map_markerImgs ?? 0) > 0,
     driverFavoritesOk: results.driver_favorites.hasFavoritesHeading === true && results.driver_favorites.loginLeak === false,

@@ -26,6 +26,7 @@ $project_name = 'WattPulse';
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="assets/js/auth.js" defer></script>
 <script src="/EE/public/assets/js/csrf.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body {
             background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%);
@@ -35,6 +36,30 @@ $project_name = 'WattPulse';
             justify-content: center;
             padding: 40px 20px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        /* Reserve the GIS button slot: async-defer client injects its button
+           well after first paint. Empirical rendered height is ~44px (despite
+           size=large's nominal 40px); the ratchet JS below corrects any
+           further drift - without reservation, divider/footer jump down. */
+        #google-btn-wrapper {
+            align-items: center;
+            min-height: 44px;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .divider hr {
+            flex: 1;
+            border: none;
+            border-top: 1px solid var(--border);
+        }
+        .divider span {
+            color: var(--muted-foreground);
+            font-size: 13px;
+            white-space: nowrap;
         }
         .auth-card {
             background: var(--card);
@@ -366,6 +391,29 @@ $project_name = 'WattPulse';
                 </div>
             </div>
 
+            <!-- Google Sign-Up Divider -->
+            <div class="divider">
+                <hr><span>or continue with</span><hr>
+            </div>
+
+            <!-- Google Sign-Up Button -->
+            <div id="google-btn-wrapper" style="display: flex; justify-content: center; margin-bottom: 20px;">
+                <div id="g_id_onload"
+                     data-client_id="<?php echo htmlspecialchars(GOOGLE_CLIENT_ID, ENT_QUOTES, 'UTF-8'); ?>"
+                     data-callback="handleGoogleRegister"
+                     data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-size="large"
+                     data-theme="outline"
+                     data-text="signup_with"
+                     data-shape="rectangular"
+                     data-logo_alignment="left"
+                     data-width="340">
+                </div>
+            </div>
+
             <button class="auth-btn" onclick="goToStep(2)">Continue</button>
         </div>
 
@@ -649,6 +697,34 @@ $project_name = 'WattPulse';
                 if (el) el.value = '';
             });
         });
+
+        // Ratchet-lock the Google slot: if GIS renders a taller state (e.g.
+        // personalized 'Continue as <name>'), raise the reservation so nothing
+        // below re-flows on subsequent renders. Never shrinks within a load.
+        (function () {
+            var w = document.getElementById('google-btn-wrapper');
+            if (!w || !window.MutationObserver) return;
+            var lock = function () {
+                // scrollHeight cannot see NESTED overflow (GIS renders a ~44px
+                // div inside a 40px box) - measure true visual extent instead:
+                // deepest descendant bottom relative to the wrapper top.
+                var wr = w.getBoundingClientRect();
+                var maxBottom = wr.bottom;
+                w.querySelectorAll('*').forEach(function (el) {
+                    var b = el.getBoundingClientRect().bottom;
+                    if (b > maxBottom) maxBottom = b;
+                });
+                var h = Math.max(Math.ceil(maxBottom - wr.top), 40);
+                if (w.style.minHeight !== h + 'px') w.style.minHeight = h + 'px';
+            };
+            lock();
+            new MutationObserver(function () {
+                // GIS settles its swap over several frames - re-lock across a
+                // short window so the reservation catches the final geometry.
+                lock();
+                [60, 180, 400].forEach(function (t) { setTimeout(lock, t); });
+            }).observe(w, { childList: true, subtree: true });
+        })();
 
         // Google Register callback
         async function handleGoogleRegister(response) {

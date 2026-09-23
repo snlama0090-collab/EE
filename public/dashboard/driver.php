@@ -212,7 +212,7 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
 
         function initializeSection(sectionName) {
             if (sectionName === 'find-stations') {
-                setTimeout(() => { initMap(); addStationsToMap(); getDefaultLocationPlaceName(); }, 100);
+                setTimeout(() => { initMap(); addStationsToMap(); getDefaultLocationPlaceName(); autoDetectLocation(); }, 100);
             }
             if (sectionName === 'bookings') {
                 initCountdowns();
@@ -344,9 +344,9 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                 function(pos) {
                     updateUserMarker(pos.coords.latitude, pos.coords.longitude);
                     showStations(); calculateDistancesAndFilter(pos.coords.latitude, pos.coords.longitude);
-                    // Default range filter to 2km after location detection
+                    // Manual detect: narrow to 10km (Kathmandu Valley spread — 2km hid most stations)
                     var rangeEl = document.getElementById('range-filter');
-                    if (rangeEl) { rangeEl.value = '2'; filterStations(); }
+                    if (rangeEl) { rangeEl.value = '10'; filterStations(); }
                     fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude)
                         .then(r => r.json()).then(d => {
                             var name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || (pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4));
@@ -361,6 +361,40 @@ $profilePicPath = get_profile_picture_url($user_id, 'driver', $user['profile_pic
                 },
                 { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
             );
+        }
+
+        // Auto-geolocation on section entry — progressive enhancement only:
+        // the list is ALREADY visible (all stations, created_at order); success
+        // re-labels + re-sorts by distance, deny/timeout leaves everything as-is.
+        // Mirrors landing.js's 2s-timeout pattern; never forces a range filter.
+        function autoDetectLocation() {
+            if (!navigator.geolocation) { setStationStatus('Geolocation not supported — showing all stations'); return; }
+            setStationStatus('Detecting your location…');
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    updateUserMarker(pos.coords.latitude, pos.coords.longitude);
+                    calculateDistancesAndFilter(pos.coords.latitude, pos.coords.longitude);
+                    var sf = document.getElementById('sort-filter');
+                    if (sf) { sf.value = 'distance'; sortStations('distance'); }
+                    setStationStatus('Using your location');
+                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude)
+                        .then(r => r.json()).then(d => {
+                            var name = d.address?.city || d.address?.town || d.address?.village || d.address?.county || (pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4));
+                            var input = document.getElementById('location-input');
+                            if (input) input.value = name;
+                            updateUserMarker(pos.coords.latitude, pos.coords.longitude, name);
+                        }).catch(function(){});
+                },
+                function() {
+                    setStationStatus('Location not detected — showing all stations');
+                },
+                { enableHighAccuracy: false, timeout: 2000, maximumAge: 60000 }
+            );
+        }
+
+        function setStationStatus(text) {
+            var el = document.getElementById('station-status');
+            if (el) el.textContent = text;
         }
 
         function calculateDistancesAndFilter(ulat, ulon) {

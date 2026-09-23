@@ -34,7 +34,6 @@ $stmt = $db->prepare("
     WHERE s.approval_status = 'approved'
     GROUP BY s.id
     ORDER BY s.created_at DESC
-    LIMIT 20
 ");
 $stmt->execute([$user_id]);
 $stations = $stmt->fetchAll();
@@ -52,6 +51,9 @@ $stations = $stmt->fetchAll();
         <i class="fas fa-location-crosshairs"></i> Detect location
     </button>
 </div>
+
+<!-- Geolocation status (non-blocking; mirrors landing.js's status line) -->
+<div id="station-status" style="font-size:12px;color:var(--muted-foreground);padding:0 4px 8px;"></div>
 
 <!-- MAP AREA -->
 <div class="map-area" id="map">
@@ -86,7 +88,7 @@ $stations = $stmt->fetchAll();
 </div>
 
 <!-- STATIONS LIST -->
-<div class="stations-section" id="stations-section" style="display: none;">
+<div class="stations-section visible" id="stations-section">
     <?php foreach ($stations as $station): ?>
     <div class="station-card" style="position: relative;"
          data-station-id="<?php echo $station['id']; ?>"
@@ -109,7 +111,7 @@ $stations = $stmt->fetchAll();
             
             <div class="station-details">
                 <span class="detail-item">⭐ <?php echo round($station['average_rating'] ?? 0, 1); ?>/5</span>
-                <span class="detail-item">📍 <span class="station-distance">0</span> km</span>
+                <span class="detail-item">📍 <span class="station-distance">—</span> km</span>
             </div>
             
             <div class="charger-info">

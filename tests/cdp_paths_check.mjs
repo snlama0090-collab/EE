@@ -134,6 +134,19 @@ try {
     markerIconsLoaded: await evl("[...document.querySelectorAll('img.leaflet-marker-icon')].length > 0 && [...document.querySelectorAll('img.leaflet-marker-icon')].every(i => i.complete && i.naturalWidth > 0)"),
     loginLeak: await evl("!!document.getElementById('login-form')"),
   };
+  await wait(1500); // let auto-geolocation resolve its deny/timeout path (headless default)
+  results.driver_find_stations.listVisibleOnLoad = await evl("(() => { const el = document.getElementById('stations-section'); return !!el && el.offsetParent !== null; })()");
+  results.driver_find_stations.cardsPopulated = await evl("document.querySelectorAll('.station-card').length");
+  results.driver_find_stations.distancesShowDashPreLocation = await evl("[...document.querySelectorAll('.station-distance')].every(s => s.textContent.trim() === '—')");
+  results.driver_find_stations.statusLine = await evl("document.getElementById('station-status')?.textContent || ''");
+  // simulate resolved geolocation → distances populate + distance sort, list stays visible
+  await send('Browser.grantPermissions', { permissions: ['geolocation'], origin: 'http://localhost' });
+  await send('Emulation.setGeolocationOverride', { latitude: 27.7172, longitude: 85.3240, accuracy: 50 });
+  await evl("typeof autoDetectLocation === 'function' && autoDetectLocation(); true;");
+  await wait(1800);
+  results.driver_find_stations.distancesPopulated = await evl("[...document.querySelectorAll('.station-distance')].filter(s => s.textContent.trim() !== '—' && !isNaN(parseFloat(s.textContent))).length");
+  results.driver_find_stations.sortedByDistance = await evl("(() => { const d = [...document.querySelectorAll('.station-card')].map(c => parseFloat(c.dataset.distance)); for (let i = 1; i < d.length; i++) if (d[i] < d[i-1] - 0.05) return false; return true; })()");
+  results.driver_find_stations.listStillVisible = await evl("(() => { const el = document.getElementById('stations-section'); return !!el && el.offsetParent !== null; })()");
 
   // (c) owner login (fresh cookies) → loadSection() dynamic sections
   await send('Network.clearBrowserCookies');
@@ -170,6 +183,10 @@ try {
     profilePictureOk: (results.profile_picture.presetImgs ?? 0) > 0 && (results.profile_picture.presetImgsBroken ?? 0) === 0,
     findStationsMarkers: (results.driver_find_stations.markerImgs ?? 0) > 0,
     findStationsMarkerIconsLoaded: results.driver_find_stations.markerIconsLoaded === true,
+    findStationsListVisibleOnLoad: results.driver_find_stations.listVisibleOnLoad === true && (results.driver_find_stations.cardsPopulated ?? 0) > 0,
+    findStationsDashPreLocation: results.driver_find_stations.distancesShowDashPreLocation === true,
+    findStationsDistancesPopulated: (results.driver_find_stations.distancesPopulated ?? 0) > 0,
+    findStationsSortedByDistance: results.driver_find_stations.sortedByDistance === true && results.driver_find_stations.listStillVisible === true,
     markerIconDirectProbe: results.markerIconDirectProbe,
     cspViolationCount: cspErrors.length,
     cspErrors: cspErrors.slice(0, 5),

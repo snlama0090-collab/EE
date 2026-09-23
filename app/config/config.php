@@ -8,7 +8,6 @@
 
 // ===== ENVIRONMENT SETUP =====
 define('ENV', 'development'); // development, production
-define('DEBUG', true);
 
 // ===== LOAD .ENV CREDENTIALS =====
 require_once __DIR__ . '/../../vendor/autoload.php';

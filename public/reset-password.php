@@ -27,6 +27,8 @@ if ($raw !== '') {
 <meta name="csrf-token" content="<?php echo htmlspecialchars(Csrf::token(), ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/dashboard.css">
+    <script>window.PW_CONFIG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>, max: <?php echo (int) PASSWORD_MAX_LENGTH; ?> };</script>
+    <script src="/EE/public/assets/js/validators.js"></script>
     <script src="/EE/public/assets/js/csrf.js"></script>
     <style>
         body { background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -70,12 +72,23 @@ if ($raw !== '') {
         <form id="reset-form" novalidate autocomplete="off">
             <div class="form-group" style="margin-bottom:14px;">
                 <label for="password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">New Password</label>
-                <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
-                <div id="pw-checklist" style="margin-top:6px;font-size:12px;"><span id="pw-rule-len" style="color:#8E8E93;">8+ characters</span></div>
+                <div class="input-group">
+                    <input type="password" id="password" name="password" placeholder="8–128 characters" autocomplete="new-password" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    <button type="button" class="password-toggle" onclick="togglePw('password', 'eye-pw')">
+                        <i class="fas fa-eye" id="eye-pw"></i>
+                    </button>
+                </div>
+                <div id="pw-checklist" style="margin-top:6px;font-size:12px;"><span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>–<?php echo (int) PASSWORD_MAX_LENGTH; ?> characters</span></div>
             </div>
             <div class="form-group" style="margin-bottom:18px;">
                 <label for="confirm-password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Confirm Password</label>
-                <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" required style="width:100%;padding:10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                <div class="input-group">
+                    <input type="password" id="confirm-password" name="confirm_password" placeholder="Re-enter password" autocomplete="new-password" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                    <button type="button" class="password-toggle" onclick="togglePw('confirm-password', 'eye-cpw')">
+                        <i class="fas fa-eye" id="eye-cpw"></i>
+                    </button>
+                </div>
+                <div id="pw-match" style="margin-top:6px;font-size:12px;min-height:15px;"></div>
             </div>
             <button type="submit" class="auth-btn" id="submit-btn" style="width:100%;padding:11px 12px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;">Reset Password</button>
         </form>
@@ -86,12 +99,39 @@ if ($raw !== '') {
     </div>
     <script>
         var pwInput = document.getElementById('password');
+        var confirmInput = document.getElementById('confirm-password');
         var ruleLen = document.getElementById('pw-rule-len');
+        var matchEl = document.getElementById('pw-match');
 
-        pwInput.addEventListener('input', function () {
-            if (pwInput.value.length >= 8) ruleLen.classList.add('ok');
-            else ruleLen.classList.remove('ok');
-        });
+        function togglePw(inputId, iconId) {
+            var input = document.getElementById(inputId);
+            var icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Length rule + live match indicator; both update as either field changes.
+        function repaint() {
+            var lenOk = window.AuthValidators.isPasswordValidLength(pwInput.value);
+            ruleLen.classList.toggle('ok', lenOk);
+            if (confirmInput.value === '') {
+                matchEl.textContent = '';
+            } else {
+                var same = pwInput.value === confirmInput.value;
+                matchEl.textContent = same ? 'Passwords match' : 'Passwords do not match';
+                matchEl.style.color = same ? '#34C759' : '#FF3B30';
+            }
+        }
+        pwInput.addEventListener('input', repaint);
+        confirmInput.addEventListener('input', repaint);
 
         function showToast(message, type) {
             var msg = document.getElementById(type === 'error' ? 'error-message' : 'success-message');
@@ -101,8 +141,9 @@ if ($raw !== '') {
 
         document.getElementById('reset-form').addEventListener('submit', function (e) {
             e.preventDefault();
-            var pw = pwInput.value, confirmPw = document.getElementById('confirm-password').value;
-            if (pw.length < 8) { showToast('Password must be at least 8 characters.', 'error'); return; }
+            var pw = pwInput.value, confirmPw = confirmInput.value;
+            var AV = window.AuthValidators;
+            if (!AV.isPasswordValidLength(pw)) { showToast('Password must be between ' + AV.PW_MIN + ' and ' + AV.PW_MAX + ' characters.', 'error'); return; }
             if (pw !== confirmPw) { showToast('Passwords do not match.', 'error'); return; }
 
             var token = new URLSearchParams(location.search).get('token') || '';

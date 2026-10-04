@@ -19,7 +19,7 @@ This is a full-stack web application for **finding, booking, and managing EV cha
 |---|---|---|
 | **Registration** | Driver / Owner | Multi-step form → user type selection → account details → password → terms → POST to `api/auth/register.php` → redirect to login |
 | **Authentication** | All roles | email + password → `api/auth/login.php` → session start via `Auth::startSession()` → dashboard redirect (role-based) |
-| **Google OAuth** | All roles | Google One Tap → `api/auth/google.php` → verify token → find-or-create user → session start → dashboard redirect |
+| **Google OAuth** | All roles | Google One Tap → `api/auth/google.php` → verify token → find-or-create user → session start → dashboard redirect (new/provisional Google accounts and existing accounts without a phone re-route through `complete-profile.php` first) |
 | **Find & Book** | Driver | Landing page → leaflet map → station cards with distance/battery details → modal with charger selection → `initiate_payment` → `confirm_payment` → booking held as `booked` (reservation fee paid); charging starts separately, driver-initiated, via `initiate_charging_payment` / `confirm_charging_payment` |
 | **Charging Lifecycle** | Owner + Driver | `booked` → `pending_payment` (driver pays reservation fee) → `booked` (awaiting arrival) → `charging` (driver confirms charging payment) → `stopped`/`completed` (driver stops early or auto-completes via `SessionTicker`) → release charger |
 | **Station Management** | Owner | Register station with location picker → add charger rows → submit for approval → admin approves → manage charger status (available/maintenance/offline) |
@@ -253,7 +253,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 **Purpose:** Create new driver or owner account with validated inputs.
 
 **Key Logic:**
-- Input validation: email (filter_var), password length (≥8, `PASSWORD_MIN_LENGTH`), phone (regex)
+- Input validation: email (filter_var), password length (8–128, `PASSWORD_MIN_LENGTH`/`PASSWORD_MAX_LENGTH`), phone (regex), terms acceptance (empty `terms` rejected before the DB/OTP step)
 - Line 39-48: Driver registration inserts into `users` with `car_model`, `car_full_capacity_kwh`
 - Line 50-59: Owner registration inserts into `owners` with `company_name`, `bank_account_number`
 - Line 70: Duplicate email detection via `PDOException` message matching `'Duplicate'`
@@ -271,7 +271,8 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
   - **Driver**: If existing → session start; if new → auto-register with random password, generic car model "Generic EV", 50 kWh capacity
   - **Owner**: If existing → session start; if new → auto-register with random password, `{$name} Enterprise` as company name, auto-approved
   - **Admin**: Cannot auto-register — must pre-exist; otherwise returns error
-- Line 124: `Auth::startSession($user_id, $user_type, false)`
+- Line 124: `Auth::startSession($user_id, $user_type, false)` — for existing accounts the session's `profile_complete` flag mirrors the DB row, with an empty `phone` treated as incomplete (those accounts re-enter the completion flow on next login); `Auth::requireProfileComplete()` (Auth.php:119-124) redirects dashboard access to `complete-profile.php` until completion, while password logins set no flag and are unaffected
+- `complete_profile` action: validates name, phone (`validate_phone`) and terms acceptance server-side before the UPDATEs, which write `phone` and flip `profile_complete = TRUE`
 - Line 130: Logs authentication to `activity_logs`
 
 ### 5.6 `api/bookings.php`
@@ -341,8 +342,9 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 **Key Functions:**
 - `selectUserType(element, type)` — toggles driver/owner form sections, disables fields for inactive type
-- `goToStep(step)` — navigates between step 1 (type selection) and step 2 (form), updates progress bar
-- `handleRegister(event)` — validates password match, terms, minimum length; POST to `api/auth/register.php`
+- `goToStep(step, skipPush)` — navigates between step 1 (type selection) and step 2 (form), updates progress bar; advancing pushes a `{wizardStep: 2}` history entry so browser Back works step-wise (popstate repaints; programmatic repaints pass `skipPush` to avoid double entries)
+- `goBackToStep1()` — Back button from step 2 returns to role selection via `history.back()`; a reload on step 2 repaints step 2
+- `handleRegister(event)` — validates password match, terms, length (8–128) via `AuthValidators`; POST to `api/auth/register.php`
 - `togglePasswordVisibility(inputId, iconId)` — ~~parameterized version (not in login.php)~~ moved to `assets/js/auth.js` 2026-09-14, shared by both pages — supports both password and confirm-password fields
 
 ### 5.11 `public/dashboard/driver.php`
@@ -465,7 +467,7 @@ Additionally, a **Guest** (unauthenticated) role exists, which can only access `
 
 2. USER SUBMITS CREDENTIALS (email + password)
    File: public/login.php → function handleLogin(event) (line 256)
-   - Validates fields not empty, password ≥ 6 chars
+   - Validates email format (AuthValidators) + password not empty — deliberately NO password policy at login (legacy passwords stay valid)
    - Shows loading spinner, disables button
    - POST to /EE/api/auth/login.php with JSON body: { email, password, user_type, remember }
 
@@ -530,14 +532,14 @@ SUBSEQUENT REQUESTS:
    - Client-side validation:
      - If battery_capacity === 'other' → swaps custom value (line 560-567)
      - Passwords must match (line 577-579)
-     - Password ≥ 8 chars (line 582-584)
-     - Terms must be accepted (line 587-589)
+     - Password length 8–128 via AuthValidators / window.PW_CONFIG
+     - Terms must be accepted (mirrored server-side in api/auth/register.php)
    - Shows loading state: "Creating account..."
    - POST to /EE/api/auth/register.php with JSON body
 
 6. API CREATES ACCOUNT
    File: api/auth/register.php
-   - Validates email (filter_var), password length (≥8), phone (Nepali regex)
+   - Validates email (filter_var), password length (8–128), phone (Nepali regex), terms acceptance
    - If driver → INSERT INTO users (email, password, name, phone, car_model, car_full_capacity_kwh)
    - If owner → INSERT INTO owners (email, password, name, company_name, phone, bank_account_number)
    - Uses hash_password() (bcrypt, cost 10)
@@ -553,7 +555,7 @@ SUBSEQUENT REQUESTS:
    File: public/register.php → async function handleGoogleRegister(response) (line 679)
    - Passes credential + user_type to api/auth/google.php
    - Endpoint verifies token, auto-registers if new (with random password), starts session immediately
-   - On success → redirects directly to dashboard (no manual login needed)
+   - On success → new Google accounts and phoneless existing accounts land on complete-profile.php (name, phone, terms) before any dashboard — a Google signup cannot skip the phone + terms requirements
 ```
 
 ---
@@ -642,7 +644,7 @@ All driver receipts, owner invoices, and admin financial reports must filter str
 
 **Location:** `api/auth/register.php`, `public/assets/js/auth.js`, `public/login.php`
 
-~~Config defined `PASSWORD_REQUIRE_UPPERCASE`/`PASSWORD_REQUIRE_NUMBERS` but nothing enforced them; registration only checked minimum length.~~ **Implemented:** the server now honors all three password flags (`PASSWORD_REQUIRE_SPECIAL_CHARS` remains intentionally `false`) plus `NAME_MIN_LENGTH`/`NAME_MAX_LENGTH` (2–100) — both previously dead config. Role fields gained real validation too: driver battery capacity must be > 0 and car model non-empty; owner company name non-empty and bank account digits-only (5–20). Client side mirrors everything: live ticking checklist under both password fields driven by a `window.PW_CONFIG` object injected from the same constants (can't drift), plus submit-time toasts; login's stale "6 characters" hint aligned to `PASSWORD_MIN_LENGTH`.
+~~Config defined `PASSWORD_REQUIRE_UPPERCASE`/`PASSWORD_REQUIRE_NUMBERS` but nothing enforced them; registration only checked minimum length.~~ **Implemented:** the server now honors all three password flags (`PASSWORD_REQUIRE_SPECIAL_CHARS` remains intentionally `false`) plus `NAME_MIN_LENGTH`/`NAME_MAX_LENGTH` (2–100) — both previously dead config. Role fields gained real validation too: driver battery capacity must be > 0 and car model non-empty; owner company name non-empty and bank account digits-only (5–20). Client side mirrors everything: live ticking checklist under both password fields driven by a `window.PW_CONFIG` object injected from the same constants (can't drift), plus submit-time toasts; login's stale "6 characters" hint aligned to `PASSWORD_MIN_LENGTH`. **Superseded 2026-10-04:** the complexity flags were removed from config and enforcement entirely — the policy is now length-only (8–128) by audit decision; see the 2026-10-04 batch entry in §9.3.
 
 Regression coverage: integration suite checks 44–48 — each rejection message asserted against the live endpoint (validation runs before the OTP gate, so no SMTP needed), with check 48 proving a fully valid payload still clears every rule and reaches the gate.
 
@@ -867,6 +869,8 @@ The following table summarizes all findings from the combined audit, ranked by s
 **Google Sign-Up on register page (2026-09-21):** "Sign up with Google" added to the register wizard — divider + flicker-locked GIS slot (`min-height: 44px` reservation + ratchet `MutationObserver`, verbatim from login) at the bottom of step 1, before the Continue button; the active role tab carries into `api/auth/google.php`'s provisional find-or-create (driver/owner branches) and the existing `complete-profile.php` completion flow. **Backend required no changes** — the endpoint already auto-created provisional accounts for unknown Google emails, so this was a frontend-only wire-up of the previously orphaned `handleGoogleRegister` (now the `data-callback`). Register's `data-client_id` is sourced from the `GOOGLE_CLIENT_ID` env-backed constant; **login.php's copy is still hardcoded** — known inconsistency to unify later (deliberately deferred). `tests/cdp_paths_check.mjs` extended with a register-page GSI stage: button + rendered iframe verified on both role tabs, `handleGoogleRegister` binds the live `selectedUserType` (owner + driver via fetch spy), wrapper height monotonic (no flicker), zero CSP violations. Suite 198/0.
 
 **Password reset flow SHIPPED (2026-09-23):** "Forgot password?" on login → `forgot-password.php` → `api/auth/forgot-password.php` issues a single-use 30-minute link (`verification_tokens`, `token_type='password_reset'`, SHA-256-stored — raw token only ever in the emailed URL; drivers + owners only, admins excluded) with a 60s per-identity cooldown; `reset-password.php` validates server-side before rendering, then `api/auth/reset-password.php` flips the password (`hash_password`, same bcrypt config) in a transaction, marks `is_used=TRUE`, wipes that identity's `remember_tokens`, redirects to login — no auto-login. Anti-enumeration: identical generic response for known vs unknown emails; mail-send failures log but do not change the response. New Mailer method `sendPasswordResetEmail()` (reset copy; `sendOtpEmail` untouched). Backend rides the long-dead `verification_tokens` table + the previously-unused `token_type='password_reset'` enum — no migration. Coverage: suite cases 80a-80j (CSRF 403s, no-enumeration equality, cooldown, reissue invalidation, full reset flip incl. login-old-fails/login-new-succeeds, expired + replay rejection, wrong-role pairing) + CDP forgot/reset UI stage (generic-message equality on both emails, invalid-token error card with no password field, live checklist, client-side mismatch block, success + redirect) — 208/0 suite, 0 CSP violations. Docs note: the "❌ Missing" password-reset rows in the external audit document (§3/§7) are now outdated; this file never claimed them missing.
+
+**Auth hardening 2026-10-04 (8-fix audit batch):** all rows of `docs/audit-report.md` closed. (1) **Length-only password policy 8–128** — `PASSWORD_MAX_LENGTH` added to config; complexity flags removed by decision; enforced on register (`api/auth/register.php`) and reset (`api/auth/reset-password.php`), while login is deliberately policy-free (legacy passwords stay valid; empty-password rejected only). (2) **Server-side terms gate** — register rejects an empty `terms` field before the DB/OTP step; `api/auth/google.php`'s `complete_profile` rejects a missing one; Google's initial signup has no terms checkbox, so acceptance happens on `complete-profile.php`'s checkbox, which now sends `terms` in both the driver and owner payloads. (3) **Google phone requirement** — login SELECTs fetch `phone`/`profile_pic`/`profile_complete`; accounts without a phone re-enter the completion step (session `profile_complete=false` + `Auth::requireProfileComplete()` dashboard gate, Auth.php:119-124); `complete_profile` validates phone format server-side on both role UPDATEs. (4) **Shared validators** — new `public/assets/js/validators.js` (`AuthValidators`: email/gmail/phone regex + password bounds), with the bounds injected from the PHP constants via `window.PW_CONFIG` on every auth page so the client mirror cannot drift. (5) **Login/forgot/reset UX** — login validates email format + empty-password only with an Enter-key flow (email → password → submit) and no policy hint; forgot validates email before POST (same rule as the server); reset shows an 8–128 live length checklist, confirm-match indicator and eye toggles driven by `window.PW_CONFIG`. (6) **Signup back button** — register wizard pushes a `{wizardStep: 2}` history entry on advance, `popstate` repaints, Back from step 2 → role selection, Back from role selection leaves the page normally, and a reload on step 2 repaints step 2. Suite: **222 PASS / 0 FAIL**, including new checks 44c-44g (register password bounds + terms), 81a-81d (reset bounds), 82 (empty-password login), 83a-83c (Google completion phone/terms via zero-DB-write probes) and 84 (google.php source shape); the back button itself is client-only UX, not exercisable by the HTTP suite (same scope note as checks 70h-70k).
 
 ### 9.3.1 Pre-Deployment Checklist (NOT yet done — this is a local XAMPP coursework deployment)
 

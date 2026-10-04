@@ -189,7 +189,7 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             .auth-card { padding: 24px; }
         }
     </style>
-    <script>window.PW_CONFIG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?> };</script>
+    <script src="assets/js/validators.js" defer></script>
     <script src="assets/js/auth.js" defer></script>
 <script src="/EE/public/assets/js/csrf.js"></script>
 </head>
@@ -235,12 +235,6 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
                     <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon')">
                         <i class="fas fa-eye" id="eye-icon"></i>
                     </button>
-                </div>
-                <!-- Live password checklist (UX only; server-side auth is unchanged) -->
-                <div id="pw-checklist" style="display:none;margin-top:6px;font-size:12px;color:var(--muted-foreground);">
-                    <span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span> ·
-                    <span id="pw-rule-upper">Uppercase letter</span> ·
-                    <span id="pw-rule-num">Number</span>
                 </div>
             </div>
 
@@ -341,25 +335,30 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
         const form = document.getElementById('login-form');
         const userTypeInput = document.getElementById('user-type');
         const errorMessage = document.getElementById('error-message');
-        // Live password checklist (mirrors config; UX only)
+        // No password rules on login: policy is length-only and legacy passwords
+        // are never re-checked against it. Empty-password UX only.
         const pwField = document.getElementById('password');
-        const pwBox = document.getElementById('pw-checklist');
-        const ruleEls = {
-            len: document.getElementById('pw-rule-len'),
-            upper: document.getElementById('pw-rule-upper'),
-            num: document.getElementById('pw-rule-num')
-        };
-        const PW_LOGIN_CFG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?> };
-        function paintPwRules() {
-            const v = pwField.value;
-            [[v.length >= PW_LOGIN_CFG.min, ruleEls.len],
-             [/[A-Z]/.test(v), ruleEls.upper],
-             [/[0-9]/.test(v), ruleEls.num]].forEach(function (p) {
-                if (p[1]) p[1].style.color = p[0] ? '#22c55e' : '';
-            });
-        }
-        pwField.addEventListener('focus', function () { if (pwBox) pwBox.style.display = 'block'; });
-        pwField.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; paintPwRules(); });
+
+        // Enter-key flow: Enter in email validates and advances focus; Enter in
+        // password validates both fields and submits (no min/max at login).
+        document.getElementById('email').addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const emailVal = this.value.trim();
+            if (!emailVal) { showToast('Email is required', 'error'); return; }
+            if (window.AuthValidators && !AuthValidators.isValidEmail(emailVal)) { showToast('Enter a valid email address', 'error'); return; }
+            pwField.focus();
+        });
+        pwField.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const emailField = document.getElementById('email');
+            const emailVal = emailField.value.trim();
+            if (!emailVal) { showToast('Email is required', 'error'); emailField.focus(); return; }
+            if (window.AuthValidators && !AuthValidators.isValidEmail(emailVal)) { showToast('Enter a valid email address', 'error'); emailField.focus(); return; }
+            if (!this.value) { showToast('Password is required', 'error'); return; }
+            form.requestSubmit();
+        });
         const tabButtons = document.querySelectorAll('.tab-btn');
         const roleBadge = document.getElementById('role-badge');
         const roleLabels = <?php echo json_encode($role_subtitles); ?>;
@@ -419,7 +418,10 @@ $role_subtitles = ['admin' => 'Admin', 'owner' => 'Station Owner', 'driver' => '
             const loginBtn = document.getElementById('login-btn');
             const btnText = document.getElementById('btn-text');
 
-            if (!email || !password) { showToast('Please fill in all fields', 'error'); return; }
+            // Per-field messages; NO password policy at login (legacy passwords stay valid).
+            if (!email) { showToast('Email is required', 'error'); return; }
+            if (window.AuthValidators && !AuthValidators.isValidEmail(email)) { showToast('Enter a valid email address', 'error'); return; }
+            if (!password) { showToast('Password is required', 'error'); return; }
             // Freeze button width to prevent layout reflow before swapping text
             loginBtn.style.minWidth = loginBtn.offsetWidth + 'px';
             loginBtn.classList.add('loading');

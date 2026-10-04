@@ -32,8 +32,13 @@ $fail400 = function ($msg) {
     exit;
 };
 
-if ($raw === '' || strlen($password) < PASSWORD_MIN_LENGTH) {
+$pw_len = mb_strlen($password);
+if ($raw === '' || $pw_len < PASSWORD_MIN_LENGTH) {
     $fail400('Password must be at least ' . PASSWORD_MIN_LENGTH . ' characters');
+}
+
+if ($pw_len > PASSWORD_MAX_LENGTH) {
+    $fail400('Password must be at most ' . PASSWORD_MAX_LENGTH . ' characters');
 }
 
 try {

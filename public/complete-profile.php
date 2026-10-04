@@ -17,11 +17,19 @@ if (!isset($_SESSION['profile_complete']) || $_SESSION['profile_complete'] !== f
 }
 
 $db = getDB();
-$table = ($role === 'driver') ? 'users' : 'owners';
-$stmt = $db->prepare("SELECT email, name FROM $table WHERE id = ?");
+if ($role === 'driver') {
+    $stmt = $db->prepare("SELECT email, name, phone, car_model, car_full_capacity_kwh FROM users WHERE id = ?");
+} else {
+    $stmt = $db->prepare("SELECT email, name, phone, company_name, bank_account_number FROM owners WHERE id = ?");
+}
 $stmt->execute([Auth::getCurrentUserId()]);
 $acct = $stmt->fetch();
 if (!$acct) { header('Location: ' . APP_URL . '/logout.php'); exit; }
+// Prefill helpers: battery select only has fixed buckets; anything else lands
+// in the "other" bucket with the exact value restored.
+$batVal = isset($acct['car_full_capacity_kwh']) ? rtrim(rtrim((string)$acct['car_full_capacity_kwh'], '0'), '.') : '';
+$batInList = $batVal === '' || in_array($batVal, ['30', '40', '50', '60', '75'], true);
+$phoneMissing = trim((string)($acct['phone'] ?? '')) === '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -60,9 +68,17 @@ button:disabled{opacity:.6;cursor:default}
     <input type="text" id="name" autocomplete="name" value="<?php echo htmlspecialchars($acct['name'], ENT_QUOTES); ?>">
     <div class="field-error" id="err-name"></div>
 
+<?php if ($phoneMissing): ?>
+    <div class="chip" style="background:#fef9c3;color:#854d0e">Please add your phone number to finish setting up your account.</div>
+<?php endif; ?>
+
+    <label for="phone">Phone number</label>
+    <input type="tel" id="phone" inputmode="tel" autocomplete="tel" placeholder="+977 98XXXXXXXX" value="<?php echo htmlspecialchars($acct['phone'] ?? '', ENT_QUOTES); ?>">
+    <div class="field-error" id="err-phone"></div>
+
 <?php if ($role === 'driver'): ?>
     <label for="car_model">Car model</label>
-    <input type="text" id="car_model" list="car-model-suggestions" placeholder="e.g., Tata Nexon EV">
+    <input type="text" id="car_model" list="car-model-suggestions" placeholder="e.g., Tata Nexon EV" value="<?php echo htmlspecialchars($acct['car_model'] ?? '', ENT_QUOTES); ?>">
     <datalist id="car-model-suggestions">
       <option value="Tata Nexon EV">
       <option value="Tata Tiago EV">
@@ -85,19 +101,19 @@ button:disabled{opacity:.6;cursor:default}
     <label for="battery_capacity">Battery capacity (kWh)</label>
     <select id="battery_capacity">
       <option value="">Select capacity…</option>
-      <option value="30">30 kWh</option><option value="40">40 kWh</option>
-      <option value="50">50 kWh</option><option value="60">60 kWh</option>
-      <option value="75">75 kWh</option><option value="other">Other…</option>
+      <option value="30"<?php echo ($batVal === '30') ? ' selected' : ''; ?>>30 kWh</option><option value="40"<?php echo ($batVal === '40') ? ' selected' : ''; ?>>40 kWh</option>
+      <option value="50"<?php echo ($batVal === '50') ? ' selected' : ''; ?>>50 kWh</option><option value="60"<?php echo ($batVal === '60') ? ' selected' : ''; ?>>60 kWh</option>
+      <option value="75"<?php echo ($batVal === '75') ? ' selected' : ''; ?>>75 kWh</option><option value="other"<?php echo (!$batInList && $batVal !== '') ? ' selected' : ''; ?>>Other…</option>
     </select>
-    <input type="number" id="battery_other" step="0.1" min="0.1" aria-label="Exact battery capacity in kWh" placeholder="Enter exact kWh" style="display:none;margin-top:8px">
+    <input type="number" id="battery_other" step="0.1" min="0.1" aria-label="Exact battery capacity in kWh" placeholder="Enter exact kWh" style="display:none;margin-top:8px" value="<?php echo htmlspecialchars(($batInList || $batVal === '') ? '' : $batVal, ENT_QUOTES); ?>">
     <div class="field-error" id="err-battery_capacity"></div>
 <?php else: ?>
     <label for="company_name">Company name</label>
-    <input type="text" id="company_name" placeholder="Your charging business name">
+    <input type="text" id="company_name" placeholder="Your charging business name" value="<?php echo htmlspecialchars($acct['company_name'] ?? '', ENT_QUOTES); ?>">
     <div class="field-error" id="err-company_name"></div>
 
     <label for="bank_account">Bank account number (digits only)</label>
-    <input type="text" id="bank_account" inputmode="numeric" placeholder="For future payouts - nothing charged today">
+    <input type="text" id="bank_account" inputmode="numeric" placeholder="For future payouts - nothing charged today" value="<?php echo htmlspecialchars($acct['bank_account_number'] ?? '', ENT_QUOTES); ?>">
     <div class="field-error" id="err-bank_account"></div>
 <?php endif; ?>
 
@@ -114,6 +130,7 @@ button:disabled{opacity:.6;cursor:default}
 </div>
 
 <script src="<?php echo APP_URL; ?>/public/assets/js/csrf.js"></script>
+<script src="<?php echo APP_URL; ?>/public/assets/js/validators.js"></script>
 <script>
 (function () {
   // A11y: inline errors get announced by screen readers (roles assigned before any message fires).
@@ -138,6 +155,8 @@ button:disabled{opacity:.6;cursor:default}
   if (sel) sel.addEventListener('change', function () {
     document.getElementById('battery_other').style.display = (sel.value === 'other') ? 'block' : 'none';
   });
+  // Prefilled "other" bucket starts visible.
+  if (sel && sel.value === 'other') document.getElementById('battery_other').style.display = 'block';
 
   function setErr(id, msg) {
     document.getElementById(id).classList.toggle('is-invalid', !!msg);
@@ -155,16 +174,18 @@ button:disabled{opacity:.6;cursor:default}
     var name = val('name');
     chk(name.length >= 2 && name.length <= 100 && hasLetters(name),
         'name', 'Please enter your real name (2-100 characters)');
+    chk(window.AuthValidators ? AuthValidators.isValidPhone(val('phone')) : val('phone') !== '',
+        'phone', 'Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX)');
 <?php if ($role === 'driver'): ?>
     chk(val('car_model') !== '', 'car_model', 'Car model is required');
     var bat = (sel.value === 'other') ? parseFloat(val('battery_other')) : parseFloat(sel.value);
     chk(!isNaN(bat) && bat > 0, 'battery_capacity', 'Battery capacity must be a positive number');
-    var payload = { action: 'complete_profile', name: name,
+    var payload = { action: 'complete_profile', name: name, phone: val('phone'), terms: document.getElementById('terms').checked,
                     car_model: val('car_model'), battery_capacity: bat };
 <?php else: ?>
     chk(val('company_name') !== '', 'company_name', 'Company name is required');
     chk(BANK_RE.test(val('bank_account')), 'bank_account', 'Bank account must be 5-20 digits');
-    var payload = { action: 'complete_profile', name: name,
+    var payload = { action: 'complete_profile', name: name, phone: val('phone'), terms: document.getElementById('terms').checked,
                     company_name: val('company_name'), bank_account: val('bank_account') };
 <?php endif; ?>
     chk(document.getElementById('terms').checked, 'terms', 'Please accept the Terms & Conditions');

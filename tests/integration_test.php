@@ -515,7 +515,7 @@ rep('43. GET stats unaffected by CSRF scope', $c43 === 200 && strpos($b43, '"suc
 // no earlier rule misfires on a legitimate payload.
 $rj = __DIR__ . '/rj.txt';
 @unlink($rj);
-$regBase = ['user_type' => 'driver', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'car_model' => 'Tesla Model 3', 'battery_capacity' => '40'];
+$regBase = ['user_type' => 'driver', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'car_model' => 'Tesla Model 3', 'battery_capacity' => '40', 'terms' => 'on'];
 $regExpect = function ($payload, $needle) use ($BASE, $rj) {
     $r = api('POST', "$BASE/api/auth/register.php", $rj, $payload);
     return [$r, strpos($r['message'] ?? '', $needle) !== false];
@@ -531,13 +531,25 @@ rep('45a. register rejects short name', $ok, json_encode($r));
 rep('45b. register rejects overlong name', $ok, json_encode($r));
 [$r, $ok] = $regExpect(array_merge($regBase, ['battery_capacity' => '0']), 'positive number');
 rep('46. driver battery=0 rejected', $ok, json_encode($r));
-$ownerBad = ['user_type' => 'owner', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'company_name' => '', 'bank_account' => '1234567890'];
+$ownerBad = ['user_type' => 'owner', 'email' => 'regcheck@gmail.com', 'password' => 'Valid1Pass', 'name' => 'Reg Checker', 'phone' => '+977 9812345678', 'company_name' => '', 'bank_account' => '1234567890', 'terms' => 'on'];
 [$r, $ok] = $regExpect($ownerBad, 'Company name is required');
 rep('47a. owner empty company rejected', $ok, json_encode($r));
 [$r, $ok] = $regExpect(array_merge($ownerBad, ['company_name' => 'Green Energy Ltd', 'bank_account' => 'ABC123']), '5-20 digits');
 rep('47b. owner non-digit bank rejected', $ok, json_encode($r));
 [$r48, $ok48] = $regExpect($regBase, 'Email not verified');
 rep('48. valid payload clears all rules -> reaches OTP gate', $ok48 && ($r48['status'] ?? '') === 'error', json_encode($r48));
+// Password length boundaries (2026-10 policy: 8-128, length-only)
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => str_repeat('a', 7)]), 'too short');
+rep('44c. register rejects 7-char password (below min)', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => str_repeat('a', 8)]), 'Email not verified');
+rep('44d. register accepts 8-char password (min boundary)', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => str_repeat('a', 128)]), 'Email not verified');
+rep('44e. register accepts 128-char password (max boundary)', $ok, json_encode($r));
+[$r, $ok] = $regExpect(array_merge($regBase, ['password' => str_repeat('a', 129)]), 'too long');
+rep('44f. register rejects 129-char password (above max)', $ok, json_encode($r));
+// Terms gate: server-side enforcement (2026-10 audit decision)
+[$r, $ok] = $regExpect(array_merge($regBase, ['terms' => '']), 'Terms & Conditions');
+rep('44g. register rejects unchecked terms (server-side)', $ok, json_encode($r));
 @unlink($rj);
 
 // ===== 49-57: SUPPORT TICKETS (driver/owner submit; admin queue, reply, status) =====
@@ -856,7 +868,7 @@ $rr = __DIR__ . '/rr.txt'; @unlink($rr);
 $j4 = api('POST', "$BASE/api/auth/register.php", $rr, [
     'user_type' => 'driver', 'email' => $regEmail, 'password' => 'Valid1Pass',
     'name' => 'Pic Step Tester', 'phone' => '+977 9812345678',
-    'car_model' => 'Nissan Leaf', 'battery_capacity' => '39'
+    'car_model' => 'Nissan Leaf', 'battery_capacity' => '39', 'terms' => 'on'
 ]);
 $newId = intval(q($db, "SELECT id FROM users WHERE email=?", [$regEmail])[0]['id'] ?? 0);
 rep('70e. register success -> login redirect carrying picture-step forward', ($j4['status'] ?? '') === 'success'
@@ -1550,5 +1562,78 @@ q($db, "UPDATE users SET password = ? WHERE id = 1", [$pwBefore]);
 q($db, "DELETE FROM verification_tokens WHERE token_type = 'password_reset'");
 q($db, "DELETE FROM remember_tokens WHERE user_id = 1 AND user_type = 'driver'");
 q($db, "DELETE FROM login_attempts WHERE email = 'driver1@example.com'");
+
+// ===== 81-84: 2026-10 AUTH AUDIT (password bounds, terms gate, Google phone) =====
+
+// 81: password-length boundaries on reset-password, on a THROWAWAY user so
+// driver1's password stays untouched (the 80 cleanup already restored it).
+$pwEmail = 'pwbound-' . time() . '@gmail.com';
+$db->prepare("INSERT INTO users (email, password, name, email_verified, profile_complete)
+              VALUES (?, 'x', 'PW Bound Probe', TRUE, TRUE)")->execute([$pwEmail]);
+$pwId = intval($db->lastInsertId());
+$mkTok = function () use ($db, $pwId) {
+    $raw = 'suite-bound-' . bin2hex(random_bytes(8));
+    $db->prepare("INSERT INTO verification_tokens (user_id, token, token_type, expires_at)
+                  VALUES (?, ?, 'password_reset', DATE_ADD(NOW(), INTERVAL 30 MINUTE))")->execute([$pwId, hash('sha256', $raw)]);
+    return $raw;
+};
+$tok81 = $mkTok();
+$r81a = api('POST', "$BASE/api/auth/reset-password.php", $dc, ['token' => $tok81, 'password' => '1234567']);
+rep('81a. reset rejects 7-char password', ($r81a['status'] ?? '') === 'error' && strpos($r81a['message'] ?? '', 'at least 8') !== false, json_encode($r81a));
+$r81b = api('POST', "$BASE/api/auth/reset-password.php", $dc, ['token' => $mkTok(), 'password' => str_repeat('a', 8)]);
+rep('81b. reset accepts 8-char password (min boundary)', ($r81b['status'] ?? '') === 'success', json_encode($r81b));
+$r81c = api('POST', "$BASE/api/auth/reset-password.php", $dc, ['token' => $mkTok(), 'password' => str_repeat('a', 128)]);
+rep('81c. reset accepts 128-char password (max boundary)', ($r81c['status'] ?? '') === 'success', json_encode($r81c));
+$r81d = api('POST', "$BASE/api/auth/reset-password.php", $dc, ['token' => $mkTok(), 'password' => str_repeat('a', 129)]);
+rep('81d. reset rejects 129-char password', ($r81d['status'] ?? '') === 'error' && strpos($r81d['message'] ?? '', 'at most 128') !== false, json_encode($r81d));
+$db->prepare("DELETE FROM users WHERE id = ?")->execute([$pwId]);
+$db->prepare("DELETE FROM verification_tokens WHERE user_id = ?")->execute([$pwId]);
+
+// 82: empty-password login stays rejected with the generic message (login has
+// no length policy by design - only the empty check).
+$r82 = api('POST', "$BASE/api/auth/login.php", $dc, ['email' => 'driver1@example.com', 'password' => '', 'user_type' => 'driver']);
+rep('82. empty-password login rejected', ($r82['status'] ?? '') === 'error' && strpos($r82['message'] ?? '', 'Invalid email or password') !== false, json_encode($r82));
+
+// 83: Google completion endpoint enforces phone + terms server-side. The OAuth
+// leg itself is untestable offline (scope note at 62-69), so a crafted session
+// (same seam as 70f/70g) drives the completion API directly. Payloads are
+// engineered to FAIL validation -> zero DB writes.
+$gProbe = __DIR__ . '/_g_probe.tmp.php';
+$gBase = '<?php
+require_once __DIR__ . "/../app/helpers/Auth.php";
+$_SESSION["user_id"] = 999001; $_SESSION["user_type"] = "driver";
+$_SESSION["login_time"] = time(); $_SESSION["user_agent"] = "SuiteGProbe/1.0";
+$_SESSION["csrf_token"] = "suite"; $_SESSION["profile_complete"] = false;
+session_write_close(); echo session_id();
+';
+file_put_contents($gProbe, $gBase);
+$sidG = trim((string) exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($gProbe) . ' 2>&1'));
+$gPost = function ($payload) use ($BASE, $sidG) {
+    $ch = curl_init("$BASE/api/auth/google.php");
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'X-CSRF-Token: suite'],
+        CURLOPT_COOKIE => "PHPSESSID=$sidG", CURLOPT_USERAGENT => 'SuiteGProbe/1.0']);
+    $b = json_decode((string) curl_exec($ch), true);
+    $c = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$c, $b];
+};
+list($c83a, $j83a) = $gPost(['action' => 'complete_profile', 'name' => 'Probe Driver', 'car_model' => 'Leaf', 'battery_capacity' => 40, 'terms' => true]);
+rep('83a. completion without phone -> 400 phone error', $c83a === 400 && strpos($j83a['message'] ?? '', 'phone') !== false, "code=$c83a resp=" . json_encode($j83a));
+list($c83b, $j83b) = $gPost(['action' => 'complete_profile', 'name' => 'Probe Driver', 'phone' => 'not-a-phone', 'car_model' => 'Leaf', 'battery_capacity' => 40, 'terms' => true]);
+rep('83b. completion with malformed phone -> 400', $c83b === 400 && strpos($j83b['message'] ?? '', 'phone') !== false, "code=$c83b resp=" . json_encode($j83b));
+list($c83c, $j83c) = $gPost(['action' => 'complete_profile', 'name' => 'Probe Driver', 'phone' => '+977 9812345678', 'car_model' => 'Leaf', 'battery_capacity' => 40]);
+rep('83c. completion without terms -> 400 terms error', $c83c === 400 && strpos($j83c['message'] ?? '', 'Terms') !== false, "code=$c83c resp=" . json_encode($j83c));
+unlink($gProbe);
+
+// 84: source-shape assertion for the offline-untestable login routing - the
+// existing-user SELECTs must fetch phone so phoneless Google accounts are
+// routed back into completion (sibling of the 68/69 SQL-shape checks).
+$gSrc = file_get_contents(__DIR__ . '/../api/auth/google.php');
+$ok84 = strpos($gSrc, 'SELECT id, name, phone, profile_pic, profile_complete FROM users') !== false
+     && strpos($gSrc, 'SELECT id, company_name as name, phone, profile_complete FROM owners') !== false
+     && substr_count($gSrc, 'phone = ?') >= 2;
+rep('84. google.php login SELECTs fetch phone; both completion UPDATEs write it', $ok84, 'ok=' . var_export($ok84, true));
 
 echo "DONE\n";

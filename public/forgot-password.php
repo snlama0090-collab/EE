@@ -22,6 +22,8 @@ if (Auth::isLoggedIn()) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/dashboard.css">
     <script src="/EE/public/assets/js/csrf.js"></script>
+    <script>window.PW_CONFIG = { min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>, max: <?php echo (int) PASSWORD_MAX_LENGTH; ?> };</script>
+    <script src="/EE/public/assets/js/validators.js"></script>
     <style>
         body { background: linear-gradient(135deg, var(--primary) 0%, #1a1a2e 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .auth-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 420px; width: 100%; padding: 40px; }
@@ -75,13 +77,17 @@ if (Auth::isLoggedIn()) {
 
         document.getElementById('forgot-form').addEventListener('submit', function (e) {
             e.preventDefault();
+            var email = document.getElementById('email').value.trim();
+            if (!email) { showToast('Email is required', 'error'); return; }
+            // Same rule the server applies (validate_email) — mirrors validators.js.
+            if (window.AuthValidators && !AuthValidators.isValidEmail(email)) { showToast('Enter a valid email address', 'error'); return; }
             var btn = document.getElementById('submit-btn');
             btn.disabled = true; btn.textContent = 'Sending…';
             fetch('/EE/api/auth/forgot-password.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: document.getElementById('email').value.trim(),
+                    email: email,
                     user_type: document.getElementById('user-type').value
                 })
             }).then(r => r.json()).then(data => {

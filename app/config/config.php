@@ -84,7 +84,11 @@ define('LOG_PATH', LOGS_PATH . '/app.log');
 define('LOG_MAX_SIZE', 10 * 1024 * 1024); // 10 MB
 
 // ===== VALIDATION CONFIGURATION =====
+// Length-only password policy (2026-10 audit decision): no complexity rules
+// anywhere. Single source of truth for every PHP password check; the client
+// mirror lives in public/assets/js/validators.js fed via window.PW_CONFIG.
 define('PASSWORD_MIN_LENGTH', 8);
+define('PASSWORD_MAX_LENGTH', 128);
 
 define('NAME_MIN_LENGTH', 2);
 define('NAME_MAX_LENGTH', 100);

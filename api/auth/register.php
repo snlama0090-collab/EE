@@ -43,12 +43,18 @@ if (!validate_gmail($email)) {
     exit;
 }
 
-if (strlen($password) < PASSWORD_MIN_LENGTH) {
+$pw_len = mb_strlen($password);
+if ($pw_len < PASSWORD_MIN_LENGTH) {
     echo json_encode(['status' => 'error', 'message' => 'Password too short']);
     exit;
 }
 
-if (strlen($name) < NAME_MIN_LENGTH || strlen($name) > NAME_MAX_LENGTH) {
+if ($pw_len > PASSWORD_MAX_LENGTH) {
+    echo json_encode(['status' => 'error', 'message' => 'Password too long (maximum ' . PASSWORD_MAX_LENGTH . ' characters)']);
+    exit;
+}
+
+if (mb_strlen($name) < NAME_MIN_LENGTH || mb_strlen($name) > NAME_MAX_LENGTH) {
     echo json_encode(['status' => 'error', 'message' => 'Name must be between ' . NAME_MIN_LENGTH . ' and ' . NAME_MAX_LENGTH . ' characters']);
     exit;
 }
@@ -85,6 +91,13 @@ if ($user_type === 'driver') {
 
 if (!validate_phone($phone)) {
     echo json_encode(['status' => 'error', 'message' => 'Invalid phone number. Expected format: +977 98XXXXXXXX or 98XXXXXXXX']);
+    exit;
+}
+
+// Terms: the checkbox is client-validated, but this is the authoritative gate
+// (audit 2026-10: a non-JS client could otherwise sign up unchecked).
+if (empty($input['terms'])) {
+    echo json_encode(['status' => 'error', 'message' => 'You must accept the Terms & Conditions']);
     exit;
 }
 

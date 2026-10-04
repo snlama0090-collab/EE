@@ -29,13 +29,12 @@
     if (pwEl) {
         var pwBox = $('pw-checklist');
         var ruleEls = { len: $('pw-rule-len') };
-        var cfg = window.PW_CONFIG || { min: 8 };
         var repaintPw = function () {
             var v = pwEl.value;
-            var states = [
-                [v.length >= cfg.min, ruleEls.len]
-            ];
-            states.forEach(function (p) { if (p[1]) p[1].style.color = p[0] ? '#22c55e' : ''; });
+            var lenOk = window.AuthValidators
+                ? window.AuthValidators.isPasswordValidLength(v)
+                : v.length >= (window.PW_CONFIG || {}).min;
+            if (ruleEls.len) ruleEls.len.style.color = lenOk ? '#22c55e' : '';
         };
         pwEl.addEventListener('focus', function () { if (pwBox) pwBox.style.display = 'block'; });
         pwEl.addEventListener('input', function () { if (pwBox) pwBox.style.display = 'block'; repaintPw(); updateStrength(); });
@@ -81,10 +80,13 @@
             '.is-invalid{border-color:#e5484d !important;}';
         document.head.appendChild(style);
 
+        // ponytail: regexes live in validators.js (shared with the standalone
+        // auth pages); bank stays local — only the register form uses it.
+        var shared = (window.AuthValidators || {}).RE || {};
         var RE = {
-            email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-            gmail: /^[a-zA-Z0-9._%+-]+@gmail\.com$/i,
-            phone: /^(?:\+977\s?)?9[78]\d{8}$/,
+            email: shared.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            gmail: shared.gmail || /^[a-zA-Z0-9._%+-]+@gmail\.com$/i,
+            phone: shared.phone || /^(?:\+977\s?)?9[78]\d{8}$/,
             bank: /^[0-9]{5,20}$/
         };
         var boundForms = {};
@@ -231,7 +233,9 @@
     }
 
     // ── declarative rule tables + bindings ──
-    var pwMin = (window.PW_CONFIG && window.PW_CONFIG.min) || 8;
+    var AV = window.AuthValidators || {};
+    var pwMin = (window.PW_CONFIG && window.PW_CONFIG.min) || AV.PW_MIN || 8;
+    var pwMax = (window.PW_CONFIG && window.PW_CONFIG.max) || AV.PW_MAX || 128;
 
     var isDriver = function (getV) { return getV('user-type') === 'driver'; };
     var isOwner = function (getV) { return getV('user-type') === 'owner'; };
@@ -286,7 +290,8 @@
             [function (v) { return Validation.RE.bank.test(v.trim()); }, 'Bank account must be 5-20 digits']
         ]},
         { id: 'password', checks: [
-            [function (v) { return v.length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters']
+            [function (v) { return v.length >= pwMin; }, 'Password must be at least ' + pwMin + ' characters'],
+            [function (v) { return v.length <= pwMax; }, 'Password must be at most ' + pwMax + ' characters']
         ]},
         { id: 'confirm-password', checks: [
             [function (v) { return v !== '' && v === document.getElementById('password').value; }, 'Passwords do not match']

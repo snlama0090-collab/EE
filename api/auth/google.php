@@ -57,6 +57,15 @@ if (($input['action'] ?? '') === 'complete_profile') {
 
     $name = sanitize($input['name'] ?? '');
     if (mb_strlen(trim($name)) < 2 || mb_strlen(trim($name)) > 100) $fail('Name must be between 2 and 100 characters');
+
+    // Phone is mandatory for Google accounts, both roles (2026-10 audit decision).
+    // sanitize() only HTML-encodes; digits/+/space survive the phone regex.
+    $phone = sanitize($input['phone'] ?? '');
+    if (!validate_phone($phone)) $fail('Enter a valid Nepali phone number (e.g., +977 98XXXXXXXX)');
+
+    // Terms: complete-profile's checkbox is the Google user's acceptance point;
+    // enforce it server-side like the manual signup (audit 2026-10).
+    if (empty($input['terms'])) $fail('You must accept the Terms & Conditions');
     if (preg_match_all('/[A-Za-z\\x{00C0}-\\x{024F}]/u', $name) < 2) $fail('Please enter your real name');
 
     if ($auth_type === 'driver') {
@@ -97,11 +106,11 @@ if (($input['action'] ?? '') === 'complete_profile') {
     }
 
     if ($auth_type === 'driver') {
-        $db->prepare("UPDATE users SET name = ?, car_model = ?, car_full_capacity_kwh = ?, profile_complete = TRUE WHERE id = ?")
-           ->execute([$name, $car_model, $battery, Auth::getCurrentUserId()]);
+        $db->prepare("UPDATE users SET name = ?, phone = ?, car_model = ?, car_full_capacity_kwh = ?, profile_complete = TRUE WHERE id = ?")
+           ->execute([$name, $phone, $car_model, $battery, Auth::getCurrentUserId()]);
     } else {
-        $db->prepare("UPDATE owners SET name = ?, company_name = ?, bank_account_number = ?, profile_complete = TRUE WHERE id = ?")
-           ->execute([$name, $company, $bank, Auth::getCurrentUserId()]);
+        $db->prepare("UPDATE owners SET name = ?, phone = ?, company_name = ?, bank_account_number = ?, profile_complete = TRUE WHERE id = ?")
+           ->execute([$name, $phone, $company, $bank, Auth::getCurrentUserId()]);
     }
 
     // Preset selection (optional; an uploaded picture wins if both are present).
@@ -179,7 +188,7 @@ try {
     $profile_complete = true;
     
     if ($user_type === 'driver') {
-        $stmt = $db->prepare("SELECT id, name, profile_pic, profile_complete FROM users WHERE email = ?");
+        $stmt = $db->prepare("SELECT id, name, phone, profile_pic, profile_complete FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
@@ -191,6 +200,13 @@ try {
             // by its legitimate owner. No impersonation surface; stored password hash
             // below is never overwritten by the random one used for provisionals.
             $profile_complete = (bool)$user['profile_complete'];
+            // Phone policy: a Google account without a phone re-enters the completion
+            // flow on next login, so complete-profile.php can prompt for it before
+            // any dashboard is reachable.
+            if ($profile_complete && trim((string)($user['phone'] ?? '')) === '') {
+                $profile_complete = false;
+                log_message('INFO', "Google login: driver $email missing phone - routed to profile completion");
+            }
         } else {
             // Provisional registration: real verified identity ONLY - no fabricated
             // car fields. Role-specific data arrives via complete-profile.php.
@@ -210,7 +226,7 @@ try {
         }
         
     } elseif ($user_type === 'owner') {
-        $stmt = $db->prepare("SELECT id, company_name as name, profile_complete FROM owners WHERE email = ?");
+        $stmt = $db->prepare("SELECT id, company_name as name, phone, profile_complete FROM owners WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
@@ -218,6 +234,10 @@ try {
             $user_id = $user['id'];
             // Same verified-email safety argument as the driver branch (decision D).
             $profile_complete = (bool)$user['profile_complete'];
+            if ($profile_complete && trim((string)($user['phone'] ?? '')) === '') {
+                $profile_complete = false;
+                log_message('INFO', "Google login: owner $email missing phone - routed to profile completion");
+            }
         } else {
             // Provisional registration: NO fabricated company naming either -
             // NOT NULL satisfied with '' until completion fills the real name.

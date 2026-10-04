@@ -24,6 +24,7 @@ $project_name = 'WattPulse';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="assets/css/dashboard.css">
+    <script src="assets/js/validators.js" defer></script>
     <script src="assets/js/auth.js" defer></script>
 <script src="/EE/public/assets/js/csrf.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -519,7 +520,7 @@ $project_name = 'WattPulse';
                 <div class="form-group" style="margin-bottom:14px;">
                     <label for="password" style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--foreground);">Password</label>
                     <div class="input-group">
-                        <input type="password" id="password" name="password" placeholder="Minimum 8 characters" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
+                        <input type="password" id="password" name="password" placeholder="8–128 characters" autocomplete="new-password" value="" required style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--input);border-radius:var(--radius);font-size:14px;background:var(--card);color:var(--foreground);">
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('password', 'eye-icon-password')">
                             <i class="fas fa-eye" id="eye-icon-password"></i>
                         </button>
@@ -527,7 +528,7 @@ $project_name = 'WattPulse';
                     <div id="pw-strength" style="font-size:12px;margin-top:4px;min-height:16px;"></div>
                     <!-- Live password checklist (mirrors server rules; UX only) -->
                     <div id="pw-checklist" style="display:none;margin-top:6px;font-size:12px;color:var(--muted-foreground);">
-                        <span id="<span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>+ characters</span>
+                        <span id="pw-rule-len"><?php echo (int) PASSWORD_MIN_LENGTH; ?>–<?php echo (int) PASSWORD_MAX_LENGTH; ?> characters</span>
                     </div>
                 </div>
 
@@ -548,7 +549,7 @@ $project_name = 'WattPulse';
                 </div>
 
                 <div class="button-group">
-                    <button type="button" class="back-btn" onclick="goToStep(1)">Back</button>
+                    <button type="button" class="back-btn" onclick="goBackToStep1()">Back</button>
                     <button type="submit" class="auth-btn" id="submit-btn">Create Account</button>
                 </div>
             </form>
@@ -580,7 +581,8 @@ $project_name = 'WattPulse';
     <script>
         // Password policy mirrored from server config so client hints can never drift
         window.PW_CONFIG = {
-            min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>
+            min: <?php echo (int) PASSWORD_MIN_LENGTH; ?>,
+            max: <?php echo (int) PASSWORD_MAX_LENGTH; ?>
         };
         // showToast defined inline for early availability (fallback if dashboard.js hasn't loaded yet)
         function showToast(message, type, duration) {
@@ -654,7 +656,10 @@ $project_name = 'WattPulse';
         // active one during the formData.forEach copy).
         selectUserType(selectedUserType);
 
-        function goToStep(step) {
+        // Browser Back stays in sync with the wizard: advancing to the signup
+        // form pushes a history entry, so Back returns to role selection while
+        // Back from role selection leaves the page normally.
+        function goToStep(step, skipPush) {
             const step1 = document.getElementById('step-1');
             const step2 = document.getElementById('step-2');
             const progress = document.getElementById('progress-fill');
@@ -667,8 +672,26 @@ $project_name = 'WattPulse';
                 step2.classList.add('active');
                 progress.style.width = '100%';
                 selectUserType(selectedUserType);
+                if (!skipPush && !(history.state && history.state.wizardStep === 2)) {
+                    history.pushState({ wizardStep: 2 }, '', location.href);
+                }
             }
         }
+
+        function goBackToStep1() {
+            if (history.state && history.state.wizardStep === 2) {
+                history.back(); // pops the pushed entry; popstate repaints step 1
+            } else {
+                goToStep(1);
+            }
+        }
+
+        window.addEventListener('popstate', function (e) {
+            goToStep(e.state && e.state.wizardStep === 2 ? 2 : 1, true);
+        });
+        // Reload mid-form: history still says step 2 while the DOM reset to
+        // step 1 - repaint so the history stack matches what is on screen.
+        if (history.state && history.state.wizardStep === 2) goToStep(2, true);
 
         function showError(message) {
             const msg = document.getElementById('error-message');
